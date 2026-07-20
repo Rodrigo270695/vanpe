@@ -1,0 +1,22 @@
+export type FelDocumentSummary = {
+    id: string;
+    numero_completo: string;
+    estado: string;
+    url_pdf?: string | null;
+    url_pdf_ticket?: string | null;
+    url_pdf_a4?: string | null;
+    apisunat_mode?: 'sandbox' | 'produccion' | null;
+    sunat_estado?: string | null;
+    tiene_xml?: boolean;
+    tiene_cdr?: boolean;
+    tiene_json?: boolean;
+    error_mensaje?: string | null;
+    emitido_at?: string | null;
+    created_at?: string | null;
+    sort_at?: string | null;
+    sale_id?: string | null;
+    download_xml_url?: string;
+    download_cdr_url?: string;
+    json_url?: string;
+    can_reemit?: boolean;
+};
