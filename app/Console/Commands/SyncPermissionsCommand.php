@@ -45,11 +45,13 @@ class SyncPermissionsCommand extends Command
             if ($tenants->isEmpty()) {
                 $this->components->warn('No hay restaurantes para sincronizar.');
 
-                return self::FAILURE;
-            }
-
-            foreach ($tenants as $tenant) {
-                $this->syncTenant($tenant);
+                if ($scope === 'tenant') {
+                    return self::FAILURE;
+                }
+            } else {
+                foreach ($tenants as $tenant) {
+                    $this->syncTenant($tenant);
+                }
             }
         }
 
@@ -65,6 +67,11 @@ class SyncPermissionsCommand extends Command
 
         $this->components->task('Plataforma (public)', function (): void {
             RoleProvisioner::ensurePermissions('platform');
+
+            foreach (PermissionCatalog::coreRoles('platform') as $roleName) {
+                \App\Models\Permission\Role::findOrCreate($roleName, 'web');
+            }
+
             RoleProvisioner::grantCoreMissingPermissions('platform');
         });
 
@@ -86,6 +93,11 @@ class SyncPermissionsCommand extends Command
 
             try {
                 RoleProvisioner::ensurePermissions('tenant');
+
+                foreach (PermissionCatalog::coreRoles('tenant') as $roleName) {
+                    \App\Models\Permission\Role::findOrCreate($roleName, 'web');
+                }
+
                 RoleProvisioner::grantCoreMissingPermissions('tenant');
             } finally {
                 DB::setDefaultConnection($previousDefault);
