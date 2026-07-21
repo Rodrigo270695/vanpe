@@ -1,7 +1,9 @@
 import { Form, Head } from '@inertiajs/react';
 import { ArrowRight, Lock, Mail, Store, User } from 'lucide-react';
+import { useState } from 'react';
 import InputError from '@/components/input-error';
 import PasswordInput from '@/components/password-input';
+import PasswordStrengthMeter from '@/components/password-strength-meter';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -16,6 +18,7 @@ type Props = {
 
 export default function Register({ passwordRules, rootDomain }: Props) {
     const { t } = useTranslations();
+    const [password, setPassword] = useState('');
 
     return (
         <>
@@ -30,7 +33,10 @@ export default function Register({ passwordRules, rootDomain }: Props) {
                 {({ processing, errors }) => (
                     <>
                         <div className="grid gap-2">
-                            <Label htmlFor="nombre_comercial" className="text-white">
+                            <Label
+                                htmlFor="nombre_comercial"
+                                className="text-white"
+                            >
                                 {t('auth.business_name')}
                             </Label>
                             <div className="relative">
@@ -42,7 +48,9 @@ export default function Register({ passwordRules, rootDomain }: Props) {
                                     autoFocus
                                     tabIndex={1}
                                     name="nombre_comercial"
-                                    placeholder={t('auth.business_name_placeholder')}
+                                    placeholder={t(
+                                        'auth.business_name_placeholder',
+                                    )}
                                     className="clay-inset h-11 pl-10"
                                 />
                             </div>
@@ -53,20 +61,22 @@ export default function Register({ passwordRules, rootDomain }: Props) {
                             <Label htmlFor="slug" className="text-white">
                                 {t('auth.slug')}
                             </Label>
-                            <div className="relative flex items-stretch">
+                            <div className="clay-inset flex h-11 overflow-hidden rounded-xl bg-white/95">
                                 <Input
                                     id="slug"
                                     type="text"
                                     tabIndex={2}
                                     name="slug"
                                     placeholder={t('auth.slug_placeholder')}
-                                    className="clay-inset h-11 rounded-r-none"
+                                    className="h-full min-w-0 flex-1 rounded-none border-0 bg-transparent px-3 shadow-none focus-visible:ring-0"
                                 />
-                                <span className="flex items-center rounded-r-xl bg-white/15 px-3 text-xs font-medium text-white/80">
+                                <span className="flex shrink-0 items-center border-l border-brand-blue/15 bg-brand-blue/8 px-3 text-sm font-semibold text-brand-blue">
                                     .{rootDomain}
                                 </span>
                             </div>
-                            <p className="text-xs text-white/70">{t('auth.slug_hint')}</p>
+                            <p className="text-xs text-white/70">
+                                {t('auth.slug_hint')}
+                            </p>
                             <InputError message={errors.slug} />
                         </div>
 
@@ -108,7 +118,7 @@ export default function Register({ passwordRules, rootDomain }: Props) {
                                     data-bwignore
                                     data-form-type="other"
                                     placeholder={t('auth.email_placeholder')}
-                                    className="clay-inset h-11 pl-10 [background-image:none!important]"
+                                    className="clay-inset h-11 [background-image:none!important] pl-10"
                                 />
                             </div>
                             <InputError message={errors.email} />
@@ -126,11 +136,19 @@ export default function Register({ passwordRules, rootDomain }: Props) {
                                     tabIndex={5}
                                     autoComplete="new-password"
                                     name="password"
+                                    value={password}
+                                    onChange={(event) =>
+                                        setPassword(event.target.value)
+                                    }
                                     placeholder={t('auth.password_placeholder')}
                                     passwordrules={passwordRules}
                                     className="clay-inset h-11 pl-10"
                                 />
                             </div>
+                            <PasswordStrengthMeter
+                                password={password}
+                                passwordRules={passwordRules}
+                            />
                             <InputError message={errors.password} />
                         </div>
 
@@ -156,7 +174,9 @@ export default function Register({ passwordRules, rootDomain }: Props) {
                                     className="clay-inset h-11 pl-10"
                                 />
                             </div>
-                            <InputError message={errors.password_confirmation} />
+                            <InputError
+                                message={errors.password_confirmation}
+                            />
                         </div>
 
                         <Button

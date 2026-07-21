@@ -30,7 +30,7 @@ return [
     |
     */
 
-    'root_domain' => env('TENANT_ROOT_DOMAIN', 'localhost'),
+    'root_domain' => env('TENANT_ROOT_DOMAIN', 'vanpe.pe'),
 
     /*
     |--------------------------------------------------------------------------

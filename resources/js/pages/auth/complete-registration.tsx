@@ -1,7 +1,9 @@
 import { Form, Head } from '@inertiajs/react';
 import { ArrowRight, Lock, Store, User } from 'lucide-react';
+import { useState } from 'react';
 import InputError from '@/components/input-error';
 import PasswordInput from '@/components/password-input';
+import PasswordStrengthMeter from '@/components/password-strength-meter';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -22,6 +24,7 @@ export default function CompleteRegistration({
     rootDomain,
 }: Props) {
     const { t } = useTranslations();
+    const [password, setPassword] = useState('');
 
     return (
         <>
@@ -55,7 +58,10 @@ export default function CompleteRegistration({
                 {({ processing, errors }) => (
                     <>
                         <div className="grid gap-2">
-                            <Label htmlFor="nombre_comercial" className="text-white">
+                            <Label
+                                htmlFor="nombre_comercial"
+                                className="text-white"
+                            >
                                 {t('auth.business_name')}
                             </Label>
                             <div className="relative">
@@ -67,7 +73,9 @@ export default function CompleteRegistration({
                                     autoFocus
                                     tabIndex={1}
                                     name="nombre_comercial"
-                                    placeholder={t('auth.business_name_placeholder')}
+                                    placeholder={t(
+                                        'auth.business_name_placeholder',
+                                    )}
                                     className="clay-inset h-11 pl-10"
                                 />
                             </div>
@@ -78,20 +86,22 @@ export default function CompleteRegistration({
                             <Label htmlFor="slug" className="text-white">
                                 {t('auth.slug')}
                             </Label>
-                            <div className="relative flex items-stretch">
+                            <div className="clay-inset flex h-11 overflow-hidden rounded-xl bg-white/95">
                                 <Input
                                     id="slug"
                                     type="text"
                                     tabIndex={2}
                                     name="slug"
                                     placeholder={t('auth.slug_placeholder')}
-                                    className="clay-inset h-11 rounded-r-none"
+                                    className="h-full min-w-0 flex-1 rounded-none border-0 bg-transparent px-3 shadow-none focus-visible:ring-0"
                                 />
-                                <span className="flex items-center rounded-r-xl bg-white/15 px-3 text-xs font-medium text-white/80">
+                                <span className="flex shrink-0 items-center border-l border-brand-blue/15 bg-brand-blue/8 px-3 text-sm font-semibold text-brand-blue">
                                     .{rootDomain}
                                 </span>
                             </div>
-                            <p className="text-xs text-white/70">{t('auth.slug_hint')}</p>
+                            <p className="text-xs text-white/70">
+                                {t('auth.slug_hint')}
+                            </p>
                             <InputError message={errors.slug} />
                         </div>
 
@@ -128,11 +138,19 @@ export default function CompleteRegistration({
                                     tabIndex={4}
                                     autoComplete="new-password"
                                     name="password"
+                                    value={password}
+                                    onChange={(event) =>
+                                        setPassword(event.target.value)
+                                    }
                                     placeholder={t('auth.password_placeholder')}
                                     passwordrules={passwordRules}
                                     className="clay-inset h-11 pl-10"
                                 />
                             </div>
+                            <PasswordStrengthMeter
+                                password={password}
+                                passwordRules={passwordRules}
+                            />
                             <p className="text-xs text-white/70">
                                 {t('auth.password_for_panel')}
                             </p>
@@ -161,7 +179,9 @@ export default function CompleteRegistration({
                                     className="clay-inset h-11 pl-10"
                                 />
                             </div>
-                            <InputError message={errors.password_confirmation} />
+                            <InputError
+                                message={errors.password_confirmation}
+                            />
                         </div>
 
                         <Button
