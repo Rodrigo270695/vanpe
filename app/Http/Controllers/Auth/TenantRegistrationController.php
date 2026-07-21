@@ -48,18 +48,28 @@ class TenantRegistrationController extends Controller
 
         $slug = TenantSlug::unique($validated['slug'] ?: $validated['nombre_comercial']);
 
-        $tenant = $provisioner->provision([
-            'slug' => $slug,
-            'razon_social' => $validated['nombre_comercial'],
-            'nombre_comercial' => $validated['nombre_comercial'],
-            'ruc' => $validated['ruc'] ?? null,
-            'email_admin' => $validated['email'],
-            'owner' => [
-                'name' => $validated['name'],
-                'email' => $validated['email'],
-                'password' => $validated['password'],
-            ],
-        ]);
+        try {
+            $tenant = $provisioner->provision([
+                'slug' => $slug,
+                'razon_social' => $validated['nombre_comercial'],
+                'nombre_comercial' => $validated['nombre_comercial'],
+                'ruc' => $validated['ruc'] ?? null,
+                'email_admin' => $validated['email'],
+                'owner' => [
+                    'name' => $validated['name'],
+                    'email' => $validated['email'],
+                    'password' => $validated['password'],
+                ],
+            ]);
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return back()
+                ->withInput($request->except(['password', 'password_confirmation']))
+                ->withErrors([
+                    'nombre_comercial' => __('messages.auth.registration_unavailable'),
+                ]);
+        }
 
         $verificationQueued = $this->queueVerificationEmail($tenant);
 

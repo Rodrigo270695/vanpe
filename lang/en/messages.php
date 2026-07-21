@@ -192,6 +192,7 @@ return [
         'sign_in' => 'Sign in',
         'registration_success' => ':name was registered! We will email :email so you can confirm your account. Your panel will be available at :host.',
         'registration_mail_pending' => ':name was registered! We could not schedule the confirmation email right now. Your account is safe; contact support to resend it. Your panel will be available at :host.',
+        'registration_unavailable' => 'We could not create the restaurant right now. Please try again in a few minutes.',
 
         'onboarding_title' => 'Complete your restaurant',
         'onboarding_subtitle' => "We've identified you with Google. Just your restaurant details are left.",

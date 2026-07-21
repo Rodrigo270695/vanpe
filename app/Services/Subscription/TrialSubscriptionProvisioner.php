@@ -5,6 +5,7 @@ namespace App\Services\Subscription;
 use App\Models\Plan;
 use App\Models\Subscription;
 use App\Models\Tenant;
+use RuntimeException;
 
 /**
  * Crea la suscripción inicial de un restaurante recién provisionado.
@@ -56,9 +57,17 @@ class TrialSubscriptionProvisioner
             return $plan;
         }
 
-        return Plan::query()
+        $fallback = Plan::query()
             ->where('active', true)
             ->orderBy('sort_order')
-            ->firstOrFail();
+            ->first();
+
+        if ($fallback === null) {
+            throw new RuntimeException(
+                'No hay un plan SaaS activo para aprovisionar el restaurante.',
+            );
+        }
+
+        return $fallback;
     }
 }

@@ -192,6 +192,7 @@ return [
         'sign_in' => 'Inicia sesión',
         'registration_success' => '¡:name registrado! Te enviaremos un correo a :email para confirmar tu cuenta. Tu panel estará en :host.',
         'registration_mail_pending' => '¡:name fue registrado! No pudimos programar el correo de confirmación en este momento. Tu cuenta está segura; contacta a soporte para reenviarlo. Tu panel estará en :host.',
+        'registration_unavailable' => 'No pudimos crear el restaurante en este momento. Inténtalo nuevamente en unos minutos.',
 
         'onboarding_title' => 'Completa tu restaurante',
         'onboarding_subtitle' => 'Ya te identificamos con Google. Solo faltan los datos de tu restaurante.',
