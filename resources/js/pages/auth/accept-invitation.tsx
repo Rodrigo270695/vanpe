@@ -5,6 +5,7 @@ import PasswordInput from '@/components/password-input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
+import { useTranslations } from '@/hooks/use-translations';
 
 type Props = {
     staffName: string;
@@ -23,9 +24,11 @@ export default function AcceptInvitation({
     alreadyDone,
     passwordRules,
 }: Props) {
+    const { t } = useTranslations();
+
     return (
         <>
-            <Head title="Activa tu cuenta" />
+            <Head title={t('auth.invite_title')} />
 
             {/* Restaurante que invita */}
             <div className="flex items-center gap-3 rounded-xl bg-white/12 px-4 py-3 ring-1 ring-white/20">
@@ -37,7 +40,7 @@ export default function AcceptInvitation({
                         {restaurantName}
                     </p>
                     <p className="truncate text-xs text-white/70">
-                        Hola, {staffName}
+                        {t('auth.invite_hello', { name: staffName })}
                     </p>
                 </div>
             </div>
@@ -49,15 +52,15 @@ export default function AcceptInvitation({
                     </span>
                     <div>
                         <p className="text-sm font-semibold text-white">
-                            Tu cuenta ya está activa
+                            {t('auth.invite_already_active')}
                         </p>
                         <p className="mt-1 text-xs text-white/70">
-                            Ingresa con tu correo y contraseña para continuar.
+                            {t('auth.invite_already_active_hint')}
                         </p>
                     </div>
                     <a href={loginUrl} className="w-full">
                         <Button className="group clay-cta-orange h-12 w-full text-base font-semibold text-white transition-all active:scale-[0.99]">
-                            Ir a iniciar sesión
+                            {t('auth.invite_go_login')}
                             <ArrowRight className="size-5 transition-transform group-hover:translate-x-1" />
                         </Button>
                     </a>
@@ -74,7 +77,7 @@ export default function AcceptInvitation({
                         <>
                             <div className="grid gap-2">
                                 <Label htmlFor="password" className="text-white">
-                                    Nueva contraseña
+                                    {t('auth.invite_new_password')}
                                 </Label>
                                 <div className="relative">
                                     <Lock className="pointer-events-none absolute top-1/2 left-3 z-10 size-4.5 -translate-y-1/2 text-brand-blue" />
@@ -91,8 +94,7 @@ export default function AcceptInvitation({
                                     />
                                 </div>
                                 <p className="text-xs text-white/70">
-                                    Mínimo 8 caracteres, con mayúscula, minúscula
-                                    y número.
+                                    {t('auth.invite_password_hint')}
                                 </p>
                                 <InputError message={errors.password} />
                             </div>
@@ -102,7 +104,7 @@ export default function AcceptInvitation({
                                     htmlFor="password_confirmation"
                                     className="text-white"
                                 >
-                                    Confirmar contraseña
+                                    {t('auth.password_confirm')}
                                 </Label>
                                 <div className="relative">
                                     <Lock className="pointer-events-none absolute top-1/2 left-3 z-10 size-4.5 -translate-y-1/2 text-brand-blue" />
@@ -129,7 +131,7 @@ export default function AcceptInvitation({
                                 disabled={processing}
                             >
                                 {processing && <Spinner />}
-                                Activar mi cuenta
+                                {t('auth.invite_activate')}
                                 {!processing && (
                                     <ArrowRight className="size-5 transition-transform group-hover:translate-x-1" />
                                 )}

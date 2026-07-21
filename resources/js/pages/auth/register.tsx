@@ -11,9 +11,10 @@ import { register } from '@/routes';
 
 type Props = {
     passwordRules: string;
+    rootDomain: string;
 };
 
-export default function Register({ passwordRules }: Props) {
+export default function Register({ passwordRules, rootDomain }: Props) {
     const { t } = useTranslations();
 
     return (
@@ -62,7 +63,7 @@ export default function Register({ passwordRules }: Props) {
                                     className="clay-inset h-11 rounded-r-none"
                                 />
                                 <span className="flex items-center rounded-r-xl bg-white/15 px-3 text-xs font-medium text-white/80">
-                                    .vanpe.com.pe
+                                    .{rootDomain}
                                 </span>
                             </div>
                             <p className="text-xs text-white/70">{t('auth.slug_hint')}</p>

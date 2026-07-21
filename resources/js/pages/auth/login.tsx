@@ -205,6 +205,17 @@ export default function Login({ status, canResetPassword }: Props) {
                     </>
                 )}
             </Form>
+
+            {!isTenant && (
+                <div className="text-center text-sm">
+                    <TextLink
+                        href="/email/verificacion/reenviar"
+                        className="font-medium text-brand-orange-light hover:text-white"
+                    >
+                        {t('auth.verification_resend_link')}
+                    </TextLink>
+                </div>
+            )}
         </>
     );
 }

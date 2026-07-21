@@ -33,7 +33,8 @@ class OwnerOnboardingController extends Controller
         return Inertia::render('auth/complete-registration', [
             'ownerName' => $pending['name'] ?? '',
             'ownerEmail' => $pending['email'] ?? '',
-            'passwordRules' => 'minlength: 8; required: lower; required: upper; required: digit;',
+            'passwordRules' => Password::defaults()->toPasswordRulesString(),
+            'rootDomain' => (string) config('tenant.root_domain'),
         ]);
     }
 
@@ -55,11 +56,11 @@ class OwnerOnboardingController extends Controller
         ]);
 
         // Si en el intermedio el correo ya quedó registrado, mándalo al login.
-        if (Tenant::query()->where('email_admin', $email)->exists()) {
+        if ($existingTenant = Tenant::query()->where('email_admin', $email)->first()) {
             $request->session()->forget('pending_owner');
 
             return redirect()->route('login')->with('status', __('messages.auth.google_owner_exists', [
-                'host' => '',
+                'host' => $existingTenant->subdomainHost(),
             ]));
         }
 

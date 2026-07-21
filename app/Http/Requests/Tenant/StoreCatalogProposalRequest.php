@@ -22,7 +22,7 @@ class StoreCatalogProposalRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'type' => ['required', 'string', Rule::in(RefCatalogTypes::ALL)],
+            'type' => ['required', 'string', Rule::in(RefCatalogTypes::RESTAURANT)],
             'suggested_name' => ['required', 'string', 'min:2', 'max:100'],
         ];
     }

@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { LanguageToggle } from '@/components/language-toggle';
+import { AppearanceToggle } from '@/components/appearance-toggle';
 import { Card, CardContent } from '@/components/ui/card';
 import { useTranslations } from '@/hooks/use-translations';
 import { home, login, register } from '@/routes';
@@ -25,7 +26,9 @@ type PageMeta = {
 
 export default function ClayAuthLayout({ children }: { children: ReactNode }) {
     const { t } = useTranslations();
-    const component = usePage().component;
+    const page = usePage();
+    const component = page.component;
+    const showFooter = !(component === 'auth/login' && page.props.tenant);
 
     const meta: Record<string, PageMeta> = {
         'auth/login': {
@@ -48,6 +51,14 @@ export default function ClayAuthLayout({ children }: { children: ReactNode }) {
             title: t('auth.forgot_title'),
             description: t('auth.forgot_subtitle'),
             badge: t('auth.card_badge_forgot'),
+            footPrompt: t('auth.back_to_login'),
+            footLink: t('auth.sign_in'),
+            footHref: login().url,
+        },
+        'auth/resend-verification': {
+            title: t('auth.verification_resend_title'),
+            description: t('auth.verification_resend_subtitle'),
+            badge: t('auth.card_badge'),
             footPrompt: t('auth.back_to_login'),
             footLink: t('auth.sign_in'),
             footHref: login().url,
@@ -205,7 +216,8 @@ export default function ClayAuthLayout({ children }: { children: ReactNode }) {
                             className="h-9 w-auto object-contain"
                         />
                     </Link>
-                    <div className="ml-auto">
+                    <div className="ml-auto flex items-center gap-0.5">
+                        <AppearanceToggle />
                         <LanguageToggle />
                     </div>
                 </div>
@@ -261,15 +273,17 @@ export default function ClayAuthLayout({ children }: { children: ReactNode }) {
                                 </CardContent>
                             </Card>
 
-                            <div className="mt-6 text-center text-sm text-muted-foreground">
-                                {current.footPrompt}{' '}
-                                <Link
-                                    href={current.footHref}
-                                    className="font-semibold text-brand-blue hover:text-brand-orange dark:text-brand-blue-light"
-                                >
-                                    {current.footLink}
-                                </Link>
-                            </div>
+                            {showFooter && (
+                                <div className="mt-6 text-center text-sm text-muted-foreground">
+                                    {current.footPrompt}{' '}
+                                    <Link
+                                        href={current.footHref}
+                                        className="font-semibold text-brand-blue hover:text-brand-orange dark:text-brand-blue-light"
+                                    >
+                                        {current.footLink}
+                                    </Link>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

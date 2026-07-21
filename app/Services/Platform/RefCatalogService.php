@@ -18,6 +18,7 @@ class RefCatalogService
     public function __construct(
         private readonly PublicCatalogPublisher $publisher,
     ) {}
+
     /**
      * @return array<string, list<array<string, mixed>>>
      */
@@ -32,7 +33,7 @@ class RefCatalogService
 
         $grouped = [];
 
-        foreach (RefCatalogTypes::ALL as $type) {
+        foreach (RefCatalogTypes::RESTAURANT as $type) {
             $grouped[$type] = [];
         }
 

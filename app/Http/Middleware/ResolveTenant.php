@@ -25,6 +25,7 @@ class ResolveTenant
     {
         // Evita que un search_path residual afecte la resolución.
         $this->manager->forget();
+        $this->configurePasswordBroker('users');
 
         $slug = $this->resolver->resolveFromRequest($request);
 
@@ -34,6 +35,7 @@ class ResolveTenant
 
         // Lanza TenantNotFound / TenantUnavailable si no procede (ver bootstrap/app.php).
         $context = $this->manager->resolveBySlug($slug);
+        $this->configurePasswordBroker('tenant_users');
 
         // Aísla la caché de permisos de Spatie por schema, para que los permisos
         // de un restaurante nunca se mezclen con los de otro ni con la plataforma.
@@ -44,5 +46,10 @@ class ResolveTenant
         URL::defaults(['tenant_subdomain' => $slug]);
 
         return $next($request);
+    }
+
+    private function configurePasswordBroker(string $broker): void
+    {
+        config(['fortify.passwords' => $broker]);
     }
 }

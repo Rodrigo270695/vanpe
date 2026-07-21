@@ -74,6 +74,12 @@ class TenantManager
      */
     public function forget(): void
     {
+        if (DB::getDefaultConnection() !== 'pgsql') {
+            $this->current = null;
+
+            return;
+        }
+
         $conn = DB::connection(self::CONNECTION);
 
         if ($conn->getDriverName() === 'pgsql') {

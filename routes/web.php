@@ -16,20 +16,21 @@ use App\Http\Controllers\Platform\RoleController;
 use App\Http\Controllers\Platform\SubscriptionController;
 use App\Http\Controllers\Platform\SubscriptionPaymentController;
 use App\Http\Controllers\Platform\TenantController;
+use App\Http\Controllers\Platform\TourSpotController;
 use App\Http\Controllers\Platform\UserController;
 use App\Http\Controllers\Tenant\CajaController;
-use App\Http\Controllers\Tenant\FelDocumentController;
-use App\Http\Controllers\Tenant\FelSerieController;
-use App\Http\Controllers\Tenant\ReportesController;
-use App\Http\Controllers\Tenant\VentasController;
-use App\Http\Controllers\Tenant\WaitingListController;
 use App\Http\Controllers\Tenant\CartaController;
 use App\Http\Controllers\Tenant\CocinaController;
 use App\Http\Controllers\Tenant\ConfiguracionController;
+use App\Http\Controllers\Tenant\FelDocumentController;
+use App\Http\Controllers\Tenant\FelSerieController;
 use App\Http\Controllers\Tenant\MesasController;
 use App\Http\Controllers\Tenant\PedidosController;
 use App\Http\Controllers\Tenant\PushSubscriptionController;
+use App\Http\Controllers\Tenant\ReportesController;
 use App\Http\Controllers\Tenant\ReservasController;
+use App\Http\Controllers\Tenant\VentasController;
+use App\Http\Controllers\Tenant\WaitingListController;
 use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'welcome')->name('home');
@@ -71,7 +72,12 @@ Route::middleware('guest')->group(function () {
     // Solo en el dominio central (no dentro del subdominio de un tenant).
     Route::middleware('tenant.none')->group(function () {
         Route::get('register', [TenantRegistrationController::class, 'create'])->name('register');
-        Route::post('register', [TenantRegistrationController::class, 'store']);
+        Route::post('register', [TenantRegistrationController::class, 'store'])->name('register.store');
+        Route::get('email/verificacion/reenviar', [TenantRegistrationController::class, 'createVerificationResend'])
+            ->name('tenant.verification.resend');
+        Route::post('email/verificacion/reenviar', [TenantRegistrationController::class, 'resendVerification'])
+            ->middleware('throttle:6,1')
+            ->name('tenant.verification.resend.store');
 
         Route::get('auth/google/redirect', [GoogleController::class, 'redirect'])
             ->name('google.redirect');
@@ -257,6 +263,19 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->name('catalog.proposals.approve');
         Route::post('catalogo/proposals/{proposal}/reject', [CatalogController::class, 'rejectProposal'])
             ->name('catalog.proposals.reject');
+
+        Route::get('centros-turisticos', [TourSpotController::class, 'index'])->name('tour-spots.index');
+        Route::get('centros-turisticos/geo/provincias', [TourSpotController::class, 'provincias'])
+            ->name('tour-spots.geo.provincias');
+        Route::get('centros-turisticos/geo/distritos', [TourSpotController::class, 'distritos'])
+            ->name('tour-spots.geo.distritos');
+        Route::post('centros-turisticos/categories', [TourSpotController::class, 'storeCategory'])
+            ->name('tour-spots.categories.store');
+        Route::post('centros-turisticos/access-modes', [TourSpotController::class, 'storeAccessMode'])
+            ->name('tour-spots.access-modes.store');
+        Route::post('centros-turisticos', [TourSpotController::class, 'store'])->name('tour-spots.store');
+        Route::put('centros-turisticos/{tour_spot}', [TourSpotController::class, 'update'])->name('tour-spots.update');
+        Route::delete('centros-turisticos/{tour_spot}', [TourSpotController::class, 'destroy'])->name('tour-spots.destroy');
     });
 });
 

@@ -1,4 +1,4 @@
-import { Form, Head } from '@inertiajs/react';
+import { Form, Head, setLayoutProps } from '@inertiajs/react';
 import {
     index as confirmOptions,
     store as confirmStore,
@@ -9,32 +9,48 @@ import PasswordInput from '@/components/password-input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
+import { useTranslations } from '@/hooks/use-translations';
 import { store } from '@/routes/password/confirm';
 
-export default function ConfirmPassword() {
+export default function ConfirmPassword({
+    canConfirmWithPasskey,
+}: {
+    canConfirmWithPasskey: boolean;
+}) {
+    const { t } = useTranslations();
+
+    setLayoutProps({
+        title: t('auth.confirm_title'),
+        description: t('auth.confirm_subtitle'),
+    });
+
     return (
         <>
-            <Head title="Confirm password" />
+            <Head title={t('auth.confirm_title')} />
 
-            <PasskeyVerify
-                routes={{
-                    options: confirmOptions(),
-                    submit: confirmStore(),
-                }}
-                label="Confirm with passkey"
-                loadingLabel="Confirming..."
-                separator="Or confirm with password"
-            />
+            {canConfirmWithPasskey && (
+                <PasskeyVerify
+                    routes={{
+                        options: confirmOptions(),
+                        submit: confirmStore(),
+                    }}
+                    label={t('auth.confirm_with_passkey')}
+                    loadingLabel={t('auth.confirming')}
+                    separator={t('auth.or_confirm_password')}
+                />
+            )}
 
             <Form {...store.form()} resetOnSuccess={['password']}>
                 {({ processing, errors }) => (
                     <div className="space-y-6">
                         <div className="grid gap-2">
-                            <Label htmlFor="password">Password</Label>
+                            <Label htmlFor="password">
+                                {t('auth.password')}
+                            </Label>
                             <PasswordInput
                                 id="password"
                                 name="password"
-                                placeholder="Password"
+                                placeholder={t('auth.password_placeholder')}
                                 autoComplete="current-password"
                                 autoFocus
                             />
@@ -49,7 +65,7 @@ export default function ConfirmPassword() {
                                 data-test="confirm-password-button"
                             >
                                 {processing && <Spinner />}
-                                Confirm password
+                                {t('auth.confirm_submit')}
                             </Button>
                         </div>
                     </div>
@@ -58,9 +74,3 @@ export default function ConfirmPassword() {
         </>
     );
 }
-
-ConfirmPassword.layout = {
-    title: 'Confirm password',
-    description:
-        'This is a secure area of the application. Please confirm your password before continuing.',
-};

@@ -2,9 +2,12 @@
 
 namespace App\Models\Tenant;
 
+use App\Notifications\QueuedTenantResetPassword;
+use App\Tenancy\TenantManager;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Notification;
 use Spatie\Permission\Traits\HasRoles;
 
 /**
@@ -55,5 +58,23 @@ class User extends Authenticatable
             'activo' => 'boolean',
             'es_owner' => 'boolean',
         ];
+    }
+
+    public function sendPasswordResetNotification(#[\SensitiveParameter] $token): void
+    {
+        $tenant = app(TenantManager::class)->tenant();
+
+        if ($tenant === null || ! filled($this->email)) {
+            return;
+        }
+
+        $resetUrl = $tenant->subdomainUrl('/reset-password/'.rawurlencode((string) $token))
+            .'?'.http_build_query(['email' => $this->email]);
+
+        Notification::route('mail', $this->email)->notify(new QueuedTenantResetPassword(
+            token: (string) $token,
+            resetUrl: $resetUrl,
+            recipientName: (string) $this->name,
+        ));
     }
 }

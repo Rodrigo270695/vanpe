@@ -9,6 +9,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
 use Inertia\Response;
+use Laravel\Fortify\Contracts\PasskeyUser;
 use Laravel\Fortify\Features;
 
 class SecurityController extends Controller
@@ -18,11 +19,17 @@ class SecurityController extends Controller
      */
     public function edit(TwoFactorAuthenticationRequest $request): Response
     {
+        $user = $request->user();
+        $canManageTwoFactor = Features::canManageTwoFactorAuthentication()
+            && method_exists($user, 'hasEnabledTwoFactorAuthentication');
+        $canManagePasskeys = Features::canManagePasskeys()
+            && $user instanceof PasskeyUser;
+
         $props = [
-            'canManageTwoFactor' => Features::canManageTwoFactorAuthentication(),
-            'canManagePasskeys' => Features::canManagePasskeys(),
-            'passkeys' => Features::canManagePasskeys()
-                ? $request->user()
+            'canManageTwoFactor' => $canManageTwoFactor,
+            'canManagePasskeys' => $canManagePasskeys,
+            'passkeys' => $canManagePasskeys
+                ? $user
                     ->passkeys()
                     ->select(['id', 'name', 'credential', 'created_at', 'last_used_at'])
                     ->latest()
@@ -40,10 +47,10 @@ class SecurityController extends Controller
             'passwordRules' => Password::defaults()->toPasswordRulesString(),
         ];
 
-        if (Features::canManageTwoFactorAuthentication()) {
+        if ($canManageTwoFactor) {
             $request->ensureStateIsValid();
 
-            $props['twoFactorEnabled'] = $request->user()->hasEnabledTwoFactorAuthentication();
+            $props['twoFactorEnabled'] = $user->hasEnabledTwoFactorAuthentication();
             $props['requiresConfirmation'] = Features::optionEnabled(Features::twoFactorAuthentication(), 'confirm');
         }
 

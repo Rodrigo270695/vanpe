@@ -34,6 +34,7 @@ export default function ForgotPassword({ status }: { status?: string }) {
                                     id="email"
                                     type="email"
                                     name="email"
+                                    required
                                     autoComplete="off"
                                     autoFocus
                                     data-1p-ignore
@@ -43,8 +44,8 @@ export default function ForgotPassword({ status }: { status?: string }) {
                                     placeholder={t('auth.email_placeholder')}
                                     className="clay-inset h-11 pl-10 [background-image:none!important]"
                                 />
-                                <InputError message={errors.email} />
                             </div>
+                            <InputError message={errors.email} />
                         </div>
 
                         <Button

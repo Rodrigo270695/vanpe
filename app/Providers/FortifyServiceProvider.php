@@ -16,6 +16,7 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
+use Laravel\Fortify\Contracts\PasskeyUser;
 use Laravel\Fortify\Features;
 use Laravel\Fortify\Fortify;
 
@@ -153,11 +154,15 @@ class FortifyServiceProvider extends ServiceProvider
 
         Fortify::registerView(fn () => Inertia::render('auth/register', [
             'passwordRules' => Password::defaults()->toPasswordRulesString(),
+            'rootDomain' => (string) config('tenant.root_domain'),
         ]));
 
         Fortify::twoFactorChallengeView(fn () => Inertia::render('auth/two-factor-challenge'));
 
-        Fortify::confirmPasswordView(fn () => Inertia::render('auth/confirm-password'));
+        Fortify::confirmPasswordView(fn (Request $request) => Inertia::render('auth/confirm-password', [
+            'canConfirmWithPasskey' => Features::canManagePasskeys()
+                && $request->user() instanceof PasskeyUser,
+        ]));
     }
 
     /**

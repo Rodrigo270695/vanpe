@@ -2,6 +2,7 @@
 
 namespace App\Services\Tenant;
 
+use App\Models\Tenant;
 use App\Models\Tenant\CfgCatalogSelection;
 use App\Models\Tenant\CfgServiceHour;
 use App\Models\Tenant\CfgSetting;
@@ -9,7 +10,6 @@ use App\Models\Tenant\MenuCategory;
 use App\Models\Tenant\MenuDish;
 use App\Models\Tenant\Reservation;
 use App\Models\Tenant\RstTable;
-use App\Services\Tenant\SalesReportService;
 use App\Support\RefCatalogTypes;
 use App\Tenancy\TenantManager;
 use Carbon\Carbon;
@@ -186,7 +186,7 @@ class TenantDashboardService
         int $catalogTypesCovered,
         int $activeServiceDays,
         int $imagePercent,
-        ?\App\Models\Tenant $tenant,
+        ?Tenant $tenant,
     ): Collection {
         $hasBranding = $tenant !== null
             && filled($tenant->logo_url)
@@ -210,7 +210,7 @@ class TenantDashboardService
             ],
             [
                 'key' => 'catalog',
-                'done' => $catalogTypesCovered >= count(RefCatalogTypes::ALL),
+                'done' => $catalogTypesCovered >= count(RefCatalogTypes::RESTAURANT),
                 'href' => '/configuracion',
             ],
             [

@@ -30,6 +30,13 @@ class RefCatalogSeeder extends Seeder
                 'Urbano', 'Campestre', 'Vista al mar', 'Romántico', 'Familiar',
                 'Casual', 'Gourmet / fine dining', 'Tradicional', 'Turístico', 'Rooftop',
             ],
+            RefCatalogTypes::TOUR_ACCESS => [
+                'A pie', 'Auto', 'Moto', 'Bicicleta', 'Transporte público',
+                'Taxi / colectivo', '4x4', 'Lancha',
+            ],
+            RefCatalogTypes::TOUR_ROAD => [
+                'Asfaltado', 'Afirmado', 'Trocha', 'Sendero peatonal', 'Escaleras', 'Mixto',
+            ],
         ];
 
         foreach ($catalog as $type => $names) {
@@ -97,6 +104,20 @@ class RefCatalogSeeder extends Seeder
             'Tradicional' => 'Traditional',
             'Turístico' => 'Tourist-friendly',
             'Rooftop' => 'Rooftop',
+            'A pie' => 'On foot',
+            'Auto' => 'Car',
+            'Moto' => 'Motorcycle',
+            'Bicicleta' => 'Bicycle',
+            'Transporte público' => 'Public transport',
+            'Taxi / colectivo' => 'Taxi / shared van',
+            '4x4' => '4x4',
+            'Lancha' => 'Boat',
+            'Asfaltado' => 'Paved road',
+            'Afirmado' => 'Gravel road',
+            'Trocha' => 'Dirt track',
+            'Sendero peatonal' => 'Hiking trail',
+            'Escaleras' => 'Stairs',
+            'Mixto' => 'Mixed',
         ];
 
         return $map[$nameEs] ?? $nameEs;

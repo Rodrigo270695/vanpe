@@ -4,6 +4,7 @@ use App\Http\Middleware\EnsureNoTenant;
 use App\Http\Middleware\EnsureTenant;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\RejectTenantPasskeys;
 use App\Http\Middleware\ResolveTenant;
 use App\Http\Middleware\SetLocale;
 use App\Tenancy\Exceptions\TenantNotFoundException;
@@ -14,6 +15,7 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Exceptions\InvalidSignatureException;
 use Laravel\Sanctum\Http\Middleware\CheckAbilities;
 use Laravel\Sanctum\Http\Middleware\CheckForAnyAbility;
 
@@ -44,6 +46,7 @@ return Application::configure(basePath: dirname(__DIR__))
             SetLocale::class,
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
+            RejectTenantPasskeys::class,
         ]);
 
         $middleware->alias([
@@ -64,5 +67,11 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $exceptions->renderable(function (TenantUnavailableException $e) {
             abort(403, $e->getMessage());
+        });
+
+        $exceptions->renderable(function (InvalidSignatureException $e, Request $request) {
+            if ($request->is('email/verificar/*') || $request->is('invitacion/*')) {
+                return redirect()->route('login')->with('status', __('messages.auth.link_expired'));
+            }
         });
     })->create();

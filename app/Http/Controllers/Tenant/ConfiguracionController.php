@@ -14,14 +14,14 @@ use App\Http\Requests\Tenant\UpdateConfigTouristRequest;
 use App\Http\Requests\Tenant\UpdateVenueImagesRequest;
 use App\Models\RefCatalogProposal;
 use App\Models\Tenant\CfgCatalogSelection;
-use App\Models\Tenant\CfgSetting;
 use App\Models\Tenant\CfgServiceHour;
+use App\Models\Tenant\CfgSetting;
 use App\Models\Tenant\CfgVenuePhoto;
 use App\Models\Tenant\FelSerie;
-use App\Support\Fel\FelSeriePresenter;
 use App\Services\Platform\PublicCatalogPublisher;
 use App\Services\Platform\RefCatalogService;
 use App\Services\Tenant\VenueImageStorage;
+use App\Support\Fel\FelSeriePresenter;
 use App\Support\RefCatalogTypes;
 use App\Tenancy\TenantManager;
 use Illuminate\Http\RedirectResponse;
@@ -129,7 +129,7 @@ class ConfiguracionController extends Controller
             'catalog' => [
                 'options' => $catalogOptions,
                 'selection_ids' => $catalogSelectionIds,
-                'type_labels' => RefCatalogTypes::labels(),
+                'type_labels' => RefCatalogTypes::labels(RefCatalogTypes::RESTAURANT),
                 'proposals' => $catalogProposals,
             ],
             'fel_series' => FelSerie::query()

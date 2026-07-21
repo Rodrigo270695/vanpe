@@ -164,7 +164,7 @@ return [
         // Registro propio: el dueño de restaurante se registra vía TenantRegistrationController
         // (crea tenant + schema + owner). Ver routes/web.php.
         Features::resetPasswords(),
-        Features::emailVerification(),
+        // La verificación del owner usa el flujo tenant.verify, consciente del schema.
         Features::twoFactorAuthentication([
             'confirm' => true,
             'confirmPassword' => true,

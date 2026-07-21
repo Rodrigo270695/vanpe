@@ -91,6 +91,16 @@ return [
                     'catalog.proposals' => 'Aprobar o rechazar propuestas',
                 ],
             ],
+            'tour_spots' => [
+                'label' => 'Centros turísticos',
+                'permissions' => [
+                    'tour_spots.view' => 'Ver centros turísticos',
+                    'tour_spots.create' => 'Crear centros turísticos',
+                    'tour_spots.update' => 'Editar centros turísticos',
+                    'tour_spots.publish' => 'Publicar centros turísticos',
+                    'tour_spots.delete' => 'Eliminar centros turísticos',
+                ],
+            ],
             'users' => [
                 'label' => 'Usuarios',
                 'permissions' => [

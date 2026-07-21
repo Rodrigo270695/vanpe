@@ -28,6 +28,14 @@ class TenantAwareUserProvider implements UserProvider
         return $this->manager->check() ? $this->tenant : $this->central;
     }
 
+    /**
+     * Fortify consulta el modelo concreto para resolver el reto de 2FA.
+     */
+    public function getModel(): string
+    {
+        return $this->provider()->getModel();
+    }
+
     public function retrieveById($identifier)
     {
         return $this->provider()->retrieveById($identifier);

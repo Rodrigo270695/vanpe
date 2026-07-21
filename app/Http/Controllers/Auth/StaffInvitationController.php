@@ -35,7 +35,7 @@ class StaffInvitationController extends Controller
             'loginUrl' => $tenantModel->subdomainUrl('/login'),
             'submitUrl' => $request->fullUrl(),
             'alreadyDone' => $staff->email_verified_at !== null,
-            'passwordRules' => 'minlength: 8; required: lower; required: upper; required: digit;',
+            'passwordRules' => Password::defaults()->toPasswordRulesString(),
         ]);
     }
 
