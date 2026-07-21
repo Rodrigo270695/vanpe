@@ -9,14 +9,13 @@ return [
     |
     | Hosts que corresponden a la plataforma / panel administrativo y al
     | registro de restaurantes. Nunca resuelven a un tenant.
-    | En dev usamos `localhost` y `127.0.0.1` (los navegadores modernos
-    | resuelven cualquier *.localhost a 127.0.0.1 sin tocar el hosts file).
+    | El dominio oficial de plataforma es vanpe.pe.
     |
     */
 
     'central_domains' => array_values(array_filter(array_map(
         'trim',
-        explode(',', (string) env('TENANT_CENTRAL_DOMAINS', 'localhost,127.0.0.1')),
+        explode(',', (string) env('TENANT_CENTRAL_DOMAINS', 'vanpe.pe,www.vanpe.pe')),
     ))),
 
     /*
@@ -25,8 +24,7 @@ return [
     |--------------------------------------------------------------------------
     |
     | Sufijo desde el cual se extrae el slug del subdominio.
-    | Ejemplo: elcantaro.localhost → slug = elcantaro
-    |          elcantaro.vanpe.com.pe → slug = elcantaro
+    | Ejemplo: elcantaro.vanpe.pe → slug = elcantaro
     |
     */
 
@@ -69,7 +67,7 @@ return [
     |--------------------------------------------------------------------------
     */
 
-    'scheme' => env('TENANT_SCHEME', env('APP_ENV') === 'production' ? 'https' : 'http'),
+    'scheme' => env('TENANT_SCHEME', 'https'),
 
     'login_path' => env('TENANT_LOGIN_PATH', '/login'),
 

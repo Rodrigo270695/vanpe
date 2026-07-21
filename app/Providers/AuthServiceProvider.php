@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Auth\TenantAwareUserProvider;
+use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Models\Tenant\User as TenantUser;
 use App\Models\User;
 use App\Tenancy\TenantManager;
@@ -10,12 +11,17 @@ use Illuminate\Auth\EloquentUserProvider;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
+use Laravel\Fortify\Http\Controllers\PasswordResetLinkController as FortifyPasswordResetLinkController;
 
 class AuthServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
         $this->app->singleton(TenantManager::class);
+        $this->app->bind(
+            FortifyPasswordResetLinkController::class,
+            PasswordResetLinkController::class,
+        );
     }
 
     public function boot(): void

@@ -65,12 +65,11 @@ class Tenant extends Model
 
     /**
      * Host del subdominio del restaurante, según el entorno (.env → config/tenant).
-     * En local incluye el puerto: negritalinda.localhost:8000
-     * En producción: negritalinda.vanpe.com.pe
+     * Ejemplo: negritalinda.vanpe.pe
      */
     public function subdomainHost(): string
     {
-        $root = (string) config('tenant.root_domain', 'localhost');
+        $root = (string) config('tenant.root_domain', 'vanpe.pe');
         $host = "{$this->slug}.{$root}";
 
         $port = parse_url((string) config('app.url'), PHP_URL_PORT);
