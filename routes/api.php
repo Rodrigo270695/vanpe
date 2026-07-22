@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\Tourist\RecommendController;
 use App\Http\Controllers\Api\Tourist\RestaurantController;
 use App\Http\Controllers\Api\Tourist\ReviewController;
 use App\Http\Controllers\Api\Tourist\TourSpotController;
+use App\Http\Controllers\Api\Tourist\TouristRouteController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -43,6 +44,14 @@ Route::prefix('v1/tourist')->group(function () {
         Route::put('password', [ProfileController::class, 'changePassword']);
         Route::delete('account', [ProfileController::class, 'destroy']);
         Route::post('reviews', [ReviewController::class, 'store']);
+
+        Route::get('routes', [TouristRouteController::class, 'index']);
+        Route::get('routes/current', [TouristRouteController::class, 'current']);
+        Route::post('routes', [TouristRouteController::class, 'store']);
+        Route::patch('routes/{id}', [TouristRouteController::class, 'update']);
+        Route::delete('routes/{id}', [TouristRouteController::class, 'destroy']);
+        Route::post('routes/stops', [TouristRouteController::class, 'addStop']);
+        Route::delete('routes/stops/{stopId}', [TouristRouteController::class, 'removeStop']);
     });
 
     Route::get('home', HomeController::class);
