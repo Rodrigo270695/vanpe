@@ -36,6 +36,7 @@ class TourSpotWriter
                 'distrito',
                 'categories',
                 'accessModes',
+                'inclusions',
                 'hours',
                 'media',
             ]) ?? $spot;
@@ -61,6 +62,7 @@ class TourSpotWriter
                 'distrito',
                 'categories',
                 'accessModes',
+                'inclusions',
                 'hours',
                 'media',
             ]) ?? $spot;
@@ -177,6 +179,9 @@ class TourSpotWriter
             ];
         }
         $spot->accessModes()->sync($accessSync);
+
+        $inclusionIds = array_values(array_unique(array_map('strval', $data['inclusion_ids'] ?? [])));
+        $spot->inclusions()->sync($inclusionIds);
 
         if (isset($data['hours']) && is_array($data['hours'])) {
             TourSpotHour::syncForSpot($spot, $data['hours']);

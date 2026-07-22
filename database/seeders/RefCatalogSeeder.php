@@ -37,6 +37,20 @@ class RefCatalogSeeder extends Seeder
             RefCatalogTypes::TOUR_ROAD => [
                 'Asfaltado', 'Afirmado', 'Trocha', 'Sendero peatonal', 'Escaleras', 'Mixto',
             ],
+            RefCatalogTypes::TOUR_INCLUSION => [
+                'Acceso silla de ruedas',
+                'Rampas',
+                'Baños adaptados',
+                'Señalética braille',
+                'Audioguía',
+                'Guía en lengua de señas',
+                'Personal de apoyo',
+                'Parqueo preferencial',
+                'Acceso sin escalones',
+                'Ascensor / plataforma',
+                'Información en lectura fácil',
+                'Espacio sensorialmente amigable',
+            ],
         ];
 
         foreach ($catalog as $type => $names) {
@@ -118,6 +132,18 @@ class RefCatalogSeeder extends Seeder
             'Sendero peatonal' => 'Hiking trail',
             'Escaleras' => 'Stairs',
             'Mixto' => 'Mixed',
+            'Acceso silla de ruedas' => 'Wheelchair access',
+            'Rampas' => 'Ramps',
+            'Baños adaptados' => 'Accessible restrooms',
+            'Señalética braille' => 'Braille signage',
+            'Audioguía' => 'Audio guide',
+            'Guía en lengua de señas' => 'Sign language guide',
+            'Personal de apoyo' => 'Support staff',
+            'Parqueo preferencial' => 'Accessible parking',
+            'Acceso sin escalones' => 'Step-free access',
+            'Ascensor / plataforma' => 'Elevator / lift',
+            'Información en lectura fácil' => 'Easy-read information',
+            'Espacio sensorialmente amigable' => 'Sensory-friendly space',
         ];
 
         return $map[$nameEs] ?? $nameEs;

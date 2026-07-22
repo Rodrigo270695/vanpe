@@ -27,6 +27,7 @@ type TourSpotsPageProps = {
     categories: TourCategoryOption[];
     accessModes: CatalogOption[];
     roadTypes: CatalogOption[];
+    inclusions: CatalogOption[];
     departamentos: GeoOption[];
     defaultHours: TourSpotHourRow[];
     estados: string[];
@@ -39,7 +40,8 @@ export default function TourSpotsIndex({
     spots,
     categories: initialCategories,
     accessModes: initialAccessModes,
-    roadTypes,
+    roadTypes: initialRoadTypes,
+    inclusions: initialInclusions,
     departamentos,
     defaultHours,
     estados,
@@ -51,6 +53,8 @@ export default function TourSpotsIndex({
 
     const [categories, setCategories] = useState(initialCategories);
     const [accessModes, setAccessModes] = useState(initialAccessModes);
+    const [roadTypes, setRoadTypes] = useState(initialRoadTypes);
+    const [inclusions, setInclusions] = useState(initialInclusions);
 
     useEffect(() => {
         setCategories(initialCategories);
@@ -59,6 +63,14 @@ export default function TourSpotsIndex({
     useEffect(() => {
         setAccessModes(initialAccessModes);
     }, [initialAccessModes]);
+
+    useEffect(() => {
+        setRoadTypes(initialRoadTypes);
+    }, [initialRoadTypes]);
+
+    useEffect(() => {
+        setInclusions(initialInclusions);
+    }, [initialInclusions]);
 
     const [formOpen, setFormOpen] = useState(false);
     const [editing, setEditing] = useState<TourSpotRow | null>(null);
@@ -285,6 +297,7 @@ export default function TourSpotsIndex({
                 categories={categories}
                 accessModes={accessModes}
                 roadTypes={roadTypes}
+                inclusions={inclusions}
                 departamentos={departamentos}
                 defaultHours={defaultHours}
                 estados={estados}
@@ -293,6 +306,8 @@ export default function TourSpotsIndex({
                 canPublish={can.publish}
                 onCategoriesChange={setCategories}
                 onAccessModesChange={setAccessModes}
+                onRoadTypesChange={setRoadTypes}
+                onInclusionsChange={setInclusions}
             />
 
             <BaseModal

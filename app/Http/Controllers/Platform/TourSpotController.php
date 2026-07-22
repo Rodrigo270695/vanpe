@@ -34,7 +34,7 @@ class TourSpotController extends Controller
         $locale = app()->getLocale();
 
         $spots = TourSpot::query()
-            ->with(['departamento', 'provincia', 'distrito', 'categories', 'accessModes', 'hours', 'media'])
+            ->with(['departamento', 'provincia', 'distrito', 'categories', 'accessModes', 'inclusions', 'hours', 'media'])
             ->orderByDesc('updated_at')
             ->get()
             ->map(fn (TourSpot $spot): array => $spot->toAdminArray($locale));
@@ -60,6 +60,13 @@ class TourSpotController extends Controller
             ->get()
             ->map(fn (RefCatalogItem $item): array => $item->toCatalogArray($locale));
 
+        $inclusions = RefCatalogItem::query()
+            ->where('type', RefCatalogTypes::TOUR_INCLUSION)
+            ->where('active', true)
+            ->orderBy('sort_order')
+            ->get()
+            ->map(fn (RefCatalogItem $item): array => $item->toCatalogArray($locale));
+
         $departamentos = Departamento::query()
             ->where('status', true)
             ->orderBy('name')
@@ -74,6 +81,7 @@ class TourSpotController extends Controller
             'categories' => $categories,
             'accessModes' => $accessModes,
             'roadTypes' => $roadTypes,
+            'inclusions' => $inclusions,
             'departamentos' => $departamentos,
             'defaultHours' => TourSpotHour::defaultRows(),
             'estados' => TourSpot::ESTADOS,
@@ -159,6 +167,21 @@ class TourSpotController extends Controller
 
     public function storeAccessMode(Request $request): JsonResponse
     {
+        return $this->storeCatalogOption($request, RefCatalogTypes::TOUR_ACCESS, 'acceso');
+    }
+
+    public function storeRoadType(Request $request): JsonResponse
+    {
+        return $this->storeCatalogOption($request, RefCatalogTypes::TOUR_ROAD, 'vialidad');
+    }
+
+    public function storeInclusion(Request $request): JsonResponse
+    {
+        return $this->storeCatalogOption($request, RefCatalogTypes::TOUR_INCLUSION, 'inclusion');
+    }
+
+    private function storeCatalogOption(Request $request, string $type, string $fallbackPrefix): JsonResponse
+    {
         abort_unless(
             (bool) $request->user()?->can('tour_spots.create')
             || (bool) $request->user()?->can('tour_spots.update'),
@@ -172,11 +195,11 @@ class TourSpotController extends Controller
         $name = trim($data['name']);
         $slug = Str::slug($name);
         if ($slug === '') {
-            $slug = 'acceso-'.Str::lower(Str::random(6));
+            $slug = $fallbackPrefix.'-'.Str::lower(Str::random(6));
         }
 
         $existing = RefCatalogItem::query()
-            ->where('type', RefCatalogTypes::TOUR_ACCESS)
+            ->where('type', $type)
             ->where(function ($q) use ($slug, $name) {
                 $q->where('slug', $slug)
                     ->orWhere('name_es', $name)
@@ -194,7 +217,7 @@ class TourSpotController extends Controller
         $i = 2;
         while (
             RefCatalogItem::query()
-                ->where('type', RefCatalogTypes::TOUR_ACCESS)
+                ->where('type', $type)
                 ->where('slug', $slug)
                 ->exists()
         ) {
@@ -203,11 +226,11 @@ class TourSpotController extends Controller
         }
 
         $maxOrder = (int) RefCatalogItem::query()
-            ->where('type', RefCatalogTypes::TOUR_ACCESS)
+            ->where('type', $type)
             ->max('sort_order');
 
         $item = RefCatalogItem::query()->create([
-            'type' => RefCatalogTypes::TOUR_ACCESS,
+            'type' => $type,
             'slug' => $slug,
             'name_es' => $name,
             'name_en' => $name,

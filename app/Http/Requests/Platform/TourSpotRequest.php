@@ -79,6 +79,11 @@ class TourSpotRequest extends FormRequest
                 'uuid',
                 Rule::exists('ref_catalog_items', 'id')->where('type', RefCatalogTypes::TOUR_ACCESS),
             ],
+            'inclusion_ids' => ['nullable', 'array'],
+            'inclusion_ids.*' => [
+                'uuid',
+                Rule::exists('ref_catalog_items', 'id')->where('type', RefCatalogTypes::TOUR_INCLUSION),
+            ],
             'hours' => ['nullable', 'array'],
             'hours.*.day_of_week' => ['required', 'integer', 'between:0,6'],
             'hours.*.opens_at' => ['nullable', 'date_format:H:i'],
@@ -185,6 +190,11 @@ class TourSpotRequest extends FormRequest
             $accessIds = array_filter(explode(',', $accessIds));
         }
 
+        $inclusionIds = $this->input('inclusion_ids', []);
+        if (is_string($inclusionIds)) {
+            $inclusionIds = array_filter(explode(',', $inclusionIds));
+        }
+
         $removeMediaIds = $this->input('remove_media_ids', []);
         if (is_string($removeMediaIds)) {
             $removeMediaIds = array_filter(explode(',', $removeMediaIds));
@@ -211,6 +221,7 @@ class TourSpotRequest extends FormRequest
             'tips' => $tips,
             'category_ids' => array_values($categoryIds ?: []),
             'access_mode_ids' => array_values($accessIds ?: []),
+            'inclusion_ids' => array_values($inclusionIds ?: []),
             'remove_media_ids' => array_values($removeMediaIds ?: []),
             'hours' => $hours,
             'precio_entrada_desde' => $this->blankToNull('precio_entrada_desde'),

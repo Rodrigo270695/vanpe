@@ -16,6 +16,8 @@ final class RefCatalogTypes
 
     public const TOUR_ROAD = 'tour_road';
 
+    public const TOUR_INCLUSION = 'tour_inclusion';
+
     /** Tipos que eligen los restaurantes en su ficha pública. */
     public const RESTAURANT = [
         self::CUISINE,
@@ -32,6 +34,7 @@ final class RefCatalogTypes
         self::AMBIANCE,
         self::TOUR_ACCESS,
         self::TOUR_ROAD,
+        self::TOUR_INCLUSION,
     ];
 
     /**
@@ -47,6 +50,7 @@ final class RefCatalogTypes
             self::AMBIANCE => __('messages.catalog.type_ambiance'),
             self::TOUR_ACCESS => __('messages.catalog.type_tour_access'),
             self::TOUR_ROAD => __('messages.catalog.type_tour_road'),
+            self::TOUR_INCLUSION => __('messages.catalog.type_tour_inclusion'),
         ];
 
         if ($types === null) {

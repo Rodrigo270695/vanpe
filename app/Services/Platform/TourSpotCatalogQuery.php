@@ -37,6 +37,7 @@ class TourSpotCatalogQuery
             ->with([
                 'categories',
                 'accessModes',
+                'inclusions',
                 'media' => fn ($q) => $q->orderBy('sort_order'),
                 'hours' => fn ($q) => $q->orderBy('day_of_week'),
                 'departamento:id,name',
@@ -90,6 +91,8 @@ class TourSpotCatalogQuery
             'precio_entrada_hasta' => $spot->precio_entrada_hasta !== null ? (float) $spot->precio_entrada_hasta : null,
             'moneda' => $spot->moneda,
             'dificultad_acceso' => $spot->dificultad_acceso,
+            'vialidad_principal' => $spot->vialidad_principal,
+            'accesible_movilidad_reducida' => (bool) $spot->accesible_movilidad_reducida,
             'horario_texto' => $spot->horario_texto,
             'tips' => $spot->tips,
             'como_llegar' => $spot->como_llegar,
@@ -97,6 +100,14 @@ class TourSpotCatalogQuery
                 'slug' => $c->slug,
                 'name' => $c->labelForLocale($locale),
                 'is_primary' => (bool) $c->pivot->is_primary,
+            ])->values(),
+            'access_modes' => $spot->accessModes->map(fn ($m): array => [
+                'slug' => $m->slug,
+                'name' => $m->labelForLocale($locale),
+            ])->values(),
+            'inclusions' => $spot->inclusions->map(fn ($m): array => [
+                'slug' => $m->slug,
+                'name' => $m->labelForLocale($locale),
             ])->values(),
             'media' => $spot->media->map(fn ($m): array => [
                 'url' => $m->url,

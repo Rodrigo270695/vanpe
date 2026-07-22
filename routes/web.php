@@ -273,6 +273,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->name('tour-spots.categories.store');
         Route::post('centros-turisticos/access-modes', [TourSpotController::class, 'storeAccessMode'])
             ->name('tour-spots.access-modes.store');
+        Route::post('centros-turisticos/road-types', [TourSpotController::class, 'storeRoadType'])
+            ->name('tour-spots.road-types.store');
+        Route::post('centros-turisticos/inclusions', [TourSpotController::class, 'storeInclusion'])
+            ->name('tour-spots.inclusions.store');
         Route::post('centros-turisticos', [TourSpotController::class, 'store'])->name('tour-spots.store');
         Route::put('centros-turisticos/{tour_spot}', [TourSpotController::class, 'update'])->name('tour-spots.update');
         Route::delete('centros-turisticos/{tour_spot}', [TourSpotController::class, 'destroy'])->name('tour-spots.destroy');

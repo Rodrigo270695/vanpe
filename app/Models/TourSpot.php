@@ -136,6 +136,11 @@ class TourSpot extends Model
             ->withPivot(['recomendado', 'notas']);
     }
 
+    public function inclusions(): BelongsToMany
+    {
+        return $this->belongsToMany(RefCatalogItem::class, 'tour_spot_inclusions', 'tour_spot_id', 'ref_catalog_item_id');
+    }
+
     public function media(): HasMany
     {
         return $this->hasMany(TourSpotMedia::class)->orderBy('sort_order');
@@ -217,6 +222,7 @@ class TourSpot extends Model
             'primary_category_id' => $primaryCategory?->id,
             'primary_category_name' => $primaryCategory?->labelForLocale($locale),
             'access_mode_ids' => $this->accessModes->pluck('id')->values()->all(),
+            'inclusion_ids' => $this->inclusions->pluck('id')->values()->all(),
             'hours' => $hours,
             'media' => $media,
             'created_at' => $this->created_at?->toIso8601String(),

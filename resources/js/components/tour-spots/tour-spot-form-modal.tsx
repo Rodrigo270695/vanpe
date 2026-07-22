@@ -2,6 +2,7 @@ import { useForm } from '@inertiajs/react';
 import { ImagePlus, MapPin, Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { BaseModal } from '@/components/common/base-modal';
+import { CreatableCombobox } from '@/components/common/creatable-combobox';
 import { CreatableMultiCombobox } from '@/components/common/creatable-multi-combobox';
 import { FormField } from '@/components/common/form-field';
 import { ImageUploadField } from '@/components/common/image-upload-field';
@@ -35,6 +36,7 @@ type TourSpotFormModalProps = {
     categories: TourCategoryOption[];
     accessModes: CatalogOption[];
     roadTypes: CatalogOption[];
+    inclusions: CatalogOption[];
     departamentos: GeoOption[];
     defaultHours: TourSpotHourRow[];
     estados: string[];
@@ -43,6 +45,8 @@ type TourSpotFormModalProps = {
     canPublish: boolean;
     onCategoriesChange: (categories: TourCategoryOption[]) => void;
     onAccessModesChange: (modes: CatalogOption[]) => void;
+    onRoadTypesChange: (types: CatalogOption[]) => void;
+    onInclusionsChange: (items: CatalogOption[]) => void;
 };
 
 type GeoListResponse = { data: GeoOption[] };
@@ -70,6 +74,7 @@ export function TourSpotFormModal({
     categories,
     accessModes,
     roadTypes,
+    inclusions,
     departamentos,
     defaultHours,
     estados,
@@ -78,6 +83,8 @@ export function TourSpotFormModal({
     canPublish,
     onCategoriesChange,
     onAccessModesChange,
+    onRoadTypesChange,
+    onInclusionsChange,
 }: TourSpotFormModalProps) {
     const { t } = useTranslations();
     const isEditing = spot !== null;
@@ -126,6 +133,7 @@ export function TourSpotFormModal({
         distancia_acceso_km: '',
         acceso_notas: '',
         estacionamiento: 'desconocido',
+        accesible_movilidad_reducida: false,
         mejor_epoca: '',
         duracion_visita_min: '',
         horario_texto: '',
@@ -139,6 +147,7 @@ export function TourSpotFormModal({
         category_ids: [] as string[],
         primary_category_id: '',
         access_mode_ids: [] as string[],
+        inclusion_ids: [] as string[],
         hours: defaultHours as ServiceHourRow[],
     });
 
@@ -223,6 +232,8 @@ export function TourSpotFormModal({
                         : '',
                 acceso_notas: spot.acceso_notas ?? '',
                 estacionamiento: spot.estacionamiento,
+                accesible_movilidad_reducida:
+                    spot.accesible_movilidad_reducida === true,
                 mejor_epoca: spot.mejor_epoca ?? '',
                 duracion_visita_min:
                     spot.duracion_visita_min !== null
@@ -239,6 +250,7 @@ export function TourSpotFormModal({
                 category_ids: spot.category_ids,
                 primary_category_id: spot.primary_category_id ?? '',
                 access_mode_ids: spot.access_mode_ids,
+                inclusion_ids: spot.inclusion_ids ?? [],
                 hours: (spot.hours?.length ? spot.hours : defaultHours) as ServiceHourRow[],
             });
             void loadProvincias(spot.departamento_id).then(() =>
@@ -284,6 +296,16 @@ export function TourSpotFormModal({
         [accessModes],
     );
 
+    const roadOptions = useMemo(
+        () => roadTypes.map((m) => ({ id: m.slug, label: m.name })),
+        [roadTypes],
+    );
+
+    const inclusionOptions = useMemo(
+        () => inclusions.map((m) => ({ id: m.id, label: m.name })),
+        [inclusions],
+    );
+
     const visibleMedia = existingMedia.filter(
         (m) => !data.remove_media_ids.includes(m.id),
     );
@@ -324,6 +346,46 @@ export function TourSpotFormModal({
         const exists = accessModes.some((m) => m.id === json.data.id);
         if (!exists) {
             onAccessModesChange([...accessModes, json.data]);
+        }
+        return { id: json.data.id, label: json.data.name };
+    };
+
+    const createRoadType = async (name: string) => {
+        const res = await fetch('/centros-turisticos/road-types', {
+            method: 'POST',
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+                'X-XSRF-TOKEN': getCsrfToken(),
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            body: JSON.stringify({ name }),
+        });
+        if (!res.ok) return null;
+        const json = (await res.json()) as { data: CatalogOption };
+        const exists = roadTypes.some((m) => m.id === json.data.id);
+        if (!exists) {
+            onRoadTypesChange([...roadTypes, json.data]);
+        }
+        return { id: json.data.slug, label: json.data.name };
+    };
+
+    const createInclusion = async (name: string) => {
+        const res = await fetch('/centros-turisticos/inclusions', {
+            method: 'POST',
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+                'X-XSRF-TOKEN': getCsrfToken(),
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            body: JSON.stringify({ name }),
+        });
+        if (!res.ok) return null;
+        const json = (await res.json()) as { data: CatalogOption };
+        const exists = inclusions.some((m) => m.id === json.data.id);
+        if (!exists) {
+            onInclusionsChange([...inclusions, json.data]);
         }
         return { id: json.data.id, label: json.data.name };
     };
@@ -811,30 +873,15 @@ export function TourSpotFormModal({
                             label={t('tour_spots.field_vialidad')}
                             error={errors.vialidad_principal}
                         >
-                            <Select
-                                value={data.vialidad_principal || undefined}
-                                onValueChange={(v) =>
-                                    setData('vialidad_principal', v)
+                            <CreatableCombobox
+                                options={roadOptions}
+                                value={data.vialidad_principal}
+                                onChange={(slug) =>
+                                    setData('vialidad_principal', slug)
                                 }
-                            >
-                                <SelectTrigger className="w-full bg-card">
-                                    <SelectValue
-                                        placeholder={t(
-                                            'tour_spots.select_placeholder',
-                                        )}
-                                    />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {roadTypes.map((row) => (
-                                        <SelectItem
-                                            key={row.id}
-                                            value={row.slug}
-                                        >
-                                            {row.name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                                onCreate={createRoadType}
+                                placeholder={t('tour_spots.combobox_road_ph')}
+                            />
                         </FormField>
                     </div>
                     <FormField
@@ -849,6 +896,40 @@ export function TourSpotFormModal({
                             placeholder={t('tour_spots.combobox_access_ph')}
                         />
                     </FormField>
+                    <FormField
+                        label={t('tour_spots.field_inclusions')}
+                        error={errors.inclusion_ids}
+                    >
+                        <CreatableMultiCombobox
+                            options={inclusionOptions}
+                            value={data.inclusion_ids}
+                            onChange={(ids) => setData('inclusion_ids', ids)}
+                            onCreate={createInclusion}
+                            placeholder={t('tour_spots.combobox_inclusion_ph')}
+                        />
+                    </FormField>
+                    <label
+                        className={cn(
+                            'flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-colors',
+                            data.accesible_movilidad_reducida
+                                ? 'border-brand-blue/30 bg-brand-blue/[0.06]'
+                                : 'border-border bg-card',
+                        )}
+                    >
+                        <Checkbox
+                            checked={data.accesible_movilidad_reducida}
+                            onCheckedChange={(v) =>
+                                setData(
+                                    'accesible_movilidad_reducida',
+                                    v === true,
+                                )
+                            }
+                            className="mt-0.5"
+                        />
+                        <span className="text-sm font-medium">
+                            {t('tour_spots.field_accesible_movilidad')}
+                        </span>
+                    </label>
                     <div className="grid gap-4 sm:grid-cols-3">
                         <FormField label={t('tour_spots.field_dificultad')}>
                             <Select

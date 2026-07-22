@@ -88,6 +88,7 @@ export type TourSpotRow = {
     primary_category_id: string | null;
     primary_category_name: string | null;
     access_mode_ids: string[];
+    inclusion_ids: string[];
     hours: TourSpotHourRow[];
     media: TourSpotMediaRow[];
     created_at: string | null;
