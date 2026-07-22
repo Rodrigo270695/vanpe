@@ -185,6 +185,47 @@ class TouristRouteController extends Controller
         return response()->json(['data' => $this->serialize($route->fresh('stops'))]);
     }
 
+    public function reorderStops(Request $request, string $id): JsonResponse
+    {
+        /** @var Customer $customer */
+        $customer = $request->user();
+
+        $route = TouristRoute::query()
+            ->where('customer_id', $customer->id)
+            ->whereKey($id)
+            ->firstOrFail();
+
+        $data = $request->validate([
+            'stop_ids' => ['required', 'array', 'min:1'],
+            'stop_ids.*' => ['uuid'],
+        ]);
+
+        $stops = TouristRouteStop::query()
+            ->where('tourist_route_id', $route->id)
+            ->get()
+            ->keyBy('id');
+
+        if ($stops->count() !== count($data['stop_ids'])) {
+            return response()->json(['message' => 'El orden no coincide con las paradas de la ruta.'], 422);
+        }
+
+        foreach ($data['stop_ids'] as $stopId) {
+            if (! $stops->has($stopId)) {
+                return response()->json(['message' => 'Parada inválida en el orden.'], 422);
+            }
+        }
+
+        DB::transaction(function () use ($data): void {
+            foreach ($data['stop_ids'] as $index => $stopId) {
+                TouristRouteStop::query()
+                    ->whereKey($stopId)
+                    ->update(['sort_order' => $index + 1]);
+            }
+        });
+
+        return response()->json(['data' => $this->serialize($route->fresh('stops'))]);
+    }
+
     private function draftFor(Customer $customer, ?string $preferredName = null): TouristRoute
     {
         $draft = TouristRoute::query()

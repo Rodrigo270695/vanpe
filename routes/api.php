@@ -51,6 +51,7 @@ Route::prefix('v1/tourist')->group(function () {
         Route::patch('routes/{id}', [TouristRouteController::class, 'update']);
         Route::delete('routes/{id}', [TouristRouteController::class, 'destroy']);
         Route::post('routes/stops', [TouristRouteController::class, 'addStop']);
+        Route::put('routes/{id}/stops/reorder', [TouristRouteController::class, 'reorderStops']);
         Route::delete('routes/stops/{stopId}', [TouristRouteController::class, 'removeStop']);
     });
 
