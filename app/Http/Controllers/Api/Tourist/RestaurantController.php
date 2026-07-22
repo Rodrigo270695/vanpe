@@ -74,6 +74,7 @@ class RestaurantController extends Controller
     private function listItem(PubRestaurant $restaurant): array
     {
         return [
+            'id' => $restaurant->id,
             'slug' => $restaurant->slug,
             'nombre' => $restaurant->nombre,
             'direccion' => $restaurant->direccion,

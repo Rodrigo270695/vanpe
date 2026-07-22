@@ -1,9 +1,12 @@
 <?php
 
 use App\Http\Controllers\Api\Tourist\AuthController;
+use App\Http\Controllers\Api\Tourist\HomeController;
 use App\Http\Controllers\Api\Tourist\PasswordResetController;
 use App\Http\Controllers\Api\Tourist\ProfileController;
 use App\Http\Controllers\Api\Tourist\RestaurantController;
+use App\Http\Controllers\Api\Tourist\ReviewController;
+use App\Http\Controllers\Api\Tourist\TourSpotController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -37,10 +40,14 @@ Route::prefix('v1/tourist')->group(function () {
         Route::patch('profile', [ProfileController::class, 'update']);
         Route::put('password', [ProfileController::class, 'changePassword']);
         Route::delete('account', [ProfileController::class, 'destroy']);
+        Route::post('reviews', [ReviewController::class, 'store']);
     });
 
-    // Catálogo también bajo v1 (mismo controlador).
+    Route::get('home', HomeController::class);
     Route::get('restaurants', [RestaurantController::class, 'index']);
     Route::get('restaurants/{slug}', [RestaurantController::class, 'show']);
     Route::get('restaurants/{slug}/slots', [RestaurantController::class, 'slots']);
+    Route::get('tour-spots', [TourSpotController::class, 'index']);
+    Route::get('tour-spots/{slug}', [TourSpotController::class, 'show']);
+    Route::get('reviews', [ReviewController::class, 'index']);
 });

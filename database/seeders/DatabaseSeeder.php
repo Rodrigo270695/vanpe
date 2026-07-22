@@ -19,6 +19,9 @@ class DatabaseSeeder extends Seeder
             PlanSeeder::class,
             RefCatalogSeeder::class,
             TourCategorySeeder::class,
+            TourSpotContentSeeder::class,
+            RestaurantContentSeeder::class,
+            CustomerReviewSeeder::class,
         ]);
     }
 }
