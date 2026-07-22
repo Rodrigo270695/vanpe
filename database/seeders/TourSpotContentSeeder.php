@@ -15,6 +15,8 @@ class TourSpotContentSeeder extends Seeder
 {
     public function run(): void
     {
+        $this->call(LambayequeGeoSeeder::class);
+
         /** @var TourSpotWriter $writer */
         $writer = app(TourSpotWriter::class);
 
@@ -105,15 +107,20 @@ class TourSpotContentSeeder extends Seeder
             'ZAÑA',
         ];
 
+        $all = Distrito::query()->get(['id', 'name']);
+        $byFold = [];
+
+        foreach ($all as $distrito) {
+            $byFold[$this->fold($distrito->name)] = (int) $distrito->id;
+        }
+
         $map = [];
 
         foreach ($names as $name) {
-            $distrito = Distrito::query()
-                ->where('name', 'ilike', $name)
-                ->first();
+            $id = $byFold[$this->fold($name)] ?? null;
 
-            if ($distrito !== null) {
-                $map[$name] = (int) $distrito->id;
+            if ($id !== null) {
+                $map[$name] = $id;
             }
         }
 
@@ -127,6 +134,15 @@ class TourSpotContentSeeder extends Seeder
         }
 
         return $map;
+    }
+
+    private function fold(string $value): string
+    {
+        $value = mb_strtoupper(trim($value), 'UTF-8');
+        $from = ['Á', 'É', 'Í', 'Ó', 'Ú', 'Ü', 'Ñ'];
+        $to = ['A', 'E', 'I', 'O', 'U', 'U', 'N'];
+
+        return str_replace($from, $to, $value);
     }
 
     /**

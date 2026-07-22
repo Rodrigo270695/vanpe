@@ -22,10 +22,12 @@ class RestaurantContentSeeder extends Seeder
 {
     public function run(): void
     {
+        $this->call(LambayequeGeoSeeder::class);
+
         $geo = $this->resolveChiclayoGeo();
 
         if ($geo === null) {
-            $this->command?->error('No se encontró el distrito Chiclayo. Corre primero el sync geográfico.');
+            $this->command?->error('No se encontró el distrito Chiclayo tras sembrar ubigeo de Lambayeque.');
 
             return;
         }
