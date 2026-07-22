@@ -17,13 +17,13 @@ class RestaurantController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $departamentoId = $request->integer('departamento_id') ?: null;
-        $cuisine = $request->string('cuisine')->toString() ?: null;
-
         $paginator = $this->catalog->listRestaurants(
-            $departamentoId,
-            $cuisine,
-            min($request->integer('per_page', 20), 50),
+            $request->integer('departamento_id') ?: null,
+            $request->string('cuisine')->toString() ?: null,
+            min($request->integer('per_page', 12), 30),
+            $request->string('q')->toString() ?: null,
+            $request->integer('provincia_id') ?: null,
+            $request->integer('distrito_id') ?: null,
         );
 
         return response()->json([

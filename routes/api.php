@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\Tourist\AuthController;
+use App\Http\Controllers\Api\Tourist\GeoController;
 use App\Http\Controllers\Api\Tourist\HomeController;
 use App\Http\Controllers\Api\Tourist\PasswordResetController;
 use App\Http\Controllers\Api\Tourist\ProfileController;
@@ -46,6 +47,9 @@ Route::prefix('v1/tourist')->group(function () {
 
     Route::get('home', HomeController::class);
     Route::post('recommend', RecommendController::class)->middleware('throttle:tourist-api');
+    Route::get('geo/departamentos', [GeoController::class, 'departamentos']);
+    Route::get('geo/provincias', [GeoController::class, 'provincias']);
+    Route::get('geo/distritos', [GeoController::class, 'distritos']);
     Route::get('restaurants', [RestaurantController::class, 'index']);
     Route::get('restaurants/{slug}', [RestaurantController::class, 'show']);
     Route::get('restaurants/{slug}/slots', [RestaurantController::class, 'slots']);

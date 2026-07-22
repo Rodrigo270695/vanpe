@@ -16,12 +16,27 @@ class PublicCatalogQuery
         ?int $departamentoId = null,
         ?string $cuisineSlug = null,
         int $perPage = 20,
+        ?string $search = null,
+        ?int $provinciaId = null,
+        ?int $distritoId = null,
     ): LengthAwarePaginator {
+        $term = $search !== null ? trim($search) : '';
+
         return PubRestaurant::query()
             ->where('activo', true)
             ->when($departamentoId, fn (Builder $q) => $q->where('departamento_id', $departamentoId))
+            ->when($provinciaId, fn (Builder $q) => $q->where('provincia_id', $provinciaId))
+            ->when($distritoId, fn (Builder $q) => $q->where('distrito_id', $distritoId))
             ->when($cuisineSlug, function (Builder $q) use ($cuisineSlug): void {
                 $q->whereJsonContains('tipo_cocina', $cuisineSlug);
+            })
+            ->when($term !== '', function (Builder $q) use ($term): void {
+                $like = '%'.$term.'%';
+                $q->where(function (Builder $inner) use ($like): void {
+                    $inner->where('nombre', 'like', $like)
+                        ->orWhere('direccion', 'like', $like)
+                        ->orWhere('descripcion', 'like', $like);
+                });
             })
             ->orderByDesc('score_ranking')
             ->orderBy('nombre')

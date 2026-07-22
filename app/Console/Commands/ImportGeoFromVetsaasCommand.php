@@ -12,6 +12,7 @@ class ImportGeoFromVetsaasCommand extends Command
      */
     protected $signature = 'geo:import-from-vetsaas
                             {--fresh : Vacía el catálogo local antes de importar}
+                            {--force : Confirma --fresh sin pregunta (útil en VPS/CI)}
                             {--connection=vetsaas : Conexión Laravel de la base origen}';
 
     /**
@@ -24,7 +25,7 @@ class ImportGeoFromVetsaasCommand extends Command
         $connection = (string) $this->option('connection');
         $fresh = (bool) $this->option('fresh');
 
-        if ($fresh && ! $this->confirm('Se vaciará el catálogo geográfico local. ¿Continuar?', false)) {
+        if ($fresh && ! $this->option('force') && ! $this->confirm('Se vaciará el catálogo geográfico local. ¿Continuar?', false)) {
             $this->components->warn('Importación cancelada.');
 
             return self::FAILURE;

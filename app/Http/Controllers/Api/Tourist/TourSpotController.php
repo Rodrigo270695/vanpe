@@ -19,7 +19,10 @@ class TourSpotController extends Controller
         $paginator = $this->catalog->list(
             $request->integer('departamento_id') ?: null,
             $request->string('category')->toString() ?: null,
-            min($request->integer('per_page', 20), 50),
+            min($request->integer('per_page', 12), 30),
+            $request->string('q')->toString() ?: null,
+            $request->integer('provincia_id') ?: null,
+            $request->integer('distrito_id') ?: null,
         );
 
         return response()->json([

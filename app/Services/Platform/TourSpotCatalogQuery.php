@@ -15,13 +15,39 @@ class TourSpotCatalogQuery
         ?int $departamentoId = null,
         ?string $categorySlug = null,
         int $perPage = 20,
+        ?string $search = null,
+        ?int $provinciaId = null,
+        ?int $distritoId = null,
     ): LengthAwarePaginator {
+        $term = $search !== null ? trim($search) : '';
+
         return TourSpot::query()
             ->where('estado', TourSpot::ESTADO_PUBLICADO)
-            ->with(['categories', 'departamento:id,name', 'distrito:id,name'])
+            ->with([
+                'categories',
+                'accessModes',
+                'inclusions',
+                'departamento:id,name',
+                'provincia:id,name',
+                'distrito:id,name',
+            ])
             ->when($departamentoId, fn (Builder $q) => $q->where('departamento_id', $departamentoId))
+            ->when($provinciaId, fn (Builder $q) => $q->where('provincia_id', $provinciaId))
+            ->when($distritoId, fn (Builder $q) => $q->where('distrito_id', $distritoId))
             ->when($categorySlug, function (Builder $q) use ($categorySlug): void {
                 $q->whereHas('categories', fn (Builder $cq) => $cq->where('slug', $categorySlug));
+            })
+            ->when($term !== '', function (Builder $q) use ($term): void {
+                $like = '%'.$term.'%';
+                $q->where(function (Builder $inner) use ($like): void {
+                    $inner->where('nombre', 'like', $like)
+                        ->orWhere('resumen', 'like', $like)
+                        ->orWhere('direccion', 'like', $like)
+                        ->orWhereHas('distrito', fn (Builder $dq) => $dq->where('name', 'like', $like))
+                        ->orWhereHas('categories', function (Builder $cq) use ($like): void {
+                            $cq->where('name_es', 'like', $like)->orWhere('name_en', 'like', $like);
+                        });
+                });
             })
             ->orderByDesc('score_ranking')
             ->orderByDesc('destacado')
@@ -68,10 +94,34 @@ class TourSpotCatalogQuery
             'total_resenas' => (int) $spot->total_resenas,
             'destacado' => (bool) $spot->destacado,
             'es_gratuito' => (bool) $spot->es_gratuito,
+            'precio_entrada_desde' => $spot->precio_entrada_desde !== null ? (float) $spot->precio_entrada_desde : null,
+            'precio_entrada_hasta' => $spot->precio_entrada_hasta !== null ? (float) $spot->precio_entrada_hasta : null,
+            'moneda' => $spot->moneda ?? 'PEN',
+            'dificultad_acceso' => $spot->dificultad_acceso,
+            'vialidad_principal' => $spot->vialidad_principal,
+            'tiempo_acceso_min' => $spot->tiempo_acceso_min,
+            'duracion_visita_min' => $spot->duracion_visita_min,
+            'mejor_epoca' => $spot->mejor_epoca,
+            'horario_texto' => $spot->horario_texto,
+            'estacionamiento' => $spot->estacionamiento,
+            'accesible_movilidad_reducida' => (bool) $spot->accesible_movilidad_reducida,
             'departamento' => $spot->departamento?->name,
+            'provincia' => $spot->provincia?->name,
             'distrito' => $spot->distrito?->name,
             'categoria' => $primary?->labelForLocale($locale),
             'categoria_slug' => $primary?->slug,
+            'access_modes' => $spot->relationLoaded('accessModes')
+                ? $spot->accessModes->take(4)->map(fn ($m): array => [
+                    'slug' => $m->slug,
+                    'name' => $m->labelForLocale($locale),
+                ])->values()->all()
+                : [],
+            'inclusions' => $spot->relationLoaded('inclusions')
+                ? $spot->inclusions->take(4)->map(fn ($m): array => [
+                    'slug' => $m->slug,
+                    'name' => $m->labelForLocale($locale),
+                ])->values()->all()
+                : [],
         ];
     }
 
