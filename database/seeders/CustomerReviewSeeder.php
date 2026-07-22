@@ -9,6 +9,7 @@ use App\Models\TourSpot;
 use App\Services\Tourist\ReviewRatingService;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * Reseñas reales de turistas para calcular estrellas y ranking.
@@ -18,6 +19,14 @@ class CustomerReviewSeeder extends Seeder
 {
     public function run(): void
     {
+        if (! Schema::hasTable('customer_reviews')) {
+            $this->command?->error(
+                'Falta la tabla customer_reviews. Corre: php artisan migrate --force',
+            );
+
+            return;
+        }
+
         /** @var ReviewRatingService $ratings */
         $ratings = app(ReviewRatingService::class);
 

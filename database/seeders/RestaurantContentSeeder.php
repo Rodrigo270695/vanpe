@@ -22,7 +22,10 @@ class RestaurantContentSeeder extends Seeder
 {
     public function run(): void
     {
-        $this->call(LambayequeGeoSeeder::class);
+        $this->call([
+            RefCatalogSeeder::class,
+            LambayequeGeoSeeder::class,
+        ]);
 
         $geo = $this->resolveChiclayoGeo();
 

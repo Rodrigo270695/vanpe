@@ -15,7 +15,12 @@ class TourSpotContentSeeder extends Seeder
 {
     public function run(): void
     {
-        $this->call(LambayequeGeoSeeder::class);
+        $this->call([
+            TourCategorySeeder::class,
+            LambayequeGeoSeeder::class,
+        ]);
+
+        $this->ensureRequiredCategories();
 
         /** @var TourSpotWriter $writer */
         $writer = app(TourSpotWriter::class);
@@ -23,11 +28,15 @@ class TourSpotContentSeeder extends Seeder
         $categories = TourCategory::query()->pluck('id', 'slug');
         $districts = $this->resolveDistricts();
 
+        $created = 0;
+        $skipped = 0;
+
         foreach ($this->spots() as $spot) {
             $distritoId = $districts[$spot['distrito']] ?? null;
 
             if ($distritoId === null) {
                 $this->command?->warn("Distrito no encontrado: {$spot['distrito']} — se omite {$spot['nombre']}");
+                $skipped++;
 
                 continue;
             }
@@ -39,7 +48,21 @@ class TourSpotContentSeeder extends Seeder
                 ->all();
 
             if ($categoryIds === []) {
+                // Último recurso: crea la categoría primaria faltante y reintenta.
+                foreach ($spot['categories'] as $slug) {
+                    $this->ensureCategorySlug($slug);
+                }
+                $categories = TourCategory::query()->pluck('id', 'slug');
+                $categoryIds = collect($spot['categories'])
+                    ->map(fn (string $slug) => $categories->get($slug))
+                    ->filter()
+                    ->values()
+                    ->all();
+            }
+
+            if ($categoryIds === []) {
                 $this->command?->warn("Sin categorías para {$spot['nombre']}");
+                $skipped++;
 
                 continue;
             }
@@ -87,9 +110,52 @@ class TourSpotContentSeeder extends Seeder
             $model->update([
                 'como_llegar' => $spot['como_llegar'] ?? null,
             ]);
+            $created++;
         }
 
-        $this->command?->info('Centros turísticos reales sembrados.');
+        $this->command?->info("Centros turísticos reales: {$created} listos".($skipped > 0 ? ", {$skipped} omitidos" : '').'.');
+    }
+
+    private function ensureRequiredCategories(): void
+    {
+        $required = [
+            'religioso', 'arqueologico', 'museo', 'playa', 'naturaleza',
+            'mirador', 'gastronomico', 'historico-urbano', 'aventura', 'cultural-vivo',
+        ];
+
+        foreach ($required as $slug) {
+            $this->ensureCategorySlug($slug);
+        }
+    }
+
+    private function ensureCategorySlug(string $slug): void
+    {
+        $labels = [
+            'religioso' => ['Religioso', 'Religious', 'church', '#7C3AED'],
+            'arqueologico' => ['Arqueológico', 'Archaeological', 'landmark', '#B45309'],
+            'museo' => ['Museo', 'Museum', 'building-2', '#1D4ED8'],
+            'playa' => ['Playa', 'Beach', 'waves', '#0891B2'],
+            'naturaleza' => ['Naturaleza', 'Nature', 'trees', '#15803D'],
+            'mirador' => ['Mirador', 'Viewpoint', 'mountain', '#0F766E'],
+            'gastronomico' => ['Gastronómico', 'Food & markets', 'utensils', '#C2410C'],
+            'historico-urbano' => ['Histórico urbano', 'Urban heritage', 'map-pinned', '#475569'],
+            'aventura' => ['Aventura', 'Adventure', 'compass', '#DC2626'],
+            'cultural-vivo' => ['Cultural vivo', 'Living culture', 'sparkles', '#DB2777'],
+        ];
+
+        $meta = $labels[$slug] ?? [ucfirst($slug), ucfirst($slug), 'map-pin', '#64748B'];
+
+        TourCategory::query()->updateOrCreate(
+            ['slug' => $slug],
+            [
+                'name_es' => $meta[0],
+                'name_en' => $meta[1],
+                'icon' => $meta[2],
+                'color_hex' => $meta[3],
+                'sort_order' => 99,
+                'active' => true,
+            ],
+        );
     }
 
     /**
