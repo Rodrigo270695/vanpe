@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\Distrito;
 use App\Models\TourCategory;
 use App\Models\TourSpot;
+use App\Models\TourSpotMedia;
 use App\Services\Platform\TourSpotWriter;
 use Illuminate\Database\Seeder;
 
@@ -109,11 +110,113 @@ class TourSpotContentSeeder extends Seeder
 
             $model->update([
                 'como_llegar' => $spot['como_llegar'] ?? null,
+                'imagen_portada_url' => $spot['imagen_portada_url']
+                    ?? $spot['media'][0]['url']
+                    ?? $this->defaultMediaFor($spot)[0]['url']
+                    ?? $model->imagen_portada_url,
             ]);
+
+            $media = $spot['media'] ?? $this->defaultMediaFor($spot);
+            $this->syncMedia($model, $media, $model->imagen_portada_url);
             $created++;
         }
 
         $this->command?->info("Centros turísticos reales: {$created} listos".($skipped > 0 ? ", {$skipped} omitidos" : '').'.');
+    }
+
+    /**
+     * @param  list<array{url: string, caption?: string|null}>  $media
+     */
+    private function syncMedia(TourSpot $spot, array $media, ?string $coverUrl): void
+    {
+        if ($media === [] && $coverUrl) {
+            $media = [['url' => $coverUrl, 'caption' => $spot->nombre]];
+        }
+
+        if ($media === []) {
+            return;
+        }
+
+        TourSpotMedia::query()->where('tour_spot_id', $spot->id)->delete();
+
+        foreach ($media as $index => $item) {
+            $url = trim((string) ($item['url'] ?? ''));
+            if ($url === '') {
+                continue;
+            }
+
+            TourSpotMedia::query()->create([
+                'tour_spot_id' => $spot->id,
+                'tipo' => 'image',
+                'url' => $url,
+                'caption' => $item['caption'] ?? null,
+                'sort_order' => $index,
+                'is_cover' => $index === 0,
+            ]);
+        }
+
+        $first = $media[0]['url'] ?? null;
+        if ($first && ! $spot->imagen_portada_url) {
+            $spot->update(['imagen_portada_url' => $first]);
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $spot
+     * @return list<array{url: string, caption?: string|null}>
+     */
+    private function defaultMediaFor(array $spot): array
+    {
+        $byCategory = [
+            'museo' => [
+                'https://images.unsplash.com/photo-1564399579883-451a5d44ec08?auto=format&fit=crop&w=1200&q=80',
+                'https://images.unsplash.com/photo-1554907984-15263bfd63bd?auto=format&fit=crop&w=1200&q=80',
+                'https://images.unsplash.com/photo-1577083552431-6e5fd01988ec?auto=format&fit=crop&w=1200&q=80',
+            ],
+            'arqueologico' => [
+                'https://images.unsplash.com/photo-1587595431973-160d0d94add1?auto=format&fit=crop&w=1200&q=80',
+                'https://images.unsplash.com/photo-1539650116574-75c0c6d73f6e?auto=format&fit=crop&w=1200&q=80',
+                'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&w=1200&q=80',
+            ],
+            'playa' => [
+                'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80',
+                'https://images.unsplash.com/photo-1506953823976-aa1a7b0b3624?auto=format&fit=crop&w=1200&q=80',
+                'https://images.unsplash.com/photo-1473116763249-2faaef81ccda?auto=format&fit=crop&w=1200&q=80',
+            ],
+            'naturaleza' => [
+                'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=1200&q=80',
+                'https://images.unsplash.com/photo-1511497584788-876760111969?auto=format&fit=crop&w=1200&q=80',
+                'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=1200&q=80',
+            ],
+            'religioso' => [
+                'https://images.unsplash.com/photo-1548013146-72479768bada?auto=format&fit=crop&w=1200&q=80',
+                'https://images.unsplash.com/photo-1515542622106-78bda8ba0e5b?auto=format&fit=crop&w=1200&q=80',
+                'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=1200&q=80',
+            ],
+            'gastronomico' => [
+                'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=1200&q=80',
+                'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&w=1200&q=80',
+                'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1200&q=80',
+            ],
+            'cultural-vivo' => [
+                'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=1200&q=80',
+                'https://images.unsplash.com/photo-1464817739973-0128fe77aaa1?auto=format&fit=crop&w=1200&q=80',
+                'https://images.unsplash.com/photo-1533105079780-92b9be482077?auto=format&fit=crop&w=1200&q=80',
+            ],
+        ];
+
+        $category = $spot['categories'][0] ?? 'museo';
+        $urls = $byCategory[$category] ?? $byCategory['museo'];
+        $name = (string) ($spot['nombre'] ?? 'Centro turístico');
+
+        return array_map(
+            fn (string $url, int $i): array => [
+                'url' => $url,
+                'caption' => $i === 0 ? $name : "Vista ".($i + 1),
+            ],
+            $urls,
+            array_keys($urls),
+        );
     }
 
     private function ensureRequiredCategories(): void
@@ -245,6 +348,13 @@ class TourSpotContentSeeder extends Seeder
                 'tips' => ['es' => ['Llega temprano los fines de semana', 'Hay audioguías y visitas guiadas', 'Combínalo con el Museo Brüning']],
                 'como_llegar' => ['es' => 'Desde Chiclayo toma combi o taxi hacia Lambayeque (aprox. 20–30 min). El museo está señalizado en la avenida principal.'],
                 'hours' => $weekOpen,
+                'imagen_portada_url' => 'https://images.unsplash.com/photo-1587595431973-160d0d94add1?auto=format&fit=crop&w=1400&q=80',
+                'media' => [
+                    ['url' => 'https://images.unsplash.com/photo-1587595431973-160d0d94add1?auto=format&fit=crop&w=1400&q=80', 'caption' => 'Fachada del museo'],
+                    ['url' => 'https://images.unsplash.com/photo-1564399579883-451a5d44ec08?auto=format&fit=crop&w=1200&q=80', 'caption' => 'Sala de exhibición'],
+                    ['url' => 'https://images.unsplash.com/photo-1554907984-15263bfd63bd?auto=format&fit=crop&w=1200&q=80', 'caption' => 'Piezas arqueológicas'],
+                    ['url' => 'https://images.unsplash.com/photo-1577083552431-6e5fd01988ec?auto=format&fit=crop&w=1200&q=80', 'caption' => 'Detalle cultural'],
+                ],
             ],
             [
                 'slug' => 'huaca-rajada-sipan',

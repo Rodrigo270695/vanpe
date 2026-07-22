@@ -191,11 +191,21 @@ class RestaurantContentSeeder extends Seeder
                     'price' => $dish['price'],
                     'available' => true,
                     'publish_in_app' => true,
-                    'featured' => (bool) ($dish['featured'] ?? false),
+                    'featured' => (bool) ($dish['featured'] ?? $index < 3),
                     'sort_order' => $index + 1,
                     'is_drink' => $systemKey === 'bebida',
                 ],
             );
+        }
+
+        // Si no quedó ningún featured, marca los 3 primeros.
+        if (! MenuDish::query()->where('featured', true)->where('publish_in_app', true)->exists()) {
+            MenuDish::query()
+                ->where('publish_in_app', true)
+                ->where('available', true)
+                ->orderBy('sort_order')
+                ->limit(3)
+                ->update(['featured' => true]);
         }
     }
 
