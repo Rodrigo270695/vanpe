@@ -4,11 +4,17 @@ namespace App\Services\Tenant;
 
 use App\Models\Tenant\Reservation;
 use App\Models\Tenant\RstTable;
+use App\Services\Tourist\ReservationDecisionSync;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 
 class ReservationWorkflow
 {
+    public function __construct(
+        private readonly ReservationDecisionSync $decisionSync,
+    ) {}
+
     /**
      * @param  list<string>  $tableIds
      */
@@ -52,6 +58,8 @@ class ReservationWorkflow
         if ($tableIds !== []) {
             RstTable::query()->whereIn('id', $tableIds)->update(['status' => 'reserved']);
         }
+
+        $this->mirrorToCentral($reservation->fresh());
     }
 
     public function reject(Reservation $reservation, ?string $reason = null): void
@@ -65,6 +73,8 @@ class ReservationWorkflow
             'cancelled_at' => now(),
             'cancel_reason' => $reason,
         ]);
+
+        $this->mirrorToCentral($reservation->fresh());
     }
 
     public function seat(Reservation $reservation): void
@@ -80,6 +90,8 @@ class ReservationWorkflow
         if ($tableIds !== []) {
             RstTable::query()->whereIn('id', $tableIds)->update(['status' => 'occupied']);
         }
+
+        $this->mirrorToCentral($reservation->fresh());
     }
 
     public function complete(Reservation $reservation): void
@@ -89,6 +101,8 @@ class ReservationWorkflow
         $this->releaseTables($reservation);
 
         $reservation->update(['status' => 'completed']);
+
+        $this->mirrorToCentral($reservation->fresh());
     }
 
     public function markNoShow(Reservation $reservation): void
@@ -98,6 +112,8 @@ class ReservationWorkflow
         $this->releaseTables($reservation);
 
         $reservation->update(['status' => 'no_show']);
+
+        $this->mirrorToCentral($reservation->fresh());
     }
 
     public function cancel(Reservation $reservation, string $by = 'restaurant', ?string $reason = null): void
@@ -111,6 +127,21 @@ class ReservationWorkflow
             'cancelled_at' => now(),
             'cancel_reason' => $reason,
         ]);
+
+        $this->mirrorToCentral($reservation->fresh());
+    }
+
+    private function mirrorToCentral(?Reservation $reservation): void
+    {
+        if ($reservation === null || ! filled($reservation->rsv_id)) {
+            return;
+        }
+
+        $actorId = Auth::id();
+        $this->decisionSync->syncFromTenant(
+            $reservation,
+            $actorId !== null ? (string) $actorId : null,
+        );
     }
 
     private function releaseTables(Reservation $reservation): void

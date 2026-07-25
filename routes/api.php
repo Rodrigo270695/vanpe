@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\Tourist\RecommendController;
 use App\Http\Controllers\Api\Tourist\RestaurantController;
 use App\Http\Controllers\Api\Tourist\ReviewController;
 use App\Http\Controllers\Api\Tourist\TourSpotController;
+use App\Http\Controllers\Api\Tourist\DeviceTokenController;
 use App\Http\Controllers\Api\Tourist\FavoriteController;
 use App\Http\Controllers\Api\Tourist\ReservationController;
 use App\Http\Controllers\Api\Tourist\TouristRouteController;
@@ -51,6 +52,9 @@ Route::prefix('v1/tourist')->group(function () {
         Route::post('reservations', [ReservationController::class, 'store']);
         Route::get('reservations/{id}', [ReservationController::class, 'show']);
         Route::post('reservations/{id}/cancel', [ReservationController::class, 'cancel']);
+
+        Route::post('device-tokens', [DeviceTokenController::class, 'store']);
+        Route::delete('device-tokens', [DeviceTokenController::class, 'destroy']);
 
         Route::get('favorites', [FavoriteController::class, 'index']);
         Route::get('favorites/ids', [FavoriteController::class, 'ids']);

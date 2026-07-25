@@ -414,12 +414,12 @@ return [
 
     'push' => [
         'prompt_title' => 'Enable notifications',
-        'prompt_description' => 'Get kitchen, order, and cashier alerts based on your role.',
+        'prompt_description' => 'Get kitchen, order, cashier, and app reservation alerts based on your role.',
         'preparing_sw' => 'Preparing the service worker… wait a few seconds or reload the page.',
         'enable' => 'Enable',
         'disable' => 'Disable',
         'active_title' => 'Notifications active',
-        'active_description' => 'You will receive kitchen, order, and cashier alerts on this device.',
+        'active_description' => 'You will receive kitchen, order, cashier, and reservation alerts on this device.',
         'permission_denied' => 'Notifications are blocked in your browser. Enable them in the site settings.',
         'brave_local_hint' => 'Brave may not support push on local HTTP. Use Chrome, Edge, or Firefox, or disable Shields for this site.',
         'kitchen_new_order_title' => 'New kitchen order',
@@ -430,6 +430,8 @@ return [
         'kitchen_order_cancelled_body' => ':table · Order #:number was cancelled',
         'cashier_order_to_pay_title' => 'Bill to collect',
         'cashier_order_to_pay_body' => ':table · Order #:number · :total',
+        'reservation_new_title' => 'New reservation from VanPe',
+        'reservation_new_body' => ':name · :party guests · :date :time · :code',
         'table_label' => 'Table :number',
         'no_table' => 'No table',
     ],

@@ -223,16 +223,54 @@ Abrir app → (invitado o logueado)
   → Abrir ficha
 ```
 
-### 7.2 Reservar
+### 7.2 Reservar (ciclo completo turista ↔ restaurante)
+
+La reserva de la app **siempre nace pendiente**. El restaurante decide; el turista recibe el resultado.
 
 ```
-Ficha restaurante → Elegir fecha / hora / personas
-  → Ver disponibilidad
-  → Confirmar (login si hace falta)
-  → API crea Reservation
-  → Push / pantalla de confirmación
-  → El SaaS del restaurante ve la reserva
+TURISTA (app)                         CENTRAL (rsv_*)                    RESTAURANTE (SaaS tenant)
+─────────────                         ───────────────                    ─────────────────────────
+1. Elige fecha/hora/personas
+   (solo slots dentro de apertura)
+2. Confirma reserva
+   POST /reservations
+        ───────────────►  estado = pendiente
+                          ocupa cupo del slot
+                          proyecta a tenant ──────────────►  reservation source=app, status=pending
+                          Web Push staff ─────────────────►  “Nueva reserva desde VanPe”
+                                                             (permiso reservations.manage)
+3. Ve “Pendiente” en Mis reservas
+                                                             4. Abre /reservas → Confirmar o Rechazar
+                                                                POST …/confirm | …/reject
+                                                                ──────────────►
+                          espejo DecisionSync ◄──────────────  confirmed | cancelled_restaurant
+                          - actualiza rsv_reservations
+                          - libera cupo si rechaza
+                          - evento actor=restaurante
+                          Expo Push al turista ─────────────►
+5. Push: confirmada / rechazada
+   Mis reservas refleja estado
 ```
+
+**Reglas de producto**
+
+| Quién | Acción | Estado central | Cupo slot | Push |
+|-------|--------|----------------|-----------|------|
+| Turista | Crear | `pendiente` | +1 ocupado | Web Push → restaurante |
+| Restaurante | Confirmar | `confirmada` | se mantiene | Expo → turista |
+| Restaurante | Rechazar | `cancelada_restaurante` | −1 liberado | Expo → turista |
+| Turista | Cancelar (pendiente/confirmada) | `cancelada_cliente` | −1 liberado | (opcional) Web Push staff |
+| Restaurante | Sentar / cumplir / no-show | `sentada` / `cumplida` / `no_show` | liberar si aplica | — |
+
+**Canales de notificación**
+
+- **Restaurante:** Web Push (VAPID) ya usado en cocina/caja → mismo canal, permiso `tenant.reservations.manage`.
+- **Turista:** Expo Push (`ExponentPushToken[…]`) registrado con `POST /api/v1/tourist/device-tokens`.
+
+**Pantallas**
+
+- App: `restaurant/reserve` (solicitud) · `reservations` (estado).
+- SaaS: `/reservas` sección “pendientes de aprobación” → Confirmar / Rechazar.
 
 ### 7.3 Post-visita
 

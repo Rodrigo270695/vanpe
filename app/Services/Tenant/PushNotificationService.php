@@ -119,6 +119,14 @@ class PushNotificationService
     /**
      * @param  array{title: string, body: string, url: string, tag: string}  $payload
      */
+    public function notifyNewAppReservation(array $payload): void
+    {
+        $this->notifyUsersWithPermission('tenant.reservations.manage', $payload);
+    }
+
+    /**
+     * @param  array{title: string, body: string, url: string, tag: string}  $payload
+     */
     public function notifyUsersWithPermission(
         string $permission,
         array $payload,

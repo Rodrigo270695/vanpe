@@ -3,6 +3,7 @@
 namespace App\Services\Platform;
 
 use App\Models\PubRestaurant;
+use App\Services\Tourist\PublicServiceHoursValidator;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -81,6 +82,13 @@ class PublicCatalogQuery
             $query->whereDate('fecha', '>=', now()->toDateString());
         }
 
-        return $query->limit(200)->get();
+        $slots = $query->limit(200)->get();
+
+        if ($date === null) {
+            return $slots;
+        }
+
+        return app(PublicServiceHoursValidator::class)
+            ->filterSlotsWithinHours((string) $restaurant->tenant_id, $date, $slots);
     }
 }

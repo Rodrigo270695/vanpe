@@ -16,6 +16,8 @@ class TouristReservationService
 {
     public function __construct(
         private readonly ReservationProjector $projector,
+        private readonly PublicServiceHoursValidator $hoursValidator,
+        private readonly ReservationLifecycleNotifier $notifier,
     ) {}
 
     /**
@@ -57,12 +59,20 @@ class TouristReservationService
         }
 
         $hora = substr((string) $data['hora'], 0, 5);
+
+        if (! $this->hoursValidator->isOpenAt((string) $restaurant->tenant_id, (string) $data['fecha'], $hora)) {
+            throw ValidationException::withMessages([
+                'hora' => 'Esa hora está fuera del horario de apertura del restaurante.',
+            ]);
+        }
+
         $slot = null;
 
         if (! empty($data['slot_id'])) {
             $slot = PubAvailabilitySlot::query()
                 ->whereKey($data['slot_id'])
                 ->where('tenant_id', $restaurant->tenant_id)
+                ->whereDate('fecha', $data['fecha'])
                 ->where('cerrado', false)
                 ->first();
         } else {
@@ -81,6 +91,13 @@ class TouristReservationService
         if ($slot === null) {
             throw ValidationException::withMessages([
                 'hora' => 'No hay disponibilidad en esa fecha y hora.',
+            ]);
+        }
+
+        $slotHora = substr((string) $slot->hora, 0, 5);
+        if ($slotHora !== $hora) {
+            throw ValidationException::withMessages([
+                'hora' => 'El horario seleccionado no coincide con la disponibilidad.',
             ]);
         }
 
@@ -141,7 +158,12 @@ class TouristReservationService
 
         $this->projector->projectCreate($reservation->fresh(['restaurant']));
 
-        return $reservation->fresh(['restaurant']);
+        $fresh = $reservation->fresh(['restaurant', 'customer']);
+        if ($fresh !== null) {
+            $this->notifier->notifyRestaurantNewRequest($fresh);
+        }
+
+        return $fresh ?? $reservation;
     }
 
     public function cancel(Customer $customer, RsvReservation $reservation, ?string $motivo = null): RsvReservation

@@ -414,12 +414,12 @@ return [
 
     'push' => [
         'prompt_title' => 'Activa las notificaciones',
-        'prompt_description' => 'Recibe avisos de cocina, pedidos y caja según tu rol.',
+        'prompt_description' => 'Recibe avisos de cocina, pedidos, caja y nuevas reservas de la app.',
         'preparing_sw' => 'Preparando el service worker… espera unos segundos o recarga la página.',
         'enable' => 'Activar',
         'disable' => 'Desactivar',
         'active_title' => 'Notificaciones activas',
-        'active_description' => 'Recibirás avisos de cocina, pedidos y caja en este dispositivo.',
+        'active_description' => 'Recibirás avisos de cocina, pedidos, caja y reservas en este dispositivo.',
         'sw_build_required' => 'No se pudo registrar el service worker. Ejecuta «npm run build» y recarga la página.',
         'permission_denied' => 'Las notificaciones están bloqueadas en el navegador. Habilítalas en la configuración del sitio.',
         'brave_local_hint' => 'Brave puede no soportar push en local. Usa Chrome, Edge o Firefox, o desactiva Shields para este sitio.',
@@ -431,6 +431,8 @@ return [
         'kitchen_order_cancelled_body' => ':table · Comanda #:number fue cancelada',
         'cashier_order_to_pay_title' => 'Cuenta por cobrar',
         'cashier_order_to_pay_body' => ':table · Comanda #:number · S/ :total',
+        'reservation_new_title' => 'Nueva reserva desde VanPe',
+        'reservation_new_body' => ':name · :party pers. · :date :time · :code',
         'table_label' => 'Mesa :number',
         'no_table' => 'Sin mesa',
     ],
