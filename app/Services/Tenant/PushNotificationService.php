@@ -6,10 +6,13 @@ use App\Models\Tenant\Order;
 use App\Models\Tenant\OrderItem;
 use App\Models\Tenant\PushSubscription;
 use App\Models\Tenant\User;
+use App\Support\RoleProvisioner;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use Minishlink\WebPush\Subscription;
 use Minishlink\WebPush\WebPush;
+use Spatie\Permission\Exceptions\PermissionDoesNotExist;
+use Throwable;
 
 class PushNotificationService
 {
@@ -242,10 +245,35 @@ class PushNotificationService
      */
     private function usersWithPermission(string $permission): Collection
     {
-        return User::query()
-            ->where('activo', true)
-            ->permission($permission)
-            ->get();
+        try {
+            return User::query()
+                ->where('activo', true)
+                ->permission($permission)
+                ->get();
+        } catch (PermissionDoesNotExist $e) {
+            // Tenants viejos o cache Spatie tras cambio de schema: crear permiso faltante y reintentar.
+            Log::warning('Permiso Spatie ausente al enviar web push; sincronizando catálogo tenant', [
+                'permission' => $permission,
+                'error' => $e->getMessage(),
+            ]);
+
+            try {
+                RoleProvisioner::ensurePermissions('tenant');
+                RoleProvisioner::grantCoreMissingPermissions('tenant');
+
+                return User::query()
+                    ->where('activo', true)
+                    ->permission($permission)
+                    ->get();
+            } catch (Throwable $retry) {
+                Log::warning('Web push omitido: no se pudo resolver permiso Spatie', [
+                    'permission' => $permission,
+                    'error' => $retry->getMessage(),
+                ]);
+
+                return collect();
+            }
+        }
     }
 
     private function tableLabel(Order $order): string

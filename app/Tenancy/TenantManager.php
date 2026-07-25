@@ -6,6 +6,7 @@ use App\Models\Tenant;
 use App\Tenancy\Exceptions\TenantNotFoundException;
 use App\Tenancy\Exceptions\TenantUnavailableException;
 use Illuminate\Support\Facades\DB;
+use Spatie\Permission\PermissionRegistrar;
 
 /**
  * Resuelve el tenant activo y aísla su base de datos fijando el `search_path`
@@ -57,6 +58,7 @@ class TenantManager
         }
 
         $this->applySearchPath($schema);
+        $this->forgetPermissionCache();
 
         $timezone = filled($tenant->timezone) ? (string) $tenant->timezone : 'America/Lima';
         config(['app.timezone' => $timezone]);
@@ -76,6 +78,7 @@ class TenantManager
     {
         if (DB::getDefaultConnection() !== 'pgsql') {
             $this->current = null;
+            $this->forgetPermissionCache();
 
             return;
         }
@@ -91,6 +94,7 @@ class TenantManager
         date_default_timezone_set($timezone);
 
         $this->current = null;
+        $this->forgetPermissionCache();
     }
 
     protected function findBySlug(string $slug): ?Tenant
@@ -133,16 +137,28 @@ class TenantManager
                 schema: $schema,
                 slug: (string) $tenant->slug,
             );
+            $this->forgetPermissionCache();
 
             return $callback();
         } finally {
             if ($previous !== null) {
                 $this->applySearchPath($previous->schema);
                 $this->current = $previous;
+                $this->forgetPermissionCache();
             } else {
                 $this->forget();
             }
         }
+    }
+
+    /**
+     * Spatie cachea permisos sin distinguir schema. Al saltar public ↔ rst_*
+     * hay que invalidar; si no, fallan consultas como permission('tenant.*')
+     * desde la API central (p. ej. push de reservas).
+     */
+    private function forgetPermissionCache(): void
+    {
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
 
     /**
