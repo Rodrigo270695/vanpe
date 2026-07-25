@@ -16,6 +16,7 @@ use App\Http\Controllers\Platform\RoleController;
 use App\Http\Controllers\Platform\SubscriptionController;
 use App\Http\Controllers\Platform\SubscriptionPaymentController;
 use App\Http\Controllers\Platform\TenantController;
+use App\Http\Controllers\Platform\TourEventController;
 use App\Http\Controllers\Platform\TourSpotController;
 use App\Http\Controllers\Platform\UserController;
 use App\Http\Controllers\Tenant\CajaController;
@@ -284,6 +285,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('centros-turisticos', [TourSpotController::class, 'store'])->name('tour-spots.store');
         Route::put('centros-turisticos/{tour_spot}', [TourSpotController::class, 'update'])->name('tour-spots.update');
         Route::delete('centros-turisticos/{tour_spot}', [TourSpotController::class, 'destroy'])->name('tour-spots.destroy');
+
+        Route::get('festividades', [TourEventController::class, 'index'])->name('events.index');
+        Route::post('festividades', [TourEventController::class, 'store'])->name('events.store');
+        Route::put('festividades/{tour_event}', [TourEventController::class, 'update'])->name('events.update');
+        Route::delete('festividades/{tour_event}', [TourEventController::class, 'destroy'])->name('events.destroy');
     });
 });
 

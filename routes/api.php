@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\Tourist\ProfileController;
 use App\Http\Controllers\Api\Tourist\RecommendController;
 use App\Http\Controllers\Api\Tourist\RestaurantController;
 use App\Http\Controllers\Api\Tourist\ReviewController;
+use App\Http\Controllers\Api\Tourist\TourEventController;
 use App\Http\Controllers\Api\Tourist\TourSpotController;
 use App\Http\Controllers\Api\Tourist\DeviceTokenController;
 use App\Http\Controllers\Api\Tourist\FavoriteController;
@@ -84,5 +85,8 @@ Route::prefix('v1/tourist')->group(function () {
     Route::get('restaurants/{slug}/slots', [RestaurantController::class, 'slots']);
     Route::get('tour-spots', [TourSpotController::class, 'index']);
     Route::get('tour-spots/{slug}', [TourSpotController::class, 'show']);
+    Route::get('events/featured', [TourEventController::class, 'featured']);
+    Route::get('events', [TourEventController::class, 'index']);
+    Route::get('events/{slug}', [TourEventController::class, 'show']);
     Route::get('reviews', [ReviewController::class, 'index']);
 });

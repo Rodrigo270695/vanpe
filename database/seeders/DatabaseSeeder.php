@@ -21,6 +21,7 @@ class DatabaseSeeder extends Seeder
             TourCategorySeeder::class,
             LambayequeGeoSeeder::class,
             TourSpotContentSeeder::class,
+            TourEventSeeder::class,
             RestaurantContentSeeder::class,
             CustomerReviewSeeder::class,
         ]);

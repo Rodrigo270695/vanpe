@@ -43,6 +43,7 @@ return [
         'promo_codes' => 'Promos',
         'catalog' => 'Catálogo turístico',
         'tour_spots' => 'Centros turísticos',
+        'events' => 'Ferias y festividades',
     ],
 
     'user_menu' => [
@@ -1815,6 +1816,7 @@ return [
                 'promo_codes' => 'Códigos promocionales',
                 'catalog' => 'Catálogo turístico',
                 'tour_spots' => 'Centros turísticos',
+                'events' => 'Ferias y festividades',
                 'users' => 'Usuarios',
                 'roles' => 'Roles',
             ],
@@ -1854,6 +1856,11 @@ return [
                 'tour_spots.update' => 'Editar centros turísticos',
                 'tour_spots.publish' => 'Publicar centros turísticos',
                 'tour_spots.delete' => 'Eliminar centros turísticos',
+                'events' => 'Ferias y festividades',
+                'events.view' => 'Ver eventos y festividades',
+                'events.create' => 'Crear eventos',
+                'events.update' => 'Editar eventos',
+                'events.delete' => 'Eliminar eventos',
                 'users.view' => 'Ver usuarios',
                 'users.create' => 'Crear usuarios',
                 'users.update' => 'Editar usuarios',

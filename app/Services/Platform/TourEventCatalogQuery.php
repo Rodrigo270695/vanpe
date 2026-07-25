@@ -1,0 +1,107 @@
+<?php
+
+namespace App\Services\Platform;
+
+use App\Models\TourEvent;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Builder;
+
+class TourEventCatalogQuery
+{
+    /**
+     * @return LengthAwarePaginator<int, TourEvent>
+     */
+    public function paginate(?int $departamentoId = null, ?string $q = null, int $perPage = 20): LengthAwarePaginator
+    {
+        return $this->baseQuery($departamentoId, $q)
+            ->paginate(min(max($perPage, 1), 50));
+    }
+
+    /**
+     * @return list<TourEvent>
+     */
+    public function featured(int $limit = 6): array
+    {
+        return $this->baseQuery()
+            ->orderByDesc('destacado')
+            ->orderBy('sort_order')
+            ->orderBy('starts_at')
+            ->limit($limit)
+            ->get()
+            ->all();
+    }
+
+    public function findPublishedBySlug(string $slug): ?TourEvent
+    {
+        return TourEvent::query()
+            ->published()
+            ->with(['sponsors', 'departamento:id,name', 'provincia:id,name', 'distrito:id,name'])
+            ->where('slug', $slug)
+            ->first();
+    }
+
+    /**
+     * @return Builder<TourEvent>
+     */
+    private function baseQuery(?int $departamentoId = null, ?string $q = null): Builder
+    {
+        return TourEvent::query()
+            ->published()
+            ->activeWindow()
+            ->with(['departamento:id,name', 'distrito:id,name'])
+            ->when($departamentoId, fn (Builder $b) => $b->where('departamento_id', $departamentoId))
+            ->when($q, function (Builder $b) use ($q): void {
+                $term = '%'.mb_strtolower(trim($q)).'%';
+                $b->where(function (Builder $inner) use ($term): void {
+                    $inner->whereRaw('LOWER(titulo) like ?', [$term])
+                        ->orWhereRaw('LOWER(COALESCE(lugar, \'\')) like ?', [$term])
+                        ->orWhereRaw('LOWER(COALESCE(resumen, \'\')) like ?', [$term]);
+                });
+            })
+            ->orderByDesc('destacado')
+            ->orderBy('sort_order')
+            ->orderBy('starts_at');
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function toListItem(TourEvent $event): array
+    {
+        return [
+            'id' => $event->id,
+            'slug' => $event->slug,
+            'titulo' => $event->titulo,
+            'resumen' => $event->resumen,
+            'portada_url' => $event->portada_url,
+            'lugar' => $event->lugar,
+            'starts_at' => $event->starts_at?->timezone('America/Lima')->toIso8601String(),
+            'ends_at' => $event->ends_at?->timezone('America/Lima')->toIso8601String(),
+            'destacado' => (bool) $event->destacado,
+            'owner_type' => $event->owner_type,
+            'departamento' => $event->departamento?->name,
+            'distrito' => $event->distrito?->name,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function toDetail(TourEvent $event): array
+    {
+        return [
+            ...$this->toListItem($event),
+            'descripcion' => $event->descripcion,
+            'latitud' => $event->latitud,
+            'longitud' => $event->longitud,
+            'provincia' => $event->provincia?->name,
+            'sponsors' => $event->sponsors->map(fn ($s): array => [
+                'id' => $s->id,
+                'nombre' => $s->nombre,
+                'tipo' => $s->tipo,
+                'logo_url' => $s->logo_url,
+                'website' => $s->website,
+            ])->values()->all(),
+        ];
+    }
+}

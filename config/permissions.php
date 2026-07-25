@@ -101,6 +101,15 @@ return [
                     'tour_spots.delete' => 'Eliminar centros turísticos',
                 ],
             ],
+            'events' => [
+                'label' => 'Ferias y festividades',
+                'permissions' => [
+                    'events.view' => 'Ver eventos y festividades',
+                    'events.create' => 'Crear eventos',
+                    'events.update' => 'Editar eventos',
+                    'events.delete' => 'Eliminar eventos',
+                ],
+            ],
             'users' => [
                 'label' => 'Usuarios',
                 'permissions' => [

@@ -43,6 +43,7 @@ return [
         'promo_codes' => 'Promos',
         'catalog' => 'Tourist catalog',
         'tour_spots' => 'Tourist spots',
+        'events' => 'Fairs & festivities',
     ],
 
     'user_menu' => [
@@ -1814,6 +1815,7 @@ return [
                 'promo_codes' => 'Promo codes',
                 'catalog' => 'Tourist catalog',
                 'tour_spots' => 'Tourist spots',
+                'events' => 'Fairs & festivities',
                 'users' => 'Users',
                 'roles' => 'Roles',
             ],
@@ -1853,6 +1855,11 @@ return [
                 'tour_spots.update' => 'Edit tourist spots',
                 'tour_spots.publish' => 'Publish tourist spots',
                 'tour_spots.delete' => 'Delete tourist spots',
+                'events' => 'Fairs & festivities',
+                'events.view' => 'View events & festivities',
+                'events.create' => 'Create events',
+                'events.update' => 'Edit events',
+                'events.delete' => 'Delete events',
                 'users.view' => 'View users',
                 'users.create' => 'Create users',
                 'users.update' => 'Edit users',

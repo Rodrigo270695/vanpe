@@ -169,7 +169,18 @@ class TouristRouteController extends Controller
         $stop = TouristRouteStop::query()
             ->whereKey($stopId)
             ->whereHas('route', fn ($q) => $q->where('customer_id', $customer->id))
-            ->firstOrFail();
+            ->first();
+
+        // Compat: si mandan target_id en vez del id de la fila, buscar en rutas del cliente.
+        if ($stop === null) {
+            $stop = TouristRouteStop::query()
+                ->where('target_id', $stopId)
+                ->whereHas('route', fn ($q) => $q->where('customer_id', $customer->id)->where('status', TouristRoute::STATUS_DRAFT))
+                ->orderByDesc('updated_at')
+                ->first();
+        }
+
+        abort_if($stop === null, 404, 'Parada no encontrada en tu ruta.');
 
         $routeId = $stop->tourist_route_id;
         $stop->delete();
