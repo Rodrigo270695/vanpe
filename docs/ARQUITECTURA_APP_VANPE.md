@@ -260,7 +260,8 @@ TURISTA (app)                         CENTRAL (rsv_*)                    RESTAUR
 | Restaurante | Confirmar | `confirmada` | se mantiene | Expo → turista |
 | Restaurante | Rechazar | `cancelada_restaurante` | −1 liberado | Expo → turista |
 | Turista | Cancelar (pendiente/confirmada) | `cancelada_cliente` | −1 liberado | (opcional) Web Push staff |
-| Turista | Ya visitamos (en ventana de hora) | `cumplida` | −1 liberado | invita a reseñar |
+| Turista | Ya estoy acá (ventana de hora) | `sentada` | se mantiene | — |
+| Turista | Terminar visita | `cumplida` | −1 liberado | invita a reseñar |
 | Restaurante | Sentar / cumplir / no-show | `sentada` / `cumplida` / `no_show` | liberar si aplica | — |
 
 **Canales de notificación**
@@ -273,19 +274,34 @@ TURISTA (app)                         CENTRAL (rsv_*)                    RESTAUR
 - App: `restaurant/reserve` (solicitud) · `reservations` (estado).
 - SaaS: `/reservas` sección “pendientes de aprobación” → Confirmar / Rechazar.
 
-### 7.3 Post-visita (visitado → reseña)
+### 7.3 Post-visita (llegada → visita → reseña)
+
+La visita ya no es un solo botón. Va amarrada a la reserva confirmada y a la ruta:
 
 ```
-Reserva confirmada
-  → Llega la hora (±15 min … +12 h)
-  → Turista en Mis reservas toca “Ya visitamos”
-       POST /reservations/{id}/visit  → estado = cumplida
+Reserva confirmada (Expo Push al turista)
+  → Ventana de visita: −15 min … +12 h respecto a fecha/hora (America/Lima)
+  → Turista marca “Ya estoy acá”
+       POST /api/v1/tourist/reservations/{id}/arrive  → estado = sentada
+       (GPS opcional / soft ~150–300 m si el local tiene coordenadas)
+  → Turista marca “Terminar visita”
+       POST /api/v1/tourist/reservations/{id}/visit   → estado = cumplida
   → App invita a escribir reseña
   → Solo con visita cumplida se puede POST /reviews (restaurante)
   → Favoritos (corazón) son independientes en cualquier momento
 ```
 
-Tour spots: reseña libre (sin reserva). Restaurantes: reseña solo tras visita marcada.
+**Dónde aparece en la app**
+
+| Paso | Mis reservas | Tab Rutas (mapa) |
+|------|--------------|------------------|
+| `confirmada` + ventana abierta | “Ya estoy acá” | Banner de reserva en ruta |
+| `sentada` | “Terminar visita” | Mismo banner → terminar |
+| `cumplida` | Invita reseña | — |
+
+**Coords del restaurante:** el tenant las carga en SaaS → **Mi negocio → Ubicación** (Mapbox). Sin lat/lng el mapa de ruta no puede pintar el pin del local.
+
+Tour spots: reseña libre (sin reserva). Restaurantes: reseña solo tras visita marcada (`cumplida`).
 
 ---
 
@@ -351,8 +367,8 @@ Tour spots: reseña libre (sin reserva). Restaurantes: reseña solo tras visita 
 
 9. Push notificaciones.
 10. Reseñas.
-11. Branding, splash, íconos.
-12. Builds EAS → Play Store + App Store.
+11. Branding, splash, íconos. ✅ (`vamospe-05` ícono · `vamospe-01` splash)
+12. Builds EAS → Play Store + App Store (siguiente: `eas build -p android --profile preview`).
 
 ---
 
