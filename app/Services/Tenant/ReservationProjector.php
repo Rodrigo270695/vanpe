@@ -60,11 +60,36 @@ class ReservationProjector
                 ]);
             });
         } catch (Throwable $e) {
-            Log::warning('No se pudo proyectar reserva al tenant', [
+            Log::error('No se pudo proyectar reserva al tenant', [
                 'rsv_id' => $reservation->id,
                 'tenant_id' => $reservation->tenant_id,
                 'error' => $e->getMessage(),
             ]);
+
+            // Reintento único: sin esto la reserva queda solo en la app.
+            try {
+                $this->tenants->runForTenant($tenant, function () use ($reservation): void {
+                    TenantReservation::query()->updateOrCreate(
+                        ['rsv_id' => $reservation->id],
+                        [
+                            'code' => $reservation->codigo,
+                            'customer_name' => $reservation->nombre_contacto,
+                            'customer_phone' => $reservation->telefono_contacto,
+                            'date' => $reservation->fecha?->toDateString(),
+                            'time' => substr((string) $reservation->hora, 0, 8),
+                            'party_size' => $reservation->num_personas,
+                            'notes' => $reservation->notas,
+                            'source' => 'app',
+                            'status' => self::STATUS_MAP[$reservation->estado] ?? 'pending',
+                        ],
+                    );
+                });
+            } catch (Throwable $retry) {
+                Log::error('Reintento de proyección de reserva falló', [
+                    'rsv_id' => $reservation->id,
+                    'error' => $retry->getMessage(),
+                ]);
+            }
         }
     }
 

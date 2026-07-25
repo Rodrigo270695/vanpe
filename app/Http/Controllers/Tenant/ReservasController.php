@@ -58,8 +58,17 @@ class ReservasController extends Controller
             'seated' => $reservations->where('status', 'seated')->count(),
         ];
 
-        $pendingApproval = $reservations
-            ->filter(fn (array $row): bool => $row['needs_approval'])
+        // Solicitudes de la app: visibles aunque el filtro de fecha sea otro día.
+        $pendingApproval = Reservation::query()
+            ->with('tables:id,number,area_id')
+            ->where('source', 'app')
+            ->where('status', 'pending')
+            ->whereDate('date', '>=', now()->toDateString())
+            ->whereDate('date', '<=', now()->addDays(30)->toDateString())
+            ->orderBy('date')
+            ->orderBy('time')
+            ->get()
+            ->map(fn (Reservation $r): array => $this->serialize($r))
             ->values();
 
         $timeline = $filterFrom === $filterTo
