@@ -147,7 +147,21 @@ class PushNotificationService
      */
     private function sendToUsers(Collection $users, array $payload): void
     {
-        if (! $this->isConfigured() || $users->isEmpty()) {
+        $tag = $payload['tag'] ?? 'unknown';
+
+        if (! $this->isConfigured()) {
+            Log::warning('Web push omitido: VAPID no configurado', [
+                'tag' => $tag,
+            ]);
+
+            return;
+        }
+
+        if ($users->isEmpty()) {
+            Log::warning('Web push omitido: sin usuarios con permiso', [
+                'tag' => $tag,
+            ]);
+
             return;
         }
 
@@ -158,6 +172,12 @@ class PushNotificationService
             ->get();
 
         if ($subscriptions->isEmpty()) {
+            Log::warning('Web push omitido: nadie del staff tiene suscripción activa', [
+                'tag' => $tag,
+                'user_ids' => $userIds,
+                'hint' => 'El usuario debe Activar notificaciones (campana) en el panel del restaurante',
+            ]);
+
             return;
         }
 
@@ -183,11 +203,17 @@ class PushNotificationService
             );
         }
 
+        $sent = 0;
+        $failed = 0;
+
         foreach ($webPush->flush() as $report) {
             if ($report->isSuccess()) {
+                $sent++;
+
                 continue;
             }
 
+            $failed++;
             $endpoint = $report->getRequest()->getUri()->__toString();
 
             if ($report->isSubscriptionExpired()) {
@@ -197,10 +223,18 @@ class PushNotificationService
             }
 
             Log::warning('Web push delivery failed', [
+                'tag' => $tag,
                 'endpoint' => $endpoint,
                 'reason' => $report->getReason(),
             ]);
         }
+
+        Log::info('Web push enviado', [
+            'tag' => $tag,
+            'subscriptions' => $subscriptions->count(),
+            'sent' => $sent,
+            'failed' => $failed,
+        ]);
     }
 
     /**

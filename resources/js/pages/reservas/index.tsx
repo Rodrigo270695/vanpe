@@ -15,6 +15,7 @@ import { useMemo, useState } from 'react';
 import { DateRangeFilter } from '@/components/common/date-range-filter';
 import { PageHeader } from '@/components/common/page-header';
 import { TableFilterSelect } from '@/components/common/table-filter-select';
+import { PushReservasBanner } from '@/components/push/push-reservas-banner';
 import { ReservationCard } from '@/components/reservas/reservation-card';
 import { ReservationFormModal } from '@/components/reservas/reservation-form-modal';
 import { SeatTableModal } from '@/components/reservas/seat-table-modal';
@@ -188,6 +189,8 @@ export default function ReservasIndex({
                         {t('reservas.disabled_hint')}
                     </p>
                 )}
+
+                {can.manage ? <PushReservasBanner /> : null}
 
                 <div className="flex gap-2 border-b border-border px-4 md:px-6">
                     <button

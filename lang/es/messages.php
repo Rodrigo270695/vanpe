@@ -415,6 +415,8 @@ return [
     'push' => [
         'prompt_title' => 'Activa las notificaciones',
         'prompt_description' => 'Recibe avisos de cocina, pedidos, caja y nuevas reservas de la app.',
+        'reservas_banner_title' => 'Activa avisos de nuevas reservas',
+        'reservas_banner_description' => 'Sin esto, las solicitudes de la app VanPe llegan al panel pero no te avisan en el celular. Pulsa Activar y acepta el permiso del navegador.',
         'preparing_sw' => 'Preparando el service worker… espera unos segundos o recarga la página.',
         'enable' => 'Activar',
         'disable' => 'Desactivar',

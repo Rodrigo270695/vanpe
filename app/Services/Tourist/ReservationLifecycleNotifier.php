@@ -34,6 +34,12 @@ class ReservationLifecycleNotifier
         $fecha = $reservation->fecha?->format('d/m') ?? '';
 
         try {
+            Log::info('Notificando reserva nueva al restaurante (web push)', [
+                'rsv_id' => $reservation->id,
+                'tenant_id' => $tenant->id,
+                'codigo' => $reservation->codigo,
+            ]);
+
             $this->tenants->runForTenant($tenant, function () use ($reservation, $hora, $fecha): void {
                 $this->tenantPush->notifyNewAppReservation([
                     'title' => __('messages.push.reservation_new_title'),
@@ -51,6 +57,7 @@ class ReservationLifecycleNotifier
         } catch (Throwable $e) {
             Log::warning('No se pudo notificar reserva nueva al restaurante', [
                 'rsv_id' => $reservation->id,
+                'tenant_id' => $tenant->id,
                 'error' => $e->getMessage(),
             ]);
         }

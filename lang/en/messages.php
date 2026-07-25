@@ -415,6 +415,8 @@ return [
     'push' => [
         'prompt_title' => 'Enable notifications',
         'prompt_description' => 'Get kitchen, order, cashier, and app reservation alerts based on your role.',
+        'reservas_banner_title' => 'Enable new reservation alerts',
+        'reservas_banner_description' => 'Without this, VanPe app requests show in the panel but won’t ping your phone. Tap Enable and allow the browser permission.',
         'preparing_sw' => 'Preparing the service worker… wait a few seconds or reload the page.',
         'enable' => 'Enable',
         'disable' => 'Disable',
