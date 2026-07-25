@@ -109,6 +109,42 @@ class TenantManager
     }
 
     /**
+     * Ejecuta un callback con el schema del tenant fijado y restaura el estado previo.
+     *
+     * @template T
+     *
+     * @param  callable(): T  $callback
+     * @return T
+     */
+    public function runForTenant(Tenant $tenant, callable $callback): mixed
+    {
+        $previous = $this->current;
+        $schema = $this->safeSchemaName($tenant);
+
+        if ($schema === null) {
+            throw new TenantNotFoundException((string) $tenant->slug);
+        }
+
+        try {
+            $this->applySearchPath($schema);
+            $this->current = new TenantContext(
+                tenant: $tenant,
+                schema: $schema,
+                slug: (string) $tenant->slug,
+            );
+
+            return $callback();
+        } finally {
+            if ($previous !== null) {
+                $this->applySearchPath($previous->schema);
+                $this->current = $previous;
+            } else {
+                $this->forget();
+            }
+        }
+    }
+
+    /**
      * Sanea el nombre del schema leído de la BD (nunca de la request) antes de
      * inyectarlo en SQL, y exige el prefijo configurado.
      */

@@ -59,6 +59,7 @@ class RestaurantController extends Controller
 
         return response()->json([
             'data' => $slots->map(fn ($slot): array => [
+                'id' => $slot->id,
                 'fecha' => $slot->fecha?->toDateString(),
                 'hora' => substr((string) $slot->hora, 0, 5),
                 'cupos_total' => $slot->cupos_total,
