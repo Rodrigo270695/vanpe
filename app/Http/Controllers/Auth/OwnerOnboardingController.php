@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
 /**
  * Onboarding del dueño tras autenticar con Google.
@@ -38,7 +39,7 @@ class OwnerOnboardingController extends Controller
         ]);
     }
 
-    public function store(Request $request, TenantProvisioner $provisioner): RedirectResponse
+    public function store(Request $request, TenantProvisioner $provisioner): RedirectResponse|SymfonyResponse
     {
         $pending = $request->session()->get('pending_owner');
 
@@ -59,7 +60,7 @@ class OwnerOnboardingController extends Controller
         if ($existingTenant = Tenant::query()->where('email_admin', $email)->first()) {
             $request->session()->forget('pending_owner');
 
-            return redirect()->away(
+            return Inertia::location(
                 $existingTenant->subdomainUrl('/login').'?status='.rawurlencode(
                     __('messages.auth.google_owner_exists', [
                         'host' => $existingTenant->subdomainHost(),
@@ -88,7 +89,7 @@ class OwnerOnboardingController extends Controller
 
         $request->session()->forget('pending_owner');
 
-        return redirect()->away(
+        return Inertia::location(
             $tenant->subdomainUrl('/login').'?status='.rawurlencode(
                 __('messages.auth.onboarding_success', [
                     'name' => $tenant->nombre_comercial,

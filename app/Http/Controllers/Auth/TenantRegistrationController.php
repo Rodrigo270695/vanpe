@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 use Throwable;
 
 /**
@@ -30,7 +31,7 @@ class TenantRegistrationController extends Controller
         ]);
     }
 
-    public function store(Request $request, TenantProvisioner $provisioner): RedirectResponse
+    public function store(Request $request, TenantProvisioner $provisioner): RedirectResponse|SymfonyResponse
     {
         $validated = $request->validate([
             'nombre_comercial' => ['required', 'string', 'max:150'],
@@ -84,7 +85,8 @@ class TenantRegistrationController extends Controller
                 'host' => $tenant->subdomainHost(),
             ]);
 
-        return redirect()->away(
+        // Cross-domain: Inertia XHR no puede seguir away() (CORS). Location fuerza window.location.
+        return Inertia::location(
             $tenant->subdomainUrl('/login').'?status='.rawurlencode($message)
         );
     }
