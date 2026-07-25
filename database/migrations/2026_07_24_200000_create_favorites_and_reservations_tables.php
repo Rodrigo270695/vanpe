@@ -65,7 +65,7 @@ return new class extends Migration
             $table->string('estado_nuevo', 30);
             // turista|restaurante|sistema
             $table->string('actor_tipo', 15);
-            $table->uuid('actor_id')->nullable();
+            $table->string('actor_id', 64)->nullable();
             $table->string('nota', 255)->nullable();
             $table->timestampTz('created_at')->useCurrent();
 
