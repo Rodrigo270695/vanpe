@@ -53,6 +53,7 @@ Route::prefix('v1/tourist')->group(function () {
         Route::post('reservations', [ReservationController::class, 'store']);
         Route::get('reservations/{id}', [ReservationController::class, 'show']);
         Route::post('reservations/{id}/cancel', [ReservationController::class, 'cancel']);
+        Route::post('reservations/{id}/arrive', [ReservationController::class, 'arrive']);
         Route::post('reservations/{id}/visit', [ReservationController::class, 'visit']);
 
         Route::post('device-tokens', [DeviceTokenController::class, 'store']);

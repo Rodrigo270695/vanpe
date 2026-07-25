@@ -21,7 +21,7 @@ class ReservationController extends Controller
         $customer = $request->user();
 
         $rows = RsvReservation::query()
-            ->with(['restaurant:id,nombre,slug,portada_url,direccion,telefono'])
+            ->with(['restaurant:id,nombre,slug,portada_url,direccion,telefono,latitud,longitud'])
             ->where('customer_id', $customer->id)
             ->orderByDesc('fecha')
             ->orderByDesc('hora')
@@ -68,7 +68,7 @@ class ReservationController extends Controller
         $customer = $request->user();
 
         $reservation = RsvReservation::query()
-            ->with(['restaurant:id,nombre,slug,portada_url,direccion,telefono'])
+            ->with(['restaurant:id,nombre,slug,portada_url,direccion,telefono,latitud,longitud'])
             ->where('customer_id', $customer->id)
             ->whereKey($id)
             ->firstOrFail();
@@ -93,8 +93,34 @@ class ReservationController extends Controller
         $updated = $this->reservations->cancel($customer, $reservation, $data['motivo'] ?? null);
 
         return response()->json([
-            'data' => $this->serialize($updated->load('restaurant:id,nombre,slug,portada_url,direccion,telefono')),
+            'data' => $this->serialize($updated->load('restaurant:id,nombre,slug,portada_url,direccion,telefono,latitud,longitud')),
             'message' => 'Reserva cancelada.',
+        ]);
+    }
+
+    public function arrive(Request $request, string $id): JsonResponse
+    {
+        /** @var Customer $customer */
+        $customer = $request->user();
+
+        $data = $request->validate([
+            'lat' => ['nullable', 'numeric', 'between:-90,90'],
+            'lng' => ['nullable', 'numeric', 'between:-180,180'],
+        ]);
+
+        $reservation = RsvReservation::query()
+            ->where('customer_id', $customer->id)
+            ->whereKey($id)
+            ->firstOrFail();
+
+        $updated = $this->reservations->markArrived($customer, $reservation, [
+            'lat' => isset($data['lat']) ? (float) $data['lat'] : null,
+            'lng' => isset($data['lng']) ? (float) $data['lng'] : null,
+        ]);
+
+        return response()->json([
+            'data' => $this->serialize($updated->load('restaurant:id,nombre,slug,portada_url,direccion,telefono,latitud,longitud')),
+            'message' => 'Llegada registrada. Cuando termines, marca “Terminar visita”.',
         ]);
     }
 
@@ -111,8 +137,8 @@ class ReservationController extends Controller
         $updated = $this->reservations->markVisited($customer, $reservation);
 
         return response()->json([
-            'data' => $this->serialize($updated->load('restaurant:id,nombre,slug,portada_url,direccion,telefono')),
-            'message' => 'Visita registrada. Ya puedes dejar una reseña.',
+            'data' => $this->serialize($updated->load('restaurant:id,nombre,slug,portada_url,direccion,telefono,latitud,longitud')),
+            'message' => 'Visita terminada. Ya puedes dejar una reseña.',
         ]);
     }
 
@@ -121,11 +147,10 @@ class ReservationController extends Controller
      */
     private function serialize(RsvReservation $r): array
     {
-        $canVisit = in_array($r->estado, [
-            RsvReservation::ESTADO_CONFIRMADA,
-            RsvReservation::ESTADO_SENTADA,
-        ], true) && $this->reservations->isVisitWindowOpen($r);
+        $windowOpen = $this->reservations->isVisitWindowOpen($r);
 
+        $canArrive = $r->estado === RsvReservation::ESTADO_CONFIRMADA && $windowOpen;
+        $canCompleteVisit = $r->estado === RsvReservation::ESTADO_SENTADA && $windowOpen;
         $canReview = $r->estado === RsvReservation::ESTADO_CUMPLIDA
             && $r->restaurant_id !== null;
 
@@ -141,7 +166,10 @@ class ReservationController extends Controller
             'estado' => $r->estado,
             'slot_id' => $r->slot_id,
             'cancelada_motivo' => $r->cancelada_motivo,
-            'can_visit' => $canVisit,
+            'can_arrive' => $canArrive,
+            'can_complete_visit' => $canCompleteVisit,
+            /** @deprecated usar can_complete_visit */
+            'can_visit' => $canCompleteVisit,
             'can_review' => $canReview,
             'created_at' => $r->created_at?->toIso8601String(),
             'restaurant' => $r->restaurant ? [
@@ -151,6 +179,8 @@ class ReservationController extends Controller
                 'portada_url' => $r->restaurant->portada_url,
                 'direccion' => $r->restaurant->direccion,
                 'telefono' => $r->restaurant->telefono,
+                'latitud' => $r->restaurant->latitud !== null ? (float) $r->restaurant->latitud : null,
+                'longitud' => $r->restaurant->longitud !== null ? (float) $r->restaurant->longitud : null,
             ] : null,
         ];
     }

@@ -194,8 +194,58 @@ class TouristReservationService
     }
 
     /**
-     * Turista marca que ya visitó / asistió → estado cumplida.
-     * Solo si la reserva está confirmada (o sentada) y ya llegó (o pasó) la hora.
+     * Turista marca llegada al local → estado sentada.
+     * Solo desde confirmada y dentro de la ventana de visita.
+     *
+     * @param  array{lat?: float|null, lng?: float|null}  $coords
+     */
+    public function markArrived(Customer $customer, RsvReservation $reservation, array $coords = []): RsvReservation
+    {
+        if ((int) $reservation->customer_id !== (int) $customer->id) {
+            abort(403);
+        }
+
+        if ($reservation->estado !== RsvReservation::ESTADO_CONFIRMADA) {
+            throw ValidationException::withMessages([
+                'reservation' => 'Solo puedes marcar llegada en una reserva confirmada.',
+            ]);
+        }
+
+        if (! $this->isVisitWindowOpen($reservation)) {
+            throw ValidationException::withMessages([
+                'reservation' => 'Aún no llega la hora de tu reserva. Vuelve cuando sea el momento.',
+            ]);
+        }
+
+        $this->assertOptionalProximity($reservation, $coords);
+
+        $updated = DB::transaction(function () use ($reservation, $customer): RsvReservation {
+            $prev = $reservation->estado;
+            $reservation->update([
+                'estado' => RsvReservation::ESTADO_SENTADA,
+            ]);
+
+            RsvReservationEvent::query()->create([
+                'reservation_id' => $reservation->id,
+                'estado_anterior' => $prev,
+                'estado_nuevo' => RsvReservation::ESTADO_SENTADA,
+                'actor_tipo' => 'turista',
+                'actor_id' => (string) $customer->id,
+                'nota' => 'Turista marcó llegada al local (Ya estoy acá)',
+                'created_at' => now(),
+            ]);
+
+            return $reservation->fresh(['restaurant']);
+        });
+
+        $this->projector->projectStatus($updated);
+
+        return $updated;
+    }
+
+    /**
+     * Turista termina la visita → estado cumplida.
+     * Requiere haber marcado llegada (sentada).
      */
     public function markVisited(Customer $customer, RsvReservation $reservation): RsvReservation
     {
@@ -203,18 +253,15 @@ class TouristReservationService
             abort(403);
         }
 
-        if (! in_array($reservation->estado, [
-            RsvReservation::ESTADO_CONFIRMADA,
-            RsvReservation::ESTADO_SENTADA,
-        ], true)) {
+        if ($reservation->estado !== RsvReservation::ESTADO_SENTADA) {
             throw ValidationException::withMessages([
-                'reservation' => 'Solo puedes marcar visitado una reserva confirmada.',
+                'reservation' => 'Primero marca “Ya estoy acá” al llegar al local.',
             ]);
         }
 
         if (! $this->isVisitWindowOpen($reservation)) {
             throw ValidationException::withMessages([
-                'reservation' => 'Aún no llega la hora de tu reserva. Vuelve cuando sea el momento.',
+                'reservation' => 'La ventana para cerrar la visita ya expiró.',
             ]);
         }
 
@@ -230,7 +277,7 @@ class TouristReservationService
                 'estado_nuevo' => RsvReservation::ESTADO_CUMPLIDA,
                 'actor_tipo' => 'turista',
                 'actor_id' => (string) $customer->id,
-                'nota' => 'Turista marcó la visita como realizada',
+                'nota' => 'Turista terminó la visita',
                 'created_at' => now(),
             ]);
 
@@ -261,6 +308,53 @@ class TouristReservationService
         $endsAt = Carbon::parse("{$fecha} {$hora}", 'America/Lima')->addHours(12);
 
         return now('America/Lima')->betweenIncluded($startsAt, $endsAt);
+    }
+
+    /**
+     * Si el cliente envía coords y el restaurante tiene ubicación, exige ~300 m.
+     *
+     * @param  array{lat?: float|null, lng?: float|null}  $coords
+     */
+    private function assertOptionalProximity(RsvReservation $reservation, array $coords): void
+    {
+        $lat = isset($coords['lat']) ? (float) $coords['lat'] : null;
+        $lng = isset($coords['lng']) ? (float) $coords['lng'] : null;
+
+        if ($lat === null || $lng === null) {
+            return;
+        }
+
+        $reservation->loadMissing('restaurant');
+        $restaurant = $reservation->restaurant;
+        if ($restaurant === null || $restaurant->latitud === null || $restaurant->longitud === null) {
+            return;
+        }
+
+        $distanceM = $this->haversineMeters(
+            $lat,
+            $lng,
+            (float) $restaurant->latitud,
+            (float) $restaurant->longitud,
+        );
+
+        if ($distanceM > 300) {
+            throw ValidationException::withMessages([
+                'location' => 'Parece que aún no estás cerca del restaurante. Acércate o marca la llegada desde Mis reservas.',
+            ]);
+        }
+    }
+
+    private function haversineMeters(float $lat1, float $lng1, float $lat2, float $lng2): float
+    {
+        $earth = 6371000;
+        $φ1 = deg2rad($lat1);
+        $φ2 = deg2rad($lat2);
+        $Δφ = deg2rad($lat2 - $lat1);
+        $Δλ = deg2rad($lng2 - $lng1);
+
+        $a = sin($Δφ / 2) ** 2 + cos($φ1) * cos($φ2) * sin($Δλ / 2) ** 2;
+
+        return 2 * $earth * asin(min(1, sqrt($a)));
     }
 
     public function customerCanReviewRestaurant(Customer $customer, string $restaurantId): bool
