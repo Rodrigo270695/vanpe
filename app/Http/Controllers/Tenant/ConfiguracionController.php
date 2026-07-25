@@ -12,6 +12,7 @@ use App\Http\Requests\Tenant\UpdateConfigPublicationRequest;
 use App\Http\Requests\Tenant\UpdateConfigReservationsRequest;
 use App\Http\Requests\Tenant\UpdateConfigTouristRequest;
 use App\Http\Requests\Tenant\UpdateVenueImagesRequest;
+use App\Models\Departamento;
 use App\Models\RefCatalogProposal;
 use App\Models\Tenant\CfgCatalogSelection;
 use App\Models\Tenant\CfgServiceHour;
@@ -101,11 +102,30 @@ class ConfiguracionController extends Controller
                 'telefono' => $tenant->telefono,
                 'email_admin' => $tenant->email_admin,
                 'direccion' => $tenant->direccion,
+                'departamento_id' => $tenant->departamento_id,
+                'provincia_id' => $tenant->provincia_id,
+                'distrito_id' => $tenant->distrito_id,
+                'latitud' => $tenant->latitud !== null ? (float) $tenant->latitud : null,
+                'longitud' => $tenant->longitud !== null ? (float) $tenant->longitud : null,
                 'logo_url' => $tenant->logo_url,
                 'portada_url' => $tenant->portada_url,
                 'publicado' => $tenant->publicado,
                 'onboarding_paso' => $tenant->onboarding_paso,
             ],
+            'geo' => [
+                'departamentos' => Departamento::query()
+                    ->where('status', true)
+                    ->orderBy('name')
+                    ->get(['id', 'name'])
+                    ->map(fn (Departamento $row): array => [
+                        'id' => $row->id,
+                        'name' => $row->name,
+                    ])
+                    ->values(),
+            ],
+            'mapbox_token' => filled(config('services.mapbox.token'))
+                ? (string) config('services.mapbox.token')
+                : null,
             'venue' => [
                 'photos' => $venuePhotos,
                 'max_photos' => CfgVenuePhoto::MAX_PHOTOS,
@@ -159,6 +179,11 @@ class ConfiguracionController extends Controller
             'telefono' => $data['telefono'] ?? null,
             'email_admin' => $data['email_admin'] ?? null,
             'direccion' => $data['direccion'] ?? null,
+            'departamento_id' => $data['departamento_id'] ?? null,
+            'provincia_id' => $data['provincia_id'] ?? null,
+            'distrito_id' => $data['distrito_id'] ?? null,
+            'latitud' => $data['latitud'] ?? null,
+            'longitud' => $data['longitud'] ?? null,
         ]);
 
         $this->publisher->maybePublish($tenant->fresh(), ['ficha']);

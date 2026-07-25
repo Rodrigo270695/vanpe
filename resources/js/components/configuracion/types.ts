@@ -7,10 +7,20 @@ export type ConfigProfile = {
     telefono: string | null;
     email_admin: string | null;
     direccion: string | null;
+    departamento_id: number | null;
+    provincia_id: number | null;
+    distrito_id: number | null;
+    latitud: number | null;
+    longitud: number | null;
     logo_url: string | null;
     portada_url: string | null;
     publicado: boolean;
     onboarding_paso: number;
+};
+
+export type ConfigGeoOption = {
+    id: number;
+    name: string;
 };
 
 export type VenuePhotoRow = {

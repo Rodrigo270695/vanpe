@@ -57,4 +57,9 @@ return [
         'timeout' => (int) env('OPENAI_TIMEOUT', 25),
     ],
 
+    'mapbox' => [
+        // Preferir VITE_ para el front; MAPBOX_TOKEN como alias servidor.
+        'token' => env('VITE_MAPBOX_TOKEN', env('MAPBOX_TOKEN')),
+    ],
+
 ];

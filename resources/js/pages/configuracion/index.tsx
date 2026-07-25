@@ -21,6 +21,7 @@ import {
 import type {
     ConfigAbilities,
     ConfigCatalog,
+    ConfigGeoOption,
     ConfigProfile,
     ConfigSettings,
     ConfigVenue,
@@ -44,6 +45,8 @@ type ConfiguracionPageProps = {
     service_hours: ServiceHourRow[];
     catalog: ConfigCatalog;
     fel_series: FelSerieRow[];
+    geo: { departamentos: ConfigGeoOption[] };
+    mapbox_token: string | null;
     can: ConfigAbilities;
 };
 
@@ -54,6 +57,8 @@ export default function ConfiguracionIndex({
     service_hours,
     catalog,
     fel_series,
+    geo,
+    mapbox_token,
     can,
 }: ConfiguracionPageProps) {
     const { t } = useTranslations();
@@ -158,7 +163,12 @@ export default function ConfiguracionIndex({
                 />
 
                 {activeTab === 'general' && (
-                    <GeneralTab profile={profile} canManage={can.manage} />
+                    <GeneralTab
+                        profile={profile}
+                        departamentos={geo.departamentos}
+                        mapboxToken={mapbox_token}
+                        canManage={can.manage}
+                    />
                 )}
 
                 {activeTab === 'images' && (

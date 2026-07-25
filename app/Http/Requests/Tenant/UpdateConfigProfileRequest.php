@@ -23,6 +23,11 @@ class UpdateConfigProfileRequest extends FormRequest
             'telefono' => ['nullable', 'string', 'max:20'],
             'email_admin' => ['nullable', 'email', 'max:150'],
             'direccion' => ['nullable', 'string', 'max:255'],
+            'departamento_id' => ['nullable', 'integer', 'exists:departamentos,id'],
+            'provincia_id' => ['nullable', 'integer', 'exists:provincias,id'],
+            'distrito_id' => ['nullable', 'integer', 'exists:distritos,id'],
+            'latitud' => ['nullable', 'numeric', 'between:-90,90'],
+            'longitud' => ['nullable', 'numeric', 'between:-180,180'],
         ];
     }
 }

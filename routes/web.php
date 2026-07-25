@@ -194,6 +194,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         Route::get('configuracion', [ConfiguracionController::class, 'index'])->name('configuracion.index');
         Route::put('configuracion/profile', [ConfiguracionController::class, 'updateProfile'])->name('configuracion.profile.update');
+        Route::get('configuracion/geo/provincias', [\App\Http\Controllers\Tenant\ConfigGeoController::class, 'provincias'])
+            ->name('configuracion.geo.provincias');
+        Route::get('configuracion/geo/distritos', [\App\Http\Controllers\Tenant\ConfigGeoController::class, 'distritos'])
+            ->name('configuracion.geo.distritos');
         Route::put('configuracion/tourist', [ConfiguracionController::class, 'updateTourist'])->name('configuracion.tourist.update');
         Route::put('configuracion/billing', [ConfiguracionController::class, 'updateBilling'])->name('configuracion.billing.update');
         Route::put('configuracion/hours', [ConfiguracionController::class, 'updateHours'])->name('configuracion.hours.update');
