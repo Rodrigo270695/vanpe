@@ -156,13 +156,15 @@ class PublicCatalogSync
 
         $rows = [];
         foreach ($hours as $hour) {
-            $rows[] = [
+            $row = [
                 'tenant_id' => $tenant->id,
-                'day_of_week' => $hour->day_of_week,
-                'opens_at' => $hour->opens_at,
-                'closes_at' => $hour->closes_at,
+                'day_of_week' => (int) $hour->day_of_week,
+                // Reloj de pared Perú (H:i), sin conversión UTC.
+                'opens_at' => substr((string) $hour->opens_at, 0, 5),
+                'closes_at' => substr((string) $hour->closes_at, 0, 5),
             ];
-            PubRestaurantHour::query()->create($rows[count($rows) - 1]);
+            $rows[] = $row;
+            PubRestaurantHour::query()->create($row);
         }
 
         $this->markEntitySynced($tenant, 'horarios', $rows);

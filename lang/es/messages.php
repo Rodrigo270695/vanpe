@@ -1103,7 +1103,7 @@ return [
         'section_reservations_hint' => 'Reglas cuando los clientes reserven mesa desde VanPe.',
         'section_hours' => 'Horarios de atención',
         'section_hours_hint' => 'Días y franjas en que el local atiende al público.',
-        'section_hours_hint_detail' => 'Las reservas en línea solo aceptarán horas dentro de estos rangos.',
+        'section_hours_hint_detail' => 'Las horas son reloj de pared de Perú (America/Lima). Las reservas en línea solo aceptan horarios dentro de estos rangos.',
         'hours_day' => 'Día',
         'hours_opens' => 'Apertura',
         'hours_closes' => 'Cierre',

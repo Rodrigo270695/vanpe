@@ -56,8 +56,9 @@ class CfgServiceHour extends Model
             static::query()->updateOrCreate(
                 ['day_of_week' => (int) $row['day_of_week']],
                 [
-                    'opens_at' => $row['opens_at'],
-                    'closes_at' => $row['closes_at'],
+                    // Hora local Perú (America/Lima), reloj de pared H:i.
+                    'opens_at' => substr((string) $row['opens_at'], 0, 5),
+                    'closes_at' => substr((string) $row['closes_at'], 0, 5),
                     'active' => (bool) ($row['active'] ?? false),
                 ],
             );

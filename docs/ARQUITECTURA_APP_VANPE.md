@@ -260,6 +260,7 @@ TURISTA (app)                         CENTRAL (rsv_*)                    RESTAUR
 | Restaurante | Confirmar | `confirmada` | se mantiene | Expo → turista |
 | Restaurante | Rechazar | `cancelada_restaurante` | −1 liberado | Expo → turista |
 | Turista | Cancelar (pendiente/confirmada) | `cancelada_cliente` | −1 liberado | (opcional) Web Push staff |
+| Turista | Ya visitamos (en ventana de hora) | `cumplida` | −1 liberado | invita a reseñar |
 | Restaurante | Sentar / cumplir / no-show | `sentada` / `cumplida` / `no_show` | liberar si aplica | — |
 
 **Canales de notificación**
@@ -272,13 +273,19 @@ TURISTA (app)                         CENTRAL (rsv_*)                    RESTAUR
 - App: `restaurant/reserve` (solicitud) · `reservations` (estado).
 - SaaS: `/reservas` sección “pendientes de aprobación” → Confirmar / Rechazar.
 
-### 7.3 Post-visita
+### 7.3 Post-visita (visitado → reseña)
 
 ```
-Reserva marcada como atendida / pasada
-  → App invita a reseñar
-  → Review publicada (moderación futura)
+Reserva confirmada
+  → Llega la hora (±15 min … +12 h)
+  → Turista en Mis reservas toca “Ya visitamos”
+       POST /reservations/{id}/visit  → estado = cumplida
+  → App invita a escribir reseña
+  → Solo con visita cumplida se puede POST /reviews (restaurante)
+  → Favoritos (corazón) son independientes en cualquier momento
 ```
+
+Tour spots: reseña libre (sin reserva). Restaurantes: reseña solo tras visita marcada.
 
 ---
 

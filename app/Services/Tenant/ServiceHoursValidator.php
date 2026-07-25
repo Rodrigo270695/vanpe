@@ -34,7 +34,7 @@ class ServiceHoursValidator
 
     private function dayOfWeekFromDate(string $date): int
     {
-        return Carbon::parse($date)->dayOfWeekIso - 1;
+        return Carbon::parse($date, 'America/Lima')->dayOfWeekIso - 1;
     }
 
     private function normalizeTime(string $time): string

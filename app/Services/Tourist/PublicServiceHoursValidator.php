@@ -10,7 +10,7 @@ class PublicServiceHoursValidator
 {
     public function isOpenAt(string $tenantId, string $date, string $time): bool
     {
-        $dayOfWeek = Carbon::parse($date)->dayOfWeekIso - 1;
+        $dayOfWeek = Carbon::parse($date, 'America/Lima')->dayOfWeekIso - 1;
 
         $hour = PubRestaurantHour::query()
             ->where('tenant_id', $tenantId)

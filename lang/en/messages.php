@@ -1102,7 +1102,7 @@ return [
         'section_reservations_hint' => 'Rules when guests book a table from VanPe.',
         'section_hours' => 'Opening hours',
         'section_hours_hint' => 'Days and time slots when your venue is open.',
-        'section_hours_hint_detail' => 'Online reservations will only accept times within these ranges.',
+        'section_hours_hint_detail' => 'Times are Peru local wall clock (America/Lima). Online reservations only accept times within these ranges.',
         'hours_day' => 'Day',
         'hours_opens' => 'Opens',
         'hours_closes' => 'Closes',

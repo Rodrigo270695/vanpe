@@ -47,11 +47,13 @@ Route::prefix('v1/tourist')->group(function () {
         Route::put('password', [ProfileController::class, 'changePassword']);
         Route::delete('account', [ProfileController::class, 'destroy']);
         Route::post('reviews', [ReviewController::class, 'store']);
+        Route::get('reviews/eligibility', [ReviewController::class, 'eligibility']);
 
         Route::get('reservations', [ReservationController::class, 'index']);
         Route::post('reservations', [ReservationController::class, 'store']);
         Route::get('reservations/{id}', [ReservationController::class, 'show']);
         Route::post('reservations/{id}/cancel', [ReservationController::class, 'cancel']);
+        Route::post('reservations/{id}/visit', [ReservationController::class, 'visit']);
 
         Route::post('device-tokens', [DeviceTokenController::class, 'store']);
         Route::delete('device-tokens', [DeviceTokenController::class, 'destroy']);

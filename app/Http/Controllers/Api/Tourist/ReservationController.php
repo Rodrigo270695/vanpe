@@ -98,11 +98,37 @@ class ReservationController extends Controller
         ]);
     }
 
+    public function visit(Request $request, string $id): JsonResponse
+    {
+        /** @var Customer $customer */
+        $customer = $request->user();
+
+        $reservation = RsvReservation::query()
+            ->where('customer_id', $customer->id)
+            ->whereKey($id)
+            ->firstOrFail();
+
+        $updated = $this->reservations->markVisited($customer, $reservation);
+
+        return response()->json([
+            'data' => $this->serialize($updated->load('restaurant:id,nombre,slug,portada_url,direccion,telefono')),
+            'message' => 'Visita registrada. Ya puedes dejar una reseña.',
+        ]);
+    }
+
     /**
      * @return array<string, mixed>
      */
     private function serialize(RsvReservation $r): array
     {
+        $canVisit = in_array($r->estado, [
+            RsvReservation::ESTADO_CONFIRMADA,
+            RsvReservation::ESTADO_SENTADA,
+        ], true) && $this->reservations->isVisitWindowOpen($r);
+
+        $canReview = $r->estado === RsvReservation::ESTADO_CUMPLIDA
+            && $r->restaurant_id !== null;
+
         return [
             'id' => $r->id,
             'codigo' => $r->codigo,
@@ -115,6 +141,8 @@ class ReservationController extends Controller
             'estado' => $r->estado,
             'slot_id' => $r->slot_id,
             'cancelada_motivo' => $r->cancelada_motivo,
+            'can_visit' => $canVisit,
+            'can_review' => $canReview,
             'created_at' => $r->created_at?->toIso8601String(),
             'restaurant' => $r->restaurant ? [
                 'id' => $r->restaurant->id,

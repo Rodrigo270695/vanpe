@@ -8,9 +8,9 @@ use App\Models\PubRestaurant;
 use App\Models\RsvReservation;
 use App\Models\RsvReservationEvent;
 use App\Services\Tenant\ReservationProjector;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
-use RuntimeException;
 
 class TouristReservationService
 {
@@ -59,86 +59,66 @@ class TouristReservationService
         }
 
         $hora = substr((string) $data['hora'], 0, 5);
+        $fecha = (string) $data['fecha'];
 
-        if (! $this->hoursValidator->isOpenAt((string) $restaurant->tenant_id, (string) $data['fecha'], $hora)) {
+        $this->assertNotInPast($fecha, $hora);
+        $this->assertAnticipation($restaurant, $fecha, $hora);
+
+        if (! $this->hoursValidator->isOpenAt((string) $restaurant->tenant_id, $fecha, $hora)) {
             throw ValidationException::withMessages([
                 'hora' => 'Esa hora está fuera del horario de apertura del restaurante.',
             ]);
         }
 
-        $slot = null;
+        $slot = $this->resolveOptionalSlot($restaurant, $data, $fecha, $hora);
 
-        if (! empty($data['slot_id'])) {
-            $slot = PubAvailabilitySlot::query()
-                ->whereKey($data['slot_id'])
-                ->where('tenant_id', $restaurant->tenant_id)
-                ->whereDate('fecha', $data['fecha'])
-                ->where('cerrado', false)
-                ->first();
-        } else {
-            $slot = PubAvailabilitySlot::query()
-                ->where('tenant_id', $restaurant->tenant_id)
-                ->whereDate('fecha', $data['fecha'])
-                ->where(function ($q) use ($hora): void {
-                    $q->where('hora', $hora)
-                        ->orWhere('hora', $hora.':00')
-                        ->orWhereRaw("to_char(hora::time, 'HH24:MI') = ?", [$hora]);
-                })
-                ->where('cerrado', false)
-                ->first();
-        }
-
-        if ($slot === null) {
-            throw ValidationException::withMessages([
-                'hora' => 'No hay disponibilidad en esa fecha y hora.',
-            ]);
-        }
-
-        $slotHora = substr((string) $slot->hora, 0, 5);
-        if ($slotHora !== $hora) {
-            throw ValidationException::withMessages([
-                'hora' => 'El horario seleccionado no coincide con la disponibilidad.',
-            ]);
-        }
-
-        $disponibles = max(0, (int) $slot->cupos_total - (int) $slot->cupos_ocupados);
-        if ($disponibles < 1) {
-            throw ValidationException::withMessages([
-                'hora' => 'Ese horario ya no tiene cupos.',
-            ]);
-        }
-
-        $reservation = DB::transaction(function () use ($customer, $restaurant, $slot, $data, $hora): RsvReservation {
-            $locked = PubAvailabilitySlot::query()->whereKey($slot->id)->lockForUpdate()->first();
-            if ($locked === null) {
-                throw new RuntimeException('Slot no encontrado.');
-            }
-
-            $disponibles = max(0, (int) $locked->cupos_total - (int) $locked->cupos_ocupados);
+        if ($slot !== null) {
+            $disponibles = max(0, (int) $slot->cupos_total - (int) $slot->cupos_ocupados);
             if ($disponibles < 1) {
                 throw ValidationException::withMessages([
                     'hora' => 'Ese horario ya no tiene cupos.',
                 ]);
             }
+        }
 
-            $locked->update([
-                'cupos_ocupados' => (int) $locked->cupos_ocupados + 1,
-                'updated_at' => now(),
-            ]);
+        $reservation = DB::transaction(function () use ($customer, $restaurant, $slot, $data, $hora, $fecha): RsvReservation {
+            $slotId = null;
+
+            if ($slot !== null) {
+                $locked = PubAvailabilitySlot::query()->whereKey($slot->id)->lockForUpdate()->first();
+                if ($locked === null) {
+                    throw ValidationException::withMessages([
+                        'hora' => 'No hay disponibilidad en esa fecha y hora.',
+                    ]);
+                }
+
+                $disponibles = max(0, (int) $locked->cupos_total - (int) $locked->cupos_ocupados);
+                if ($disponibles < 1) {
+                    throw ValidationException::withMessages([
+                        'hora' => 'Ese horario ya no tiene cupos.',
+                    ]);
+                }
+
+                $locked->update([
+                    'cupos_ocupados' => (int) $locked->cupos_ocupados + 1,
+                    'updated_at' => now(),
+                ]);
+                $slotId = $locked->id;
+            }
 
             $reservation = RsvReservation::query()->create([
                 'codigo' => $this->generateCode(),
                 'customer_id' => $customer->id,
                 'tenant_id' => $restaurant->tenant_id,
                 'restaurant_id' => $restaurant->id,
-                'fecha' => $data['fecha'],
+                'fecha' => $fecha,
                 'hora' => $hora.':00',
                 'num_personas' => (int) $data['num_personas'],
                 'nombre_contacto' => $data['nombre_contacto'],
                 'telefono_contacto' => $data['telefono_contacto'],
                 'notas' => $data['notas'] ?? null,
                 'estado' => RsvReservation::ESTADO_PENDIENTE,
-                'slot_id' => $locked->id,
+                'slot_id' => $slotId,
             ]);
 
             RsvReservationEvent::query()->create([
@@ -147,7 +127,9 @@ class TouristReservationService
                 'estado_nuevo' => RsvReservation::ESTADO_PENDIENTE,
                 'actor_tipo' => 'turista',
                 'actor_id' => (string) $customer->id,
-                'nota' => 'Reserva creada desde la app',
+                'nota' => $slotId
+                    ? 'Reserva creada desde la app'
+                    : 'Reserva manual solicitada desde la app (sin slot predefinido)',
                 'created_at' => now(),
             ]);
 
@@ -209,6 +191,154 @@ class TouristReservationService
         $this->projector->projectStatus($updated);
 
         return $updated;
+    }
+
+    /**
+     * Turista marca que ya visitó / asistió → estado cumplida.
+     * Solo si la reserva está confirmada (o sentada) y ya llegó (o pasó) la hora.
+     */
+    public function markVisited(Customer $customer, RsvReservation $reservation): RsvReservation
+    {
+        if ((int) $reservation->customer_id !== (int) $customer->id) {
+            abort(403);
+        }
+
+        if (! in_array($reservation->estado, [
+            RsvReservation::ESTADO_CONFIRMADA,
+            RsvReservation::ESTADO_SENTADA,
+        ], true)) {
+            throw ValidationException::withMessages([
+                'reservation' => 'Solo puedes marcar visitado una reserva confirmada.',
+            ]);
+        }
+
+        if (! $this->isVisitWindowOpen($reservation)) {
+            throw ValidationException::withMessages([
+                'reservation' => 'Aún no llega la hora de tu reserva. Vuelve cuando sea el momento.',
+            ]);
+        }
+
+        $updated = DB::transaction(function () use ($reservation, $customer): RsvReservation {
+            $prev = $reservation->estado;
+            $reservation->update([
+                'estado' => RsvReservation::ESTADO_CUMPLIDA,
+            ]);
+
+            RsvReservationEvent::query()->create([
+                'reservation_id' => $reservation->id,
+                'estado_anterior' => $prev,
+                'estado_nuevo' => RsvReservation::ESTADO_CUMPLIDA,
+                'actor_tipo' => 'turista',
+                'actor_id' => (string) $customer->id,
+                'nota' => 'Turista marcó la visita como realizada',
+                'created_at' => now(),
+            ]);
+
+            if ($reservation->slot_id) {
+                PubAvailabilitySlot::query()
+                    ->whereKey($reservation->slot_id)
+                    ->where('cupos_ocupados', '>', 0)
+                    ->decrement('cupos_ocupados');
+            }
+
+            return $reservation->fresh(['restaurant']);
+        });
+
+        $this->projector->projectStatus($updated);
+
+        return $updated;
+    }
+
+    public function isVisitWindowOpen(RsvReservation $reservation): bool
+    {
+        $fecha = $reservation->fecha?->toDateString();
+        $hora = substr((string) $reservation->hora, 0, 5);
+        if ($fecha === null || $hora === '') {
+            return false;
+        }
+
+        $startsAt = Carbon::parse("{$fecha} {$hora}", 'America/Lima')->subMinutes(15);
+        $endsAt = Carbon::parse("{$fecha} {$hora}", 'America/Lima')->addHours(12);
+
+        return now('America/Lima')->betweenIncluded($startsAt, $endsAt);
+    }
+
+    public function customerCanReviewRestaurant(Customer $customer, string $restaurantId): bool
+    {
+        return RsvReservation::query()
+            ->where('customer_id', $customer->id)
+            ->where('restaurant_id', $restaurantId)
+            ->where('estado', RsvReservation::ESTADO_CUMPLIDA)
+            ->exists();
+    }
+
+    /**
+     * @param  array{slot_id?: string|null}  $data
+     */
+    private function resolveOptionalSlot(
+        PubRestaurant $restaurant,
+        array $data,
+        string $fecha,
+        string $hora,
+    ): ?PubAvailabilitySlot {
+        if (! empty($data['slot_id'])) {
+            $slot = PubAvailabilitySlot::query()
+                ->whereKey($data['slot_id'])
+                ->where('tenant_id', $restaurant->tenant_id)
+                ->whereDate('fecha', $fecha)
+                ->where('cerrado', false)
+                ->first();
+
+            if ($slot === null) {
+                throw ValidationException::withMessages([
+                    'hora' => 'El turno seleccionado ya no está disponible.',
+                ]);
+            }
+
+            if (substr((string) $slot->hora, 0, 5) !== $hora) {
+                throw ValidationException::withMessages([
+                    'hora' => 'El horario seleccionado no coincide con la disponibilidad.',
+                ]);
+            }
+
+            return $slot;
+        }
+
+        return PubAvailabilitySlot::query()
+            ->where('tenant_id', $restaurant->tenant_id)
+            ->whereDate('fecha', $fecha)
+            ->where(function ($q) use ($hora): void {
+                $q->where('hora', $hora)
+                    ->orWhere('hora', $hora.':00')
+                    ->orWhereRaw("to_char(hora::time, 'HH24:MI') = ?", [$hora]);
+            })
+            ->where('cerrado', false)
+            ->first();
+    }
+
+    private function assertNotInPast(string $fecha, string $hora): void
+    {
+        $at = Carbon::parse("{$fecha} {$hora}", 'America/Lima');
+        if ($at->lt(now('America/Lima')->subMinute())) {
+            throw ValidationException::withMessages([
+                'fecha' => 'No puedes reservar en una fecha u hora pasada.',
+            ]);
+        }
+    }
+
+    private function assertAnticipation(PubRestaurant $restaurant, string $fecha, string $hora): void
+    {
+        $minHours = max(0, (int) ($restaurant->anticipacion_min_horas ?? 0));
+        if ($minHours <= 0) {
+            return;
+        }
+
+        $at = Carbon::parse("{$fecha} {$hora}", 'America/Lima');
+        if ($at->lt(now('America/Lima')->addHours($minHours))) {
+            throw ValidationException::withMessages([
+                'hora' => "Debes reservar con al menos {$minHours} hora(s) de anticipación.",
+            ]);
+        }
     }
 
     private function generateCode(): string

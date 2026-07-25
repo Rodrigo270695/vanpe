@@ -86,8 +86,9 @@ class TenantManager
             $conn->statement('SET search_path TO public');
         }
 
-        config(['app.timezone' => 'UTC']);
-        date_default_timezone_set('UTC');
+        $timezone = 'America/Lima';
+        config(['app.timezone' => $timezone]);
+        date_default_timezone_set($timezone);
 
         $this->current = null;
     }
