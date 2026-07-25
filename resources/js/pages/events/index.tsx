@@ -1,11 +1,21 @@
 import { Head, router, useForm } from '@inertiajs/react';
-import { PartyPopper, Pencil, Plus, Trash2 } from 'lucide-react';
-import { FormEvent, useState, type ReactNode } from 'react';
+import {
+    CalendarDays,
+    PartyPopper,
+    Plus,
+    Sparkles,
+    Star,
+} from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { CatalogItemActions } from '@/components/catalog/catalog-item-actions';
+import { BaseModal } from '@/components/common/base-modal';
+import { FormField } from '@/components/common/form-field';
+import { ImageUploadField } from '@/components/common/image-upload-field';
 import { PageHeader } from '@/components/common/page-header';
 import { StatusPill } from '@/components/common/status-pill';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
     Select,
     SelectContent,
@@ -13,14 +23,16 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import AppLayout from '@/layouts/app-layout';
+import { translate, type TranslationTree } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 
 type SponsorDraft = {
     nombre: string;
     tipo: string;
-    logo_url: string;
     website: string;
+    logo: File | null;
+    logo_url: string | null;
+    remove_logo: boolean;
 };
 
 type EventRow = {
@@ -38,7 +50,12 @@ type EventRow = {
     destacado: boolean;
     sort_order: number;
     departamento?: string | null;
-    sponsors: SponsorDraft[];
+    sponsors: Array<{
+        nombre: string;
+        tipo: string;
+        logo_url: string | null;
+        website: string | null;
+    }>;
 };
 
 type Props = {
@@ -47,12 +64,20 @@ type Props = {
     can: { create: boolean; update: boolean; delete: boolean };
 };
 
+const emptySponsor = (): SponsorDraft => ({
+    nombre: '',
+    tipo: 'auspiciador',
+    website: '',
+    logo: null,
+    logo_url: null,
+    remove_logo: false,
+});
+
 const emptyForm = {
     titulo: '',
     slug: '',
     resumen: '',
     descripcion: '',
-    portada_url: '',
     lugar: '',
     departamento_id: '' as string | number,
     starts_at: '',
@@ -60,28 +85,48 @@ const emptyForm = {
     estado: 'publicado',
     destacado: true,
     sort_order: 0,
+    cover: null as File | null,
+    remove_cover: false,
     sponsors: [] as SponsorDraft[],
 };
 
 export default function EventsIndex({ events, departamentos, can }: Props) {
-    const [open, setOpen] = useState(false);
+    const [formOpen, setFormOpen] = useState(false);
     const [editing, setEditing] = useState<EventRow | null>(null);
+    const [existingCoverUrl, setExistingCoverUrl] = useState<string | null>(null);
+    const [deleteTarget, setDeleteTarget] = useState<EventRow | null>(null);
+    const [deleting, setDeleting] = useState(false);
+
     const form = useForm({ ...emptyForm });
+
+    const publishedCount = useMemo(
+        () => events.filter((e) => e.estado === 'publicado').length,
+        [events],
+    );
+    const featuredCount = useMemo(
+        () => events.filter((e) => e.destacado).length,
+        [events],
+    );
+
+    const canSubmit = form.data.titulo.trim().length > 0 && form.data.estado !== '';
 
     const openCreate = () => {
         setEditing(null);
+        setExistingCoverUrl(null);
+        form.clearErrors();
         form.setData({ ...emptyForm });
-        setOpen(true);
+        setFormOpen(true);
     };
 
     const openEdit = (row: EventRow) => {
         setEditing(row);
+        setExistingCoverUrl(row.portada_url);
+        form.clearErrors();
         form.setData({
             titulo: row.titulo,
             slug: row.slug,
             resumen: row.resumen ?? '',
             descripcion: row.descripcion ?? '',
-            portada_url: row.portada_url ?? '',
             lugar: row.lugar ?? '',
             departamento_id: row.departamento_id ?? '',
             starts_at: row.starts_at ?? '',
@@ -89,52 +134,88 @@ export default function EventsIndex({ events, departamentos, can }: Props) {
             estado: row.estado,
             destacado: row.destacado,
             sort_order: row.sort_order,
-            sponsors: row.sponsors ?? [],
+            cover: null,
+            remove_cover: false,
+            sponsors: (row.sponsors ?? []).map((s) => ({
+                nombre: s.nombre,
+                tipo: s.tipo || 'auspiciador',
+                website: s.website ?? '',
+                logo: null,
+                logo_url: s.logo_url,
+                remove_logo: false,
+            })),
         });
-        setOpen(true);
+        setFormOpen(true);
     };
 
-    const submit = (e: FormEvent) => {
-        e.preventDefault();
-        const payload = {
-            ...form.data,
-            departamento_id: form.data.departamento_id
-                ? Number(form.data.departamento_id)
-                : null,
+    const submit = () => {
+        if (!canSubmit) return;
+
+        const options = {
+            preserveScroll: true,
+            forceFormData: true as const,
+            onSuccess: () => setFormOpen(false),
         };
 
+        form.transform((payload) => ({
+            ...payload,
+            departamento_id: payload.departamento_id
+                ? Number(payload.departamento_id)
+                : null,
+            ...(editing ? { _method: 'put' } : {}),
+        }));
+
         if (editing) {
-            form.transform(() => payload).put(`/festividades/${editing.id}`, {
-                preserveScroll: true,
-                onSuccess: () => setOpen(false),
-            });
-        } else {
-            form.transform(() => payload).post('/festividades', {
-                preserveScroll: true,
-                onSuccess: () => setOpen(false),
-            });
+            form.post(`/festividades/${editing.id}`, options);
+            return;
         }
+
+        form.post('/festividades', options);
     };
 
-    const remove = (row: EventRow) => {
-        if (!window.confirm(`¿Eliminar «${row.titulo}»?`)) return;
-        router.delete(`/festividades/${row.id}`, { preserveScroll: true });
+    const confirmDelete = () => {
+        if (!deleteTarget) return;
+        setDeleting(true);
+        router.delete(`/festividades/${deleteTarget.id}`, {
+            preserveScroll: true,
+            onSuccess: () => setDeleteTarget(null),
+            onFinish: () => setDeleting(false),
+        });
     };
 
-    const addSponsor = () => {
-        form.setData('sponsors', [
-            ...form.data.sponsors,
-            { nombre: '', tipo: 'auspiciador', logo_url: '', website: '' },
-        ]);
+    const updateSponsor = (index: number, patch: Partial<SponsorDraft>) => {
+        const next = [...form.data.sponsors];
+        next[index] = { ...next[index], ...patch };
+        form.setData('sponsors', next);
     };
 
     return (
-        <AppLayout>
+        <>
             <Head title="Ferias y festividades" />
             <div className="flex flex-col gap-5 p-4 md:p-6">
                 <PageHeader
                     title="Ferias y festividades"
-                    description="Eventos de plataforma (Cruz de Motupe, Monsefú, Fiestas Patrias…) visibles en la app."
+                    description="Eventos de plataforma visibles en la app (ferias, fiestas, celebraciones)."
+                    badges={[
+                        {
+                            label: 'Eventos',
+                            value: events.length,
+                            color: 'blue',
+                            icon: PartyPopper,
+                        },
+                        {
+                            label: 'Publicados',
+                            value: publishedCount,
+                            color: 'green',
+                            icon: CalendarDays,
+                        },
+                        {
+                            label: 'Destacados',
+                            value: featuredCount,
+                            color: featuredCount > 0 ? 'orange' : 'gray',
+                            icon: Star,
+                        },
+                    ]}
                     action={
                         can.create
                             ? {
@@ -155,7 +236,7 @@ export default function EventsIndex({ events, departamentos, can }: Props) {
                         events.map((row) => (
                             <div
                                 key={row.id}
-                                className="flex flex-wrap items-center gap-3 rounded-2xl border bg-card p-3"
+                                className="group flex flex-wrap items-center gap-3 rounded-2xl border bg-card p-3"
                             >
                                 {row.portada_url ? (
                                     <img
@@ -190,199 +271,302 @@ export default function EventsIndex({ events, departamentos, can }: Props) {
                                             : ''}
                                     </p>
                                 </div>
-                                {can.update ? (
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        size="icon"
-                                        onClick={() => openEdit(row)}
-                                    >
-                                        <Pencil className="size-4" />
-                                    </Button>
-                                ) : null}
-                                {can.delete ? (
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        size="icon"
-                                        onClick={() => remove(row)}
-                                    >
-                                        <Trash2 className="size-4 text-destructive" />
-                                    </Button>
-                                ) : null}
+                                <CatalogItemActions
+                                    canUpdate={can.update}
+                                    canDelete={can.delete}
+                                    onEdit={() => openEdit(row)}
+                                    onDelete={() => setDeleteTarget(row)}
+                                />
                             </div>
                         ))
                     )}
                 </div>
             </div>
 
-            {open ? (
-                <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center">
-                    <form
-                        onSubmit={submit}
-                        className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-2xl bg-card p-4 shadow-xl"
+            <BaseModal
+                open={formOpen}
+                onOpenChange={setFormOpen}
+                title={editing ? 'Editar evento' : 'Nuevo evento'}
+                description="Completa los datos. La portada y logos se suben como archivo."
+                icon={Sparkles}
+                size="xl"
+                submitLabel="Guardar"
+                canSubmit={canSubmit}
+                submitting={form.processing}
+                onSubmit={submit}
+                onAfterClose={() => {
+                    setEditing(null);
+                    setExistingCoverUrl(null);
+                    form.reset();
+                    form.clearErrors();
+                }}
+            >
+                <div className="grid gap-4">
+                    <FormField
+                        label="Título"
+                        required
+                        error={form.errors.titulo}
                     >
-                        <h2 className="mb-3 text-lg font-semibold">
-                            {editing ? 'Editar evento' : 'Nuevo evento'}
-                        </h2>
-                        <div className="grid gap-3">
-                            <Field label="Título">
-                                <Input
-                                    value={form.data.titulo}
-                                    onChange={(e) => form.setData('titulo', e.target.value)}
-                                    required
-                                />
-                            </Field>
-                            <Field label="Resumen">
-                                <Input
-                                    value={form.data.resumen}
-                                    onChange={(e) => form.setData('resumen', e.target.value)}
-                                />
-                            </Field>
-                            <Field label="Descripción">
-                                <textarea
-                                    value={form.data.descripcion}
-                                    onChange={(e) => form.setData('descripcion', e.target.value)}
-                                    rows={4}
-                                    className={cn(
-                                        'border-input placeholder:text-muted-foreground flex w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs outline-none',
-                                    )}
-                                />
-                            </Field>
-                            <Field label="URL portada">
-                                <Input
-                                    value={form.data.portada_url}
-                                    onChange={(e) => form.setData('portada_url', e.target.value)}
-                                    placeholder="https://…"
-                                />
-                            </Field>
-                            <Field label="Lugar">
-                                <Input
-                                    value={form.data.lugar}
-                                    onChange={(e) => form.setData('lugar', e.target.value)}
-                                />
-                            </Field>
-                            <Field label="Departamento">
-                                <Select
-                                    value={
-                                        form.data.departamento_id
-                                            ? String(form.data.departamento_id)
-                                            : undefined
-                                    }
-                                    onValueChange={(v) =>
-                                        form.setData('departamento_id', Number(v))
-                                    }
+                        <Input
+                            value={form.data.titulo}
+                            onChange={(e) => form.setData('titulo', e.target.value)}
+                            className="bg-card"
+                        />
+                    </FormField>
+
+                    <FormField label="Resumen" error={form.errors.resumen}>
+                        <Input
+                            value={form.data.resumen}
+                            onChange={(e) => form.setData('resumen', e.target.value)}
+                            className="bg-card"
+                        />
+                    </FormField>
+
+                    <FormField label="Descripción" error={form.errors.descripcion}>
+                        <textarea
+                            value={form.data.descripcion}
+                            onChange={(e) => form.setData('descripcion', e.target.value)}
+                            rows={4}
+                            className={cn(
+                                'border-input placeholder:text-muted-foreground flex w-full rounded-md border bg-card px-3 py-2 text-sm shadow-xs outline-none',
+                            )}
+                        />
+                    </FormField>
+
+                    <FormField label="Portada" error={form.errors.cover}>
+                        <ImageUploadField
+                            value={form.data.cover}
+                            existingUrl={existingCoverUrl}
+                            removed={form.data.remove_cover}
+                            onFileChange={(file) => {
+                                form.setData('cover', file);
+                                form.setData('remove_cover', false);
+                            }}
+                            onRemove={() => {
+                                form.setData('cover', null);
+                                form.setData('remove_cover', true);
+                            }}
+                            layout="compact"
+                            previewAspect="video"
+                        />
+                    </FormField>
+
+                    <FormField label="Lugar" error={form.errors.lugar}>
+                        <Input
+                            value={form.data.lugar}
+                            onChange={(e) => form.setData('lugar', e.target.value)}
+                            className="bg-card"
+                        />
+                    </FormField>
+
+                    <FormField label="Departamento" error={form.errors.departamento_id}>
+                        <Select
+                            value={
+                                form.data.departamento_id
+                                    ? String(form.data.departamento_id)
+                                    : undefined
+                            }
+                            onValueChange={(v) =>
+                                form.setData('departamento_id', Number(v))
+                            }
+                        >
+                            <SelectTrigger className="bg-card">
+                                <SelectValue placeholder="Seleccionar…" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {departamentos.map((d) => (
+                                    <SelectItem key={d.id} value={String(d.id)}>
+                                        {d.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </FormField>
+
+                    <div className="grid gap-3 sm:grid-cols-2">
+                        <FormField label="Inicio" error={form.errors.starts_at}>
+                            <Input
+                                type="datetime-local"
+                                value={form.data.starts_at}
+                                onChange={(e) => form.setData('starts_at', e.target.value)}
+                                className="bg-card"
+                            />
+                        </FormField>
+                        <FormField label="Fin" error={form.errors.ends_at}>
+                            <Input
+                                type="datetime-local"
+                                value={form.data.ends_at}
+                                onChange={(e) => form.setData('ends_at', e.target.value)}
+                                className="bg-card"
+                            />
+                        </FormField>
+                    </div>
+
+                    <FormField label="Estado" required error={form.errors.estado}>
+                        <Select
+                            value={form.data.estado}
+                            onValueChange={(v) => form.setData('estado', v)}
+                        >
+                            <SelectTrigger className="bg-card">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="borrador">Borrador</SelectItem>
+                                <SelectItem value="publicado">Publicado</SelectItem>
+                                <SelectItem value="archivado">Archivado</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </FormField>
+
+                    <label className="flex items-center gap-2 text-sm">
+                        <Checkbox
+                            checked={form.data.destacado}
+                            onCheckedChange={(v) =>
+                                form.setData('destacado', v === true)
+                            }
+                        />
+                        Destacado en la app
+                    </label>
+
+                    <div className="flex items-center justify-between gap-2">
+                        <p className="text-sm font-medium">Auspiciadores / orquestas</p>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() =>
+                                form.setData('sponsors', [
+                                    ...form.data.sponsors,
+                                    emptySponsor(),
+                                ])
+                            }
+                        >
+                            Añadir
+                        </Button>
+                    </div>
+
+                    {form.data.sponsors.map((s, i) => (
+                        <div
+                            key={i}
+                            className="grid gap-3 rounded-xl border bg-card p-3"
+                        >
+                            <div className="flex items-start justify-between gap-2">
+                                <p className="text-xs font-semibold text-muted-foreground">
+                                    #{i + 1}
+                                </p>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-7 text-red-600 hover:bg-red-50 hover:text-red-700"
+                                    onClick={() => {
+                                        form.setData(
+                                            'sponsors',
+                                            form.data.sponsors.filter((_, idx) => idx !== i),
+                                        );
+                                    }}
                                 >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Seleccionar…" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {departamentos.map((d) => (
-                                            <SelectItem key={d.id} value={String(d.id)}>
-                                                {d.name}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </Field>
-                            <div className="grid grid-cols-2 gap-3">
-                                <Field label="Inicio">
-                                    <Input
-                                        type="datetime-local"
-                                        value={form.data.starts_at}
-                                        onChange={(e) =>
-                                            form.setData('starts_at', e.target.value)
-                                        }
-                                    />
-                                </Field>
-                                <Field label="Fin">
-                                    <Input
-                                        type="datetime-local"
-                                        value={form.data.ends_at}
-                                        onChange={(e) => form.setData('ends_at', e.target.value)}
-                                    />
-                                </Field>
+                                    Quitar
+                                </Button>
                             </div>
-                            <Field label="Estado">
+                            <FormField
+                                label="Nombre"
+                                required
+                                error={form.errors[`sponsors.${i}.nombre`]}
+                            >
+                                <Input
+                                    value={s.nombre}
+                                    onChange={(e) =>
+                                        updateSponsor(i, { nombre: e.target.value })
+                                    }
+                                    className="bg-background"
+                                />
+                            </FormField>
+                            <FormField label="Tipo">
                                 <Select
-                                    value={form.data.estado}
-                                    onValueChange={(v) => form.setData('estado', v)}
+                                    value={s.tipo}
+                                    onValueChange={(v) => updateSponsor(i, { tipo: v })}
                                 >
-                                    <SelectTrigger>
+                                    <SelectTrigger className="bg-background">
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="borrador">Borrador</SelectItem>
-                                        <SelectItem value="publicado">Publicado</SelectItem>
-                                        <SelectItem value="archivado">Archivado</SelectItem>
+                                        <SelectItem value="auspiciador">
+                                            Auspiciador
+                                        </SelectItem>
+                                        <SelectItem value="orquesta">Orquesta</SelectItem>
+                                        <SelectItem value="artista">Artista</SelectItem>
+                                        <SelectItem value="otro">Otro</SelectItem>
                                     </SelectContent>
                                 </Select>
-                            </Field>
-
-                            <div className="flex items-center justify-between">
-                                <p className="text-sm font-medium">Auspiciadores / orquestas</p>
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={addSponsor}
-                                >
-                                    Añadir
-                                </Button>
-                            </div>
-                            {form.data.sponsors.map((s, i) => (
-                                <div key={i} className="grid gap-2 rounded-xl border p-2">
-                                    <Input
-                                        placeholder="Nombre"
-                                        value={s.nombre}
-                                        onChange={(e) => {
-                                            const next = [...form.data.sponsors];
-                                            next[i] = { ...next[i], nombre: e.target.value };
-                                            form.setData('sponsors', next);
-                                        }}
-                                    />
-                                    <Select
-                                        value={s.tipo}
-                                        onValueChange={(v) => {
-                                            const next = [...form.data.sponsors];
-                                            next[i] = { ...next[i], tipo: v };
-                                            form.setData('sponsors', next);
-                                        }}
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="auspiciador">Auspiciador</SelectItem>
-                                            <SelectItem value="orquesta">Orquesta</SelectItem>
-                                            <SelectItem value="artista">Artista</SelectItem>
-                                            <SelectItem value="otro">Otro</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            ))}
+                            </FormField>
+                            <FormField label="Logo / foto">
+                                <ImageUploadField
+                                    value={s.logo}
+                                    existingUrl={s.logo_url}
+                                    removed={s.remove_logo}
+                                    onFileChange={(file) =>
+                                        updateSponsor(i, {
+                                            logo: file,
+                                            remove_logo: false,
+                                        })
+                                    }
+                                    onRemove={() =>
+                                        updateSponsor(i, {
+                                            logo: null,
+                                            remove_logo: true,
+                                        })
+                                    }
+                                    layout="compact"
+                                    previewAspect="square"
+                                />
+                            </FormField>
+                            <FormField label="Sitio web">
+                                <Input
+                                    value={s.website}
+                                    onChange={(e) =>
+                                        updateSponsor(i, { website: e.target.value })
+                                    }
+                                    placeholder="https://…"
+                                    className="bg-background"
+                                />
+                            </FormField>
                         </div>
-
-                        <div className="mt-4 flex justify-end gap-2">
-                            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-                                Cancelar
-                            </Button>
-                            <Button type="submit" disabled={form.processing}>
-                                Guardar
-                            </Button>
-                        </div>
-                    </form>
+                    ))}
                 </div>
-            ) : null}
-        </AppLayout>
+            </BaseModal>
+
+            <BaseModal
+                open={deleteTarget !== null}
+                onOpenChange={(open) => !open && setDeleteTarget(null)}
+                title="Eliminar evento"
+                description={
+                    deleteTarget
+                        ? `¿Eliminar «${deleteTarget.titulo}»? Esta acción no se puede deshacer fácilmente.`
+                        : undefined
+                }
+                submitLabel="Eliminar"
+                submitVariant="destructive"
+                onSubmit={confirmDelete}
+                submitting={deleting}
+            >
+                <p className="text-sm text-muted-foreground">
+                    El evento dejará de mostrarse en la app turista.
+                </p>
+            </BaseModal>
+        </>
     );
 }
 
-function Field({ label, children }: { label: string; children: ReactNode }) {
-    return (
-        <div className="grid gap-1.5">
-            <Label>{label}</Label>
-            {children}
-        </div>
-    );
-}
+EventsIndex.layout = (props: { translations?: TranslationTree }) => ({
+    breadcrumbs: [
+        {
+            title: translate(props.translations as TranslationTree, 'nav.saas'),
+            href: '/planes',
+        },
+        {
+            title: translate(props.translations as TranslationTree, 'nav.events'),
+            href: '/festividades',
+        },
+    ],
+});

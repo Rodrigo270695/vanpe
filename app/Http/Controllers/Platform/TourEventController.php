@@ -23,6 +23,7 @@ class TourEventController extends Controller
         abort_unless((bool) $request->user()?->can('events.view'), 403);
 
         $events = TourEvent::query()
+            ->where('owner_type', TourEvent::OWNER_PLATFORM)
             ->with(['departamento:id,name', 'sponsors'])
             ->orderByDesc('destacado')
             ->orderBy('sort_order')
