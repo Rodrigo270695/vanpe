@@ -114,7 +114,7 @@ class TouristRouteController extends Controller
         $customer = $request->user();
 
         $data = $request->validate([
-            'target_type' => ['required', Rule::in(['restaurant', 'tour_spot'])],
+            'target_type' => ['required', Rule::in(['restaurant', 'tour_spot', 'tour_event'])],
             'target_id' => ['required', 'uuid'],
             'slug' => ['nullable', 'string', 'max:180'],
             'nombre' => ['required', 'string', 'max:200'],

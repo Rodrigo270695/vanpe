@@ -50,7 +50,7 @@ class TenantProvisioner
      *     distrito_id?: int|null,
      *     actor_type?: string,
      *     actor_id?: string|null,
-     *     owner: array{name: string, email: string, password: string, username?: string|null, telefono?: string|null, email_verified_at?: \DateTimeInterface|null}
+     *     owner: array{name: string, email: string, password: string, username?: string|null, telefono?: string|null, email_verified_at?: \DateTimeInterface|null, google_id?: string|null}
      * }  $data
      */
     public function provision(array $data): Tenant
@@ -150,7 +150,7 @@ class TenantProvisioner
     }
 
     /**
-     * @param  array{name: string, email: string, password: string, username?: string|null, telefono?: string|null, email_verified_at?: \DateTimeInterface|null}  $owner
+     * @param  array{name: string, email: string, password: string, username?: string|null, telefono?: string|null, email_verified_at?: \DateTimeInterface|null, google_id?: string|null}  $owner
      */
     private function seedRolesAndOwner(string $schema, array $owner): void
     {
@@ -169,6 +169,7 @@ class TenantProvisioner
                 'username' => $owner['username'] ?? Str::before($owner['email'], '@'),
                 'password' => $owner['password'],
                 'telefono' => $owner['telefono'] ?? null,
+                'google_id' => $owner['google_id'] ?? null,
                 'activo' => true,
                 'es_owner' => true,
                 'email_verified_at' => $owner['email_verified_at'] ?? null,

@@ -135,7 +135,11 @@ class FortifyServiceProvider extends ServiceProvider
     {
         Fortify::loginView(fn (Request $request) => Inertia::render('auth/login', [
             'canResetPassword' => Features::enabled(Features::resetPasswords()),
-            'status' => $request->session()->get('status'),
+            'status' => $request->session()->get('status')
+                ?? $request->string('status')->toString()
+                ?: null,
+            'centralOrigin' => \App\Support\CentralUrl::origin(),
+            'hasGoogle' => filled(config('services.google.client_id')),
         ]));
 
         Fortify::resetPasswordView(fn (Request $request) => Inertia::render('auth/reset-password', [

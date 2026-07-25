@@ -15,6 +15,8 @@ import { request } from '@/routes/password';
 type Props = {
     status?: string;
     canResetPassword: boolean;
+    centralOrigin?: string;
+    hasGoogle?: boolean;
 };
 
 function GoogleIcon({ className }: { className?: string }) {
@@ -22,7 +24,7 @@ function GoogleIcon({ className }: { className?: string }) {
         <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
             <path
                 fill="#4285F4"
-                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1Z"
+                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1 2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1Z"
             />
             <path
                 fill="#34A853"
@@ -40,7 +42,12 @@ function GoogleIcon({ className }: { className?: string }) {
     );
 }
 
-export default function Login({ status, canResetPassword }: Props) {
+export default function Login({
+    status,
+    canResetPassword,
+    centralOrigin,
+    hasGoogle = true,
+}: Props) {
     const { t } = useTranslations();
     const tenant = usePage().props.tenant as
         | { slug: string; name: string }
@@ -57,21 +64,39 @@ export default function Login({ status, canResetPassword }: Props) {
         const left = window.screenX + (window.outerWidth - width) / 2;
         const top = window.screenY + (window.outerHeight - height) / 2;
 
+        const params = new URLSearchParams({ popup: '1' });
+        params.set('opener_origin', window.location.origin);
+
+        let redirectBase = '/auth/google/redirect';
+        if (isTenant && tenant) {
+            params.set('intent', 'tenant_login');
+            params.set('tenant', tenant.slug);
+            redirectBase = `${(centralOrigin || window.location.origin).replace(/\/$/, '')}/auth/google/redirect`;
+        }
+
+        const url = `${redirectBase}?${params.toString()}`;
+
         const popup = window.open(
-            '/auth/google/redirect?popup=1',
+            url,
             'vanpe-google',
             `width=${width},height=${height},left=${left},top=${top}`,
         );
 
-        // Popup bloqueado por el navegador: usamos el redirect clásico.
         if (!popup) {
-            window.location.href = '/auth/google/redirect';
+            window.location.href = url.replace('popup=1', 'popup=0');
             return;
         }
 
         const handleMessage = (event: MessageEvent) => {
-            if (event.origin !== window.location.origin) return;
             if (event.data?.source !== 'vanpe-google') return;
+            // Popup puede cerrar en el dominio central mientras el opener es el tenant.
+            if (
+                event.origin !== window.location.origin &&
+                centralOrigin &&
+                event.origin !== centralOrigin
+            ) {
+                return;
+            }
 
             window.removeEventListener('message', handleMessage);
 
@@ -85,7 +110,9 @@ export default function Login({ status, canResetPassword }: Props) {
         };
 
         window.addEventListener('message', handleMessage);
-    }, [t]);
+    }, [t, isTenant, tenant, centralOrigin]);
+
+    const showGoogle = hasGoogle;
 
     return (
         <>
@@ -103,8 +130,7 @@ export default function Login({ status, canResetPassword }: Props) {
                 </div>
             )}
 
-            {/* Acceso con Google (solo dominio central) */}
-            {!isTenant && (
+            {showGoogle && (
                 <>
                     <button
                         type="button"

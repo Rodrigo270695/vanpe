@@ -42,6 +42,7 @@ class TourEventController extends Controller
                 'update' => (bool) $request->user()?->can('events.update'),
                 'delete' => (bool) $request->user()?->can('events.delete'),
             ],
+            'mapbox_token' => config('services.mapbox.token'),
         ]);
     }
 

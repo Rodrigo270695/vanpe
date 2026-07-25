@@ -34,14 +34,18 @@
     <script>
         (function () {
             var payload = Object.assign({ source: 'vanpe-google' }, @json($payload));
+            var target = payload.openerOrigin || window.location.origin;
 
             if (window.opener && !window.opener.closed) {
-                window.opener.postMessage(payload, window.location.origin);
+                try {
+                    window.opener.postMessage(payload, target);
+                } catch (e) {
+                    try { window.opener.postMessage(payload, '*'); } catch (e2) {}
+                }
                 window.close();
                 return;
             }
 
-            // Sin ventana emergente (popup bloqueado o navegación directa): fallback normal.
             window.location.href = payload.status === 'success'
                 ? (payload.redirect || '/')
                 : '/login';

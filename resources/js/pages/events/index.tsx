@@ -13,6 +13,7 @@ import { FormField } from '@/components/common/form-field';
 import { ImageUploadField } from '@/components/common/image-upload-field';
 import { PageHeader } from '@/components/common/page-header';
 import { StatusPill } from '@/components/common/status-pill';
+import { LocationMapPicker } from '@/components/configuracion/location-map-picker';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -44,6 +45,8 @@ type EventRow = {
     portada_url: string | null;
     lugar: string | null;
     departamento_id: number | null;
+    latitud: number | null;
+    longitud: number | null;
     starts_at: string | null;
     ends_at: string | null;
     estado: string;
@@ -62,6 +65,7 @@ type Props = {
     events: EventRow[];
     departamentos: { id: number; name: string }[];
     can: { create: boolean; update: boolean; delete: boolean };
+    mapbox_token?: string | null;
 };
 
 const emptySponsor = (): SponsorDraft => ({
@@ -73,13 +77,15 @@ const emptySponsor = (): SponsorDraft => ({
     remove_logo: false,
 });
 
-const emptyForm = {
+const makeEmptyForm = () => ({
     titulo: '',
     slug: '',
     resumen: '',
     descripcion: '',
     lugar: '',
     departamento_id: '' as string | number,
+    latitud: null as number | null,
+    longitud: null as number | null,
     starts_at: '',
     ends_at: '',
     estado: 'publicado',
@@ -88,16 +94,21 @@ const emptyForm = {
     cover: null as File | null,
     remove_cover: false,
     sponsors: [] as SponsorDraft[],
-};
+});
 
-export default function EventsIndex({ events, departamentos, can }: Props) {
+export default function EventsIndex({
+    events,
+    departamentos,
+    can,
+    mapbox_token = null,
+}: Props) {
     const [formOpen, setFormOpen] = useState(false);
     const [editing, setEditing] = useState<EventRow | null>(null);
     const [existingCoverUrl, setExistingCoverUrl] = useState<string | null>(null);
     const [deleteTarget, setDeleteTarget] = useState<EventRow | null>(null);
     const [deleting, setDeleting] = useState(false);
 
-    const form = useForm({ ...emptyForm });
+    const form = useForm(makeEmptyForm());
 
     const publishedCount = useMemo(
         () => events.filter((e) => e.estado === 'publicado').length,
@@ -114,7 +125,7 @@ export default function EventsIndex({ events, departamentos, can }: Props) {
         setEditing(null);
         setExistingCoverUrl(null);
         form.clearErrors();
-        form.setData({ ...emptyForm });
+        form.setData(makeEmptyForm());
         setFormOpen(true);
     };
 
@@ -129,6 +140,8 @@ export default function EventsIndex({ events, departamentos, can }: Props) {
             descripcion: row.descripcion ?? '',
             lugar: row.lugar ?? '',
             departamento_id: row.departamento_id ?? '',
+            latitud: row.latitud,
+            longitud: row.longitud,
             starts_at: row.starts_at ?? '',
             ends_at: row.ends_at ?? '',
             estado: row.estado,
@@ -297,7 +310,7 @@ export default function EventsIndex({ events, departamentos, can }: Props) {
                 onAfterClose={() => {
                     setEditing(null);
                     setExistingCoverUrl(null);
-                    form.reset();
+                    form.setData(makeEmptyForm());
                     form.clearErrors();
                 }}
             >
@@ -356,6 +369,32 @@ export default function EventsIndex({ events, departamentos, can }: Props) {
                             value={form.data.lugar}
                             onChange={(e) => form.setData('lugar', e.target.value)}
                             className="bg-card"
+                        />
+                    </FormField>
+
+                    <FormField
+                        label="Ubicación en el mapa"
+                        hint="El turista podrá ir al lugar o añadirlo a su ruta."
+                        error={form.errors.latitud ?? form.errors.longitud}
+                    >
+                        <LocationMapPicker
+                            token={mapbox_token}
+                            value={{
+                                latitud: form.data.latitud,
+                                longitud: form.data.longitud,
+                                direccion: form.data.lugar || null,
+                            }}
+                            onChange={(next) => {
+                                form.setData({
+                                    ...form.data,
+                                    latitud: next.latitud,
+                                    longitud: next.longitud,
+                                    lugar:
+                                        next.direccion && !form.data.lugar
+                                            ? String(next.direccion)
+                                            : form.data.lugar,
+                                });
+                            }}
                         />
                     </FormField>
 
@@ -432,8 +471,8 @@ export default function EventsIndex({ events, departamentos, can }: Props) {
                         <p className="text-sm font-medium">Auspiciadores / orquestas</p>
                         <Button
                             type="button"
-                            variant="outline"
                             size="sm"
+                            className="cursor-pointer gap-1 border-0 bg-brand-blue text-white shadow-sm shadow-blue-200/50 hover:bg-brand-blue/90"
                             onClick={() =>
                                 form.setData('sponsors', [
                                     ...form.data.sponsors,
@@ -441,9 +480,16 @@ export default function EventsIndex({ events, departamentos, can }: Props) {
                                 ])
                             }
                         >
+                            <Plus className="size-3.5" />
                             Añadir
                         </Button>
                     </div>
+
+                    {form.data.sponsors.length === 0 ? (
+                        <p className="rounded-lg border border-dashed px-3 py-4 text-center text-xs text-muted-foreground">
+                            Sin auspiciadores. Pulsa «Añadir» para incorporar uno.
+                        </p>
+                    ) : null}
 
                     {form.data.sponsors.map((s, i) => (
                         <div

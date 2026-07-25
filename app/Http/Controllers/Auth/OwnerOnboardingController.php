@@ -59,9 +59,13 @@ class OwnerOnboardingController extends Controller
         if ($existingTenant = Tenant::query()->where('email_admin', $email)->first()) {
             $request->session()->forget('pending_owner');
 
-            return redirect()->route('login')->with('status', __('messages.auth.google_owner_exists', [
-                'host' => $existingTenant->subdomainHost(),
-            ]));
+            return redirect()->away(
+                $existingTenant->subdomainUrl('/login').'?status='.rawurlencode(
+                    __('messages.auth.google_owner_exists', [
+                        'host' => $existingTenant->subdomainHost(),
+                    ])
+                )
+            );
         }
 
         $slug = TenantSlug::unique($validated['slug'] ?: $validated['nombre_comercial']);
@@ -76,6 +80,7 @@ class OwnerOnboardingController extends Controller
                 'name' => $validated['name'],
                 'email' => $email,
                 'password' => $validated['password'],
+                'google_id' => $pending['google_id'] ?? null,
                 // Correo ya verificado por Google.
                 'email_verified_at' => now(),
             ],
@@ -83,12 +88,13 @@ class OwnerOnboardingController extends Controller
 
         $request->session()->forget('pending_owner');
 
-        return redirect()->route('login')->with(
-            'status',
-            __('messages.auth.onboarding_success', [
-                'name' => $tenant->nombre_comercial,
-                'host' => $tenant->subdomainHost(),
-            ]),
+        return redirect()->away(
+            $tenant->subdomainUrl('/login').'?status='.rawurlencode(
+                __('messages.auth.onboarding_success', [
+                    'name' => $tenant->nombre_comercial,
+                    'host' => $tenant->subdomainHost(),
+                ])
+            )
         );
     }
 }

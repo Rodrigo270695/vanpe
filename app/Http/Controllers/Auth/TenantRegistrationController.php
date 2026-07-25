@@ -73,18 +73,19 @@ class TenantRegistrationController extends Controller
 
         $verificationQueued = $this->queueVerificationEmail($tenant);
 
-        return redirect()->route('login')->with(
-            'status',
-            $verificationQueued
-                ? __('messages.auth.registration_success', [
-                    'name' => $tenant->nombre_comercial,
-                    'email' => $validated['email'],
-                    'host' => $tenant->subdomainHost(),
-                ])
-                : __('messages.auth.registration_mail_pending', [
-                    'name' => $tenant->nombre_comercial,
-                    'host' => $tenant->subdomainHost(),
-                ]),
+        $message = $verificationQueued
+            ? __('messages.auth.registration_success', [
+                'name' => $tenant->nombre_comercial,
+                'email' => $validated['email'],
+                'host' => $tenant->subdomainHost(),
+            ])
+            : __('messages.auth.registration_mail_pending', [
+                'name' => $tenant->nombre_comercial,
+                'host' => $tenant->subdomainHost(),
+            ]);
+
+        return redirect()->away(
+            $tenant->subdomainUrl('/login').'?status='.rawurlencode($message)
         );
     }
 

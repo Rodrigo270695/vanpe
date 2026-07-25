@@ -38,6 +38,7 @@ class User extends Authenticatable
         'document_number',
         'username',
         'email',
+        'google_id',
         'password',
         'telefono',
         'activo',

@@ -202,6 +202,7 @@ return [
         'password_for_panel' => "You'll use it to sign in to your restaurant panel.",
         'onboarding_submit' => 'Create my restaurant',
         'google_owner_exists' => 'You already registered a restaurant with this email. Sign in at :host.',
+        'google_tenant_user_missing' => 'No restaurant account was found for that Google email.',
         'onboarding_success' => ':name created! You can now sign in at :host with your email and password.',
 
         'forgot_title' => 'Forgot your password?',

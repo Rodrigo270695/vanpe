@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Auth\GoogleController;
+use App\Http\Controllers\Auth\GoogleHandoffController;
 use App\Http\Controllers\Auth\OwnerOnboardingController;
 use App\Http\Controllers\Auth\StaffInvitationController;
 use App\Http\Controllers\Auth\TenantEmailVerificationController;
@@ -34,7 +35,13 @@ use App\Http\Controllers\Tenant\VentasController;
 use App\Http\Controllers\Tenant\WaitingListController;
 use Illuminate\Support\Facades\Route;
 
-Route::inertia('/', 'welcome')->name('home');
+Route::get('/', function () {
+    if (auth()->check()) {
+        return redirect()->route('dashboard');
+    }
+
+    return redirect()->route('login');
+})->name('home');
 
 Route::match(['get', 'head'], 'sw.js', function () {
     $path = public_path('build/sw.js');
@@ -69,6 +76,10 @@ if (app()->environment('local')) {
 Route::post('locale/{locale}', [LocaleController::class, 'update'])->name('locale.update');
 
 Route::middleware('guest')->group(function () {
+    // SSO Google → subdominio del restaurante (code de un solo uso).
+    Route::get('auth/google/handoff', GoogleHandoffController::class)
+        ->name('google.handoff');
+
     // Registro del dueño de restaurante (crea el tenant completo).
     // Solo en el dominio central (no dentro del subdominio de un tenant).
     Route::middleware('tenant.none')->group(function () {
