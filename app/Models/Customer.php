@@ -37,6 +37,8 @@ class Customer extends Authenticatable implements CanResetPasswordContract
     /** @use HasFactory<CustomerFactory> */
     use CanResetPassword, HasApiTokens, HasFactory, Notifiable, SoftDeletes;
 
+    protected $connection = 'pgsql';
+
     public const STATUS_ACTIVE = 'active';
 
     public const STATUS_BLOCKED = 'blocked';

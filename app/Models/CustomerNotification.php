@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class CustomerPushToken extends Model
+class CustomerNotification extends Model
 {
     use HasUuids;
 
@@ -14,16 +14,18 @@ class CustomerPushToken extends Model
 
     protected $fillable = [
         'customer_id',
-        'token',
-        'platform',
-        'device_name',
-        'last_seen_at',
+        'type',
+        'title',
+        'body',
+        'data',
+        'read_at',
     ];
 
     protected function casts(): array
     {
         return [
-            'last_seen_at' => 'datetime',
+            'data' => 'array',
+            'read_at' => 'datetime',
         ];
     }
 
@@ -31,5 +33,14 @@ class CustomerPushToken extends Model
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);
+    }
+
+    public function markRead(): void
+    {
+        if ($this->read_at !== null) {
+            return;
+        }
+
+        $this->forceFill(['read_at' => now()])->save();
     }
 }

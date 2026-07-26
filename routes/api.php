@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\Tourist\DeviceTokenController;
 use App\Http\Controllers\Api\Tourist\FavoriteController;
 use App\Http\Controllers\Api\Tourist\GeoController;
 use App\Http\Controllers\Api\Tourist\HomeController;
+use App\Http\Controllers\Api\Tourist\NotificationController;
 use App\Http\Controllers\Api\Tourist\PasswordResetController;
 use App\Http\Controllers\Api\Tourist\PreferenceController;
 use App\Http\Controllers\Api\Tourist\ProfileController;
@@ -62,6 +63,9 @@ Route::prefix('v1/tourist')->group(function () {
 
         Route::post('device-tokens', [DeviceTokenController::class, 'store']);
         Route::delete('device-tokens', [DeviceTokenController::class, 'destroy']);
+
+        Route::get('notifications', [NotificationController::class, 'index']);
+        Route::post('notifications/read', [NotificationController::class, 'markRead']);
 
         Route::get('favorites', [FavoriteController::class, 'index']);
         Route::get('favorites/ids', [FavoriteController::class, 'ids']);

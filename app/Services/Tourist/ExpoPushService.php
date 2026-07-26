@@ -27,6 +27,11 @@ class ExpoPushService
             ->all();
 
         if ($tokens === []) {
+            Log::info('Expo push omitido: sin tokens del turista', [
+                'customer_id' => $customer->id,
+                'title' => $payload['title'] ?? null,
+            ]);
+
             return;
         }
 
@@ -36,12 +41,15 @@ class ExpoPushService
             'title' => $payload['title'],
             'body' => $payload['body'],
             'data' => $payload['data'] ?? [],
+            'channelId' => 'reservations',
+            'priority' => 'high',
+            'ttl' => 60 * 60 * 24,
         ], $tokens);
 
         try {
             $response = Http::acceptJson()
                 ->asJson()
-                ->timeout(8)
+                ->timeout(12)
                 ->post(self::ENDPOINT, $messages);
 
             if (! $response->successful()) {
@@ -53,6 +61,12 @@ class ExpoPushService
 
                 return;
             }
+
+            Log::info('Expo push enviado', [
+                'customer_id' => $customer->id,
+                'tokens' => count($tokens),
+                'title' => $payload['title'] ?? null,
+            ]);
 
             $data = $response->json('data');
             if (! is_array($data)) {
@@ -66,6 +80,12 @@ class ExpoPushService
 
                 $token = $tokens[$index] ?? null;
                 $details = $ticket['details']['error'] ?? null;
+
+                Log::warning('Expo push ticket error', [
+                    'customer_id' => $customer->id,
+                    'error' => $details,
+                    'message' => $ticket['message'] ?? null,
+                ]);
 
                 if ($token !== null && in_array($details, ['DeviceNotRegistered', 'InvalidCredentials'], true)) {
                     CustomerPushToken::query()->where('token', $token)->delete();

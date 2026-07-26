@@ -11,6 +11,8 @@ class RsvReservation extends Model
 {
     use HasUuids;
 
+    protected $connection = 'pgsql';
+
     public const ESTADO_PENDIENTE = 'pendiente';
 
     public const ESTADO_CONFIRMADA = 'confirmada';

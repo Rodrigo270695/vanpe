@@ -34,11 +34,19 @@ class ReservationDecisionSync
     public function syncFromTenant(TenantReservation $tenantReservation, ?string $actorUserId = null): void
     {
         if (! filled($tenantReservation->rsv_id)) {
+            Log::warning('Decisión de reserva sin rsv_id: no se notifica al turista', [
+                'tenant_reservation_id' => $tenantReservation->id,
+                'tenant_status' => $tenantReservation->status,
+            ]);
+
             return;
         }
 
+        $notifyEstado = null;
+        $centralId = null;
+
         try {
-            DB::connection('pgsql')->transaction(function () use ($tenantReservation, $actorUserId): void {
+            DB::connection('pgsql')->transaction(function () use ($tenantReservation, $actorUserId, &$notifyEstado, &$centralId): void {
                 /** @var RsvReservation|null $central */
                 $central = RsvReservation::query()
                     ->whereKey($tenantReservation->rsv_id)
@@ -46,6 +54,11 @@ class ReservationDecisionSync
                     ->first();
 
                 if ($central === null) {
+                    Log::warning('Reserva central no encontrada al sincronizar decisión', [
+                        'rsv_id' => $tenantReservation->rsv_id,
+                        'tenant_status' => $tenantReservation->status,
+                    ]);
+
                     return;
                 }
 
@@ -88,15 +101,36 @@ class ReservationDecisionSync
                         ->decrement('cupos_ocupados');
                 }
 
-                $central = $central->fresh(['customer', 'restaurant']);
-                if ($central !== null) {
-                    $this->notifier->notifyTouristDecision($central, $nuevo);
-                }
+                $notifyEstado = $nuevo;
+                $centralId = $central->id;
             });
         } catch (Throwable $e) {
             Log::warning('No se pudo sincronizar decisión de reserva al central', [
                 'rsv_id' => $tenantReservation->rsv_id,
                 'tenant_status' => $tenantReservation->status,
+                'error' => $e->getMessage(),
+            ]);
+
+            return;
+        }
+
+        // Push fuera de la TX: no bloquear ni revertir el estado por fallos de red.
+        if ($notifyEstado === null || $centralId === null) {
+            return;
+        }
+
+        try {
+            $central = RsvReservation::query()
+                ->with(['customer', 'restaurant'])
+                ->find($centralId);
+
+            if ($central !== null) {
+                $this->notifier->notifyTouristDecision($central, $notifyEstado);
+            }
+        } catch (Throwable $e) {
+            Log::warning('Fallo al notificar decisión de reserva al turista', [
+                'rsv_id' => $centralId,
+                'estado' => $notifyEstado,
                 'error' => $e->getMessage(),
             ]);
         }

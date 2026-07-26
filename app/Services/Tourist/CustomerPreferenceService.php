@@ -92,7 +92,6 @@ class CustomerPreferenceService
             ->keyBy('id');
 
         $rows = [];
-        $now = now();
 
         foreach ($catalogItemIds as $id) {
             $item = $valid->get($id);
@@ -103,8 +102,6 @@ class CustomerPreferenceService
                 'customer_id' => $customer->id,
                 'catalog_item_id' => $item->id,
                 'catalog_type' => $item->type,
-                'created_at' => $now,
-                'updated_at' => $now,
             ];
         }
 
@@ -113,8 +110,12 @@ class CustomerPreferenceService
                 ->where('customer_id', $customer->id)
                 ->delete();
 
-            if ($rows !== []) {
-                CustomerCatalogPreference::query()->insert(array_values($rows));
+            if ($rows === []) {
+                return;
+            }
+
+            foreach ($rows as $row) {
+                CustomerCatalogPreference::query()->create($row);
             }
         });
     }

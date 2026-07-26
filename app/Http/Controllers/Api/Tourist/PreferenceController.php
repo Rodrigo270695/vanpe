@@ -39,13 +39,14 @@ class PreferenceController extends Controller
         $ids = array_values(array_unique($validated['catalog_item_ids']));
 
         $this->preferences->sync($customer, $ids);
+        $customer->unsetRelation('catalogPreferences');
         $customer->load('catalogPreferences');
 
         return response()->json([
             'message' => 'Preferencias guardadas.',
             'data' => [
                 'preferences' => $this->preferences->preferencePayload($customer),
-                'customer' => new CustomerResource($customer),
+                'customer' => (new CustomerResource($customer))->resolve(),
             ],
         ]);
     }

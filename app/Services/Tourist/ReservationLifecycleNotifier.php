@@ -2,6 +2,7 @@
 
 namespace App\Services\Tourist;
 
+use App\Models\CustomerNotification;
 use App\Models\RsvReservation;
 use App\Models\Tenant;
 use App\Services\Tenant\PushNotificationService;
@@ -12,7 +13,7 @@ use Throwable;
 /**
  * Notificaciones del ciclo de vida de una reserva app:
  * - Web Push al staff del restaurante (nueva solicitud)
- * - Expo Push al turista (confirmada / rechazada / cancelada)
+ * - Expo Push + inbox al turista (confirmada / rechazada / cancelada)
  */
 class ReservationLifecycleNotifier
 {
@@ -65,44 +66,74 @@ class ReservationLifecycleNotifier
 
     public function notifyTouristDecision(RsvReservation $reservation, string $estado): void
     {
-        $reservation->loadMissing(['customer', 'restaurant']);
-        $customer = $reservation->customer;
-        if ($customer === null) {
-            return;
-        }
+        try {
+            $reservation->loadMissing(['customer', 'restaurant']);
+            $customer = $reservation->customer;
+            if ($customer === null) {
+                Log::warning('Push turista omitido: reserva sin customer', [
+                    'rsv_id' => $reservation->id,
+                    'estado' => $estado,
+                ]);
 
-        $restaurantName = $reservation->restaurant?->nombre ?? 'el restaurante';
-        $hora = substr((string) $reservation->hora, 0, 5);
+                return;
+            }
 
-        [$title, $body] = match ($estado) {
-            RsvReservation::ESTADO_CONFIRMADA => [
-                'Reserva confirmada',
-                "{$restaurantName} aceptó tu mesa a las {$hora} ({$reservation->codigo}).",
-            ],
-            RsvReservation::ESTADO_CANCELADA_RESTAURANTE => [
-                'Reserva rechazada',
-                "{$restaurantName} no pudo aceptar tu reserva {$reservation->codigo}.",
-            ],
-            RsvReservation::ESTADO_CANCELADA_CLIENTE => [
-                'Reserva cancelada',
-                "Cancelaste tu reserva en {$restaurantName} ({$reservation->codigo}).",
-            ],
-            default => [null, null],
-        };
+            $restaurantName = $reservation->restaurant?->nombre ?? 'el restaurante';
+            $hora = substr((string) $reservation->hora, 0, 5);
 
-        if ($title === null || $body === null) {
-            return;
-        }
+            [$title, $body] = match ($estado) {
+                RsvReservation::ESTADO_CONFIRMADA => [
+                    'Reserva confirmada',
+                    "{$restaurantName} aceptó tu mesa a las {$hora} ({$reservation->codigo}).",
+                ],
+                RsvReservation::ESTADO_CANCELADA_RESTAURANTE => [
+                    'Reserva rechazada',
+                    "{$restaurantName} no pudo aceptar tu reserva {$reservation->codigo}.",
+                ],
+                RsvReservation::ESTADO_CANCELADA_CLIENTE => [
+                    'Reserva cancelada',
+                    "Cancelaste tu reserva en {$restaurantName} ({$reservation->codigo}).",
+                ],
+                default => [null, null],
+            };
 
-        $this->expoPush->notifyCustomer($customer, [
-            'title' => $title,
-            'body' => $body,
-            'data' => [
+            if ($title === null || $body === null) {
+                return;
+            }
+
+            $data = [
                 'type' => 'reservation_status',
                 'reservation_id' => $reservation->id,
                 'estado' => $estado,
                 'screen' => 'reservations',
-            ],
-        ]);
+            ];
+
+            try {
+                CustomerNotification::query()->create([
+                    'customer_id' => $customer->id,
+                    'type' => 'reservation_status',
+                    'title' => $title,
+                    'body' => $body,
+                    'data' => $data,
+                ]);
+            } catch (Throwable $e) {
+                Log::warning('No se pudo persistir inbox de notificación turista', [
+                    'rsv_id' => $reservation->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+
+            $this->expoPush->notifyCustomer($customer, [
+                'title' => $title,
+                'body' => $body,
+                'data' => $data,
+            ]);
+        } catch (Throwable $e) {
+            Log::warning('No se pudo notificar decisión al turista', [
+                'rsv_id' => $reservation->id,
+                'estado' => $estado,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 }

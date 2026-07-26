@@ -9,6 +9,8 @@ class RsvReservationEvent extends Model
 {
     public $timestamps = false;
 
+    protected $connection = 'pgsql';
+
     protected $table = 'rsv_reservation_events';
 
     protected $fillable = [
