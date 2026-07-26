@@ -37,10 +37,10 @@ class RefCatalogItem extends Model
     public function labelForLocale(?string $locale = null): string
     {
         $locale ??= app()->getLocale();
+        $code = strtolower(substr((string) $locale, 0, 2));
 
-        return str_starts_with($locale, 'en')
-            ? $this->name_en
-            : $this->name_es;
+        // Catálogo base: es / en. Portugués usa español (más cercano en turismo LatAm).
+        return $code === 'en' ? $this->name_en : $this->name_es;
     }
 
     /**

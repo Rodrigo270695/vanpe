@@ -16,6 +16,10 @@ class CustomerResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        $preferenceIds = $this->relationLoaded('catalogPreferences')
+            ? $this->catalogPreferences->pluck('catalog_item_id')->values()->all()
+            : $this->catalogPreferences()->pluck('catalog_item_id')->values()->all();
+
         return [
             'id' => $this->id,
             'name' => $this->name,
@@ -25,6 +29,8 @@ class CustomerResource extends JsonResource
             'status' => $this->status,
             'has_password' => $this->hasPassword(),
             'has_google' => filled($this->google_id),
+            'preferences_completed' => count($preferenceIds) > 0,
+            'preference_ids' => $preferenceIds,
             'email_verified_at' => $this->email_verified_at?->toIso8601String(),
             'last_login_at' => $this->last_login_at?->toIso8601String(),
             'created_at' => $this->created_at?->toIso8601String(),

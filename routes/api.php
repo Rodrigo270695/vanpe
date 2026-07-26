@@ -1,18 +1,21 @@
 <?php
 
 use App\Http\Controllers\Api\Tourist\AuthController;
+use App\Http\Controllers\Api\Tourist\CatalogOptionsController;
+use App\Http\Controllers\Api\Tourist\DeviceTokenController;
+use App\Http\Controllers\Api\Tourist\FavoriteController;
 use App\Http\Controllers\Api\Tourist\GeoController;
 use App\Http\Controllers\Api\Tourist\HomeController;
 use App\Http\Controllers\Api\Tourist\PasswordResetController;
+use App\Http\Controllers\Api\Tourist\PreferenceController;
 use App\Http\Controllers\Api\Tourist\ProfileController;
 use App\Http\Controllers\Api\Tourist\RecommendController;
+use App\Http\Controllers\Api\Tourist\ReservationController;
 use App\Http\Controllers\Api\Tourist\RestaurantController;
 use App\Http\Controllers\Api\Tourist\ReviewController;
+use App\Http\Controllers\Api\Tourist\SimilarPlacesController;
 use App\Http\Controllers\Api\Tourist\TourEventController;
 use App\Http\Controllers\Api\Tourist\TourSpotController;
-use App\Http\Controllers\Api\Tourist\DeviceTokenController;
-use App\Http\Controllers\Api\Tourist\FavoriteController;
-use App\Http\Controllers\Api\Tourist\ReservationController;
 use App\Http\Controllers\Api\Tourist\TouristRouteController;
 use Illuminate\Support\Facades\Route;
 
@@ -65,6 +68,9 @@ Route::prefix('v1/tourist')->group(function () {
         Route::post('favorites', [FavoriteController::class, 'store']);
         Route::delete('favorites', [FavoriteController::class, 'destroy']);
 
+        Route::get('preferences', [PreferenceController::class, 'show']);
+        Route::put('preferences', [PreferenceController::class, 'update']);
+
         Route::get('routes', [TouristRouteController::class, 'index']);
         Route::get('routes/current', [TouristRouteController::class, 'current']);
         Route::post('routes', [TouristRouteController::class, 'store']);
@@ -75,15 +81,18 @@ Route::prefix('v1/tourist')->group(function () {
         Route::delete('routes/stops/{stopId}', [TouristRouteController::class, 'removeStop']);
     });
 
+    Route::get('catalog-options', CatalogOptionsController::class);
     Route::get('home', HomeController::class);
     Route::post('recommend', RecommendController::class)->middleware('throttle:tourist-api');
     Route::get('geo/departamentos', [GeoController::class, 'departamentos']);
     Route::get('geo/provincias', [GeoController::class, 'provincias']);
     Route::get('geo/distritos', [GeoController::class, 'distritos']);
     Route::get('restaurants', [RestaurantController::class, 'index']);
+    Route::get('restaurants/{slug}/similar', [SimilarPlacesController::class, 'restaurant']);
     Route::get('restaurants/{slug}', [RestaurantController::class, 'show']);
     Route::get('restaurants/{slug}/slots', [RestaurantController::class, 'slots']);
     Route::get('tour-spots', [TourSpotController::class, 'index']);
+    Route::get('tour-spots/{slug}/similar', [SimilarPlacesController::class, 'tourSpot']);
     Route::get('tour-spots/{slug}', [TourSpotController::class, 'show']);
     Route::get('events/featured', [TourEventController::class, 'featured']);
     Route::get('events', [TourEventController::class, 'index']);

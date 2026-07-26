@@ -7,6 +7,7 @@ use Database\Factories\CustomerFactory;
 use Illuminate\Auth\Passwords\CanResetPassword;
 use Illuminate\Contracts\Auth\CanResetPassword as CanResetPasswordContract;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -104,5 +105,11 @@ class Customer extends Authenticatable implements CanResetPasswordContract
     public function sendPasswordResetNotification(#[\SensitiveParameter] $token): void
     {
         $this->notify(new ResetCustomerPasswordNotification((string) $token));
+    }
+
+    /** @return HasMany<CustomerCatalogPreference, $this> */
+    public function catalogPreferences(): HasMany
+    {
+        return $this->hasMany(CustomerCatalogPreference::class);
     }
 }
