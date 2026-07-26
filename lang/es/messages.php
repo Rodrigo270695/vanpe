@@ -126,7 +126,9 @@ return [
 
     'auth' => [
         'login_title' => 'Bienvenido de vuelta',
+        'login_title_tenant' => 'Bienvenido a :name',
         'login_subtitle' => 'Ingresa a tu cuenta para continuar tu experiencia.',
+        'login_subtitle_tenant' => 'Accede al panel de :name para gestionar tu restaurante.',
         'email' => 'Correo electrónico',
         'email_placeholder' => 'tucorreo@ejemplo.com',
         'email_greeting' => 'Hola, :name',
@@ -804,6 +806,11 @@ return [
         'field_referencia' => 'Referencia',
         'field_latitud' => 'Latitud',
         'field_longitud' => 'Longitud',
+        'field_map' => 'Ubicación en el mapa',
+        'map_hint' => 'Busca una dirección o haz clic en el mapa para fijar el pin. También puedes arrastrarlo.',
+        'map_search_placeholder' => 'Buscar dirección en Perú…',
+        'map_coords' => 'Coords: :lat, :lng',
+        'map_coords_empty' => 'Sin coordenadas aún',
         'field_categories' => 'Categorías',
         'field_primary_category' => 'Categoría principal',
         'field_access_modes' => 'Modos de acceso',

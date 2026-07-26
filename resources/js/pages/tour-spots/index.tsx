@@ -34,6 +34,7 @@ type TourSpotsPageProps = {
     dificultades: string[];
     estacionamientos: string[];
     can: TourSpotAbilities;
+    mapbox_token: string | null;
 };
 
 export default function TourSpotsIndex({
@@ -48,6 +49,7 @@ export default function TourSpotsIndex({
     dificultades,
     estacionamientos,
     can,
+    mapbox_token,
 }: TourSpotsPageProps) {
     const { t } = useTranslations();
 
@@ -304,6 +306,7 @@ export default function TourSpotsIndex({
                 dificultades={dificultades}
                 estacionamientos={estacionamientos}
                 canPublish={can.publish}
+                mapboxToken={mapbox_token}
                 onCategoriesChange={setCategories}
                 onAccessModesChange={setAccessModes}
                 onRoadTypesChange={setRoadTypes}

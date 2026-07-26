@@ -28,12 +28,20 @@ export default function ClayAuthLayout({ children }: { children: ReactNode }) {
     const { t } = useTranslations();
     const page = usePage();
     const component = page.component;
-    const showFooter = !(component === 'auth/login' && page.props.tenant);
+    const tenant = page.props.tenant as { slug: string; name: string } | null;
+    const showFooter = !(component === 'auth/login' && tenant);
+
+    const loginTitle = tenant?.name
+        ? t('auth.login_title_tenant', { name: tenant.name })
+        : t('auth.login_title');
+    const loginDescription = tenant?.name
+        ? t('auth.login_subtitle_tenant', { name: tenant.name })
+        : t('auth.login_subtitle');
 
     const meta: Record<string, PageMeta> = {
         'auth/login': {
-            title: t('auth.login_title'),
-            description: t('auth.login_subtitle'),
+            title: loginTitle,
+            description: loginDescription,
             badge: t('auth.card_badge'),
             footPrompt: t('auth.no_account'),
             footLink: t('auth.sign_up'),
@@ -254,7 +262,7 @@ export default function ClayAuthLayout({ children }: { children: ReactNode }) {
                                         </span>
                                         <div className="flex flex-col">
                                             <span className="text-sm font-semibold text-white">
-                                                VanPe
+                                                {tenant?.name ?? 'VanPe'}
                                             </span>
                                             <span className="text-xs text-white/70">
                                                 {current.badge}

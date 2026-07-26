@@ -87,6 +87,7 @@ class TourSpotController extends Controller
             'estados' => TourSpot::ESTADOS,
             'dificultades' => TourSpot::DIFICULTADES,
             'estacionamientos' => TourSpot::ESTACIONAMIENTOS,
+            'mapbox_token' => config('services.mapbox.token'),
             'can' => [
                 'create' => $request->user()?->can('tour_spots.create'),
                 'update' => $request->user()?->can('tour_spots.update'),

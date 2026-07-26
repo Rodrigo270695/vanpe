@@ -116,7 +116,7 @@ export default function Login({
 
     return (
         <>
-            <Head title={t('auth.login_title')} />
+            <Head title={isTenant && tenant ? tenant.name : t('auth.login_title')} />
 
             {status && (
                 <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-center text-sm font-medium text-green-700 dark:border-green-900/50 dark:bg-green-950/40 dark:text-green-400">

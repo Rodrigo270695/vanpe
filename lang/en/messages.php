@@ -126,7 +126,9 @@ return [
 
     'auth' => [
         'login_title' => 'Welcome back',
+        'login_title_tenant' => 'Welcome to :name',
         'login_subtitle' => 'Sign in to your account to continue your experience.',
+        'login_subtitle_tenant' => 'Sign in to the :name panel to manage your restaurant.',
         'email' => 'Email address',
         'email_placeholder' => 'you@example.com',
         'email_greeting' => 'Hello, :name',
@@ -803,6 +805,11 @@ return [
         'field_referencia' => 'Landmark',
         'field_latitud' => 'Latitude',
         'field_longitud' => 'Longitude',
+        'field_map' => 'Map location',
+        'map_hint' => 'Search an address or click the map to place the pin. You can also drag it.',
+        'map_search_placeholder' => 'Search address in Peru…',
+        'map_coords' => 'Coords: :lat, :lng',
+        'map_coords_empty' => 'No coordinates yet',
         'field_categories' => 'Categories',
         'field_primary_category' => 'Primary category',
         'field_access_modes' => 'Access modes',

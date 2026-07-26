@@ -6,6 +6,7 @@ import { CreatableCombobox } from '@/components/common/creatable-combobox';
 import { CreatableMultiCombobox } from '@/components/common/creatable-multi-combobox';
 import { FormField } from '@/components/common/form-field';
 import { ImageUploadField } from '@/components/common/image-upload-field';
+import { LocationMapPicker } from '@/components/configuracion/location-map-picker';
 import { ServiceHoursSection } from '@/components/configuracion/service-hours-section';
 import type { ServiceHourRow } from '@/components/configuracion/types';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -43,6 +44,7 @@ type TourSpotFormModalProps = {
     dificultades: string[];
     estacionamientos: string[];
     canPublish: boolean;
+    mapboxToken: string | null;
     onCategoriesChange: (categories: TourCategoryOption[]) => void;
     onAccessModesChange: (modes: CatalogOption[]) => void;
     onRoadTypesChange: (types: CatalogOption[]) => void;
@@ -81,6 +83,7 @@ export function TourSpotFormModal({
     dificultades,
     estacionamientos,
     canPublish,
+    mapboxToken,
     onCategoriesChange,
     onAccessModesChange,
     onRoadTypesChange,
@@ -790,32 +793,54 @@ export function TourSpotFormModal({
                             />
                         </FormField>
                         <FormField
-                            label={t('tour_spots.field_latitud')}
-                            error={errors.latitud}
+                            label={t('tour_spots.field_map')}
+                            hint={t('tour_spots.map_hint')}
+                            error={errors.latitud ?? errors.longitud}
+                            className="sm:col-span-3"
                         >
-                            <Input
-                                type="number"
-                                step="0.000001"
-                                value={data.latitud}
-                                onChange={(e) =>
-                                    setData('latitud', e.target.value)
-                                }
-                                className="bg-card"
+                            <LocationMapPicker
+                                token={mapboxToken}
+                                value={{
+                                    latitud:
+                                        data.latitud !== ''
+                                            ? Number(data.latitud)
+                                            : null,
+                                    longitud:
+                                        data.longitud !== ''
+                                            ? Number(data.longitud)
+                                            : null,
+                                    direccion: data.direccion || undefined,
+                                }}
+                                onChange={(next) => {
+                                    setData({
+                                        ...data,
+                                        latitud:
+                                            next.latitud != null
+                                                ? String(next.latitud)
+                                                : '',
+                                        longitud:
+                                            next.longitud != null
+                                                ? String(next.longitud)
+                                                : '',
+                                        direccion:
+                                            next.direccion && !data.direccion
+                                                ? String(next.direccion)
+                                                : data.direccion,
+                                    });
+                                }}
+                                searchPlaceholder={t(
+                                    'tour_spots.map_search_placeholder',
+                                )}
+                                hint={t('tour_spots.map_hint')}
                             />
-                        </FormField>
-                        <FormField
-                            label={t('tour_spots.field_longitud')}
-                            error={errors.longitud}
-                        >
-                            <Input
-                                type="number"
-                                step="0.000001"
-                                value={data.longitud}
-                                onChange={(e) =>
-                                    setData('longitud', e.target.value)
-                                }
-                                className="bg-card"
-                            />
+                            <p className="mt-2 text-xs text-muted-foreground">
+                                {data.latitud && data.longitud
+                                    ? t('tour_spots.map_coords', {
+                                          lat: data.latitud,
+                                          lng: data.longitud,
+                                      })
+                                    : t('tour_spots.map_coords_empty')}
+                            </p>
                         </FormField>
                     </div>
                 </section>
