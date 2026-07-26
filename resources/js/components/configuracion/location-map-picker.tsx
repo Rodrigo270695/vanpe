@@ -85,6 +85,14 @@ export function LocationMapPicker({
         if (!token || !mapContainerRef.current || mapRef.current) return;
 
         mapboxgl.accessToken = token;
+        // Evita POST a events.mapbox.com (telemetría). Adblockers lo bloquean y ensucia la consola.
+        try {
+            const cfg = (mapboxgl as unknown as { config?: { EVENTS_URL?: string } }).config;
+            if (cfg) cfg.EVENTS_URL = '';
+        } catch {
+            // ignore
+        }
+
         const center: [number, number] = hasCoords
             ? [value.longitud as number, value.latitud as number]
             : DEFAULT_CENTER;
@@ -95,6 +103,7 @@ export function LocationMapPicker({
             center,
             zoom: hasCoords ? 15 : DEFAULT_ZOOM,
             attributionControl: true,
+            collectResourceTiming: false,
         });
 
         map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'top-right');
