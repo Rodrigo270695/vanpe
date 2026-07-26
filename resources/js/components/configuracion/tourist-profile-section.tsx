@@ -124,7 +124,7 @@ export function TouristProfileSection({
                         />
 
                         {!disabled && (
-                            <div className="mt-2 border-t border-dashed border-[#d0dbef] pt-2">
+                            <div className="mt-2 border-t border-dashed border-border/80 pt-2 dark:border-white/10">
                                 {proposeType === type ? (
                                     <div className="flex flex-wrap items-center gap-2">
                                         <Input
@@ -202,7 +202,7 @@ export function TouristProfileSection({
             )}
 
             {proposals.length > 0 && (
-                <div className="rounded-xl border border-[#d0dbef] bg-muted/20 p-3">
+                <div className="rounded-xl border border-border/80 bg-muted/20 p-3 dark:border-white/10">
                     <p className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">
                         {t('catalog.your_proposals')}
                     </p>

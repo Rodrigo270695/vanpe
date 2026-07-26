@@ -49,10 +49,12 @@ export function CatalogChipSelect({
                             className={cn(
                                 'rounded-lg border px-2.5 py-1 text-[12px] font-medium transition-colors',
                                 selected && theme
-                                    ? cn(theme.card, 'font-semibold text-foreground')
+                                    ? cn(theme.chipSelected, 'font-semibold')
                                     : selected
-                                      ? 'border-brand-blue/40 bg-brand-blue/10 text-brand-blue'
-                                      : 'border-[#d0dbef] bg-card text-muted-foreground hover:border-brand-blue/25 hover:bg-muted/40',
+                                      ? 'border-brand-blue/40 bg-brand-blue text-white'
+                                      : theme
+                                        ? theme.chipIdle
+                                        : 'border-border bg-card text-muted-foreground hover:border-brand-blue/25 hover:bg-muted/40 dark:border-white/12 dark:bg-white/5',
                                 disabled && 'cursor-default opacity-60',
                                 !disabled && 'cursor-pointer',
                             )}

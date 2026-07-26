@@ -75,11 +75,23 @@ if (app()->environment('local')) {
 
 Route::post('locale/{locale}', [LocaleController::class, 'update'])->name('locale.update');
 
-Route::middleware('guest')->group(function () {
-    // SSO Google → subdominio del restaurante (code de un solo uso).
-    Route::get('auth/google/handoff', GoogleHandoffController::class)
-        ->name('google.handoff');
+/*
+| Google OAuth NO va bajo `guest`: si el Superadmin tiene sesión en vanpe.pe
+| y alguien abre Google desde un subdominio (popup al dominio central),
+| `guest` redirigía al dashboard y rompía el login del restaurante.
+*/
+Route::middleware('tenant.none')->group(function () {
+    Route::get('auth/google/redirect', [GoogleController::class, 'redirect'])
+        ->name('google.redirect');
+    Route::get('auth/google/callback', [GoogleController::class, 'callback'])
+        ->name('google.callback');
+});
 
+// SSO Google → subdominio del restaurante (code de un solo uso). Sin `guest`.
+Route::get('auth/google/handoff', GoogleHandoffController::class)
+    ->name('google.handoff');
+
+Route::middleware('guest')->group(function () {
     // Registro del dueño de restaurante (crea el tenant completo).
     // Solo en el dominio central (no dentro del subdominio de un tenant).
     Route::middleware('tenant.none')->group(function () {
@@ -90,11 +102,6 @@ Route::middleware('guest')->group(function () {
         Route::post('email/verificacion/reenviar', [TenantRegistrationController::class, 'resendVerification'])
             ->middleware('throttle:6,1')
             ->name('tenant.verification.resend.store');
-
-        Route::get('auth/google/redirect', [GoogleController::class, 'redirect'])
-            ->name('google.redirect');
-        Route::get('auth/google/callback', [GoogleController::class, 'callback'])
-            ->name('google.callback');
 
         // Onboarding del dueño tras autenticar con Google (completa restaurante).
         Route::get('registro/completar', [OwnerOnboardingController::class, 'create'])

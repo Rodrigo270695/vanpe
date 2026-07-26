@@ -21,10 +21,10 @@ export function ConfigSection({
     stack = false,
 }: ConfigSectionProps) {
     return (
-        <section className="overflow-hidden rounded-2xl border border-[#d0dbef] bg-card shadow-sm">
+        <section className="overflow-hidden rounded-2xl border border-border/80 bg-card shadow-sm dark:border-white/10">
             <div
                 className={cn(
-                    'flex items-start gap-3 border-b border-white/60 px-4 py-3.5',
+                    'flex items-start gap-3 border-b border-border/60 px-4 py-3.5 dark:border-white/10',
                     headerClass,
                 )}
             >

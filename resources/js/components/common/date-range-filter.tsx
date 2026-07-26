@@ -27,9 +27,9 @@ type DateRangeFilterProps = {
     className?: string;
 };
 
-/** Mismo estilo del trigger que TableFilterSelect. */
+/** Trigger adaptable a modo claro/oscuro. */
 const triggerClassName =
-    'inline-flex h-9 min-w-[11.5rem] cursor-pointer items-center gap-2 rounded-lg border border-[#d0dbef] bg-[#f8fafd] px-3 text-[13px] font-medium text-foreground shadow-none ring-0 transition-colors hover:border-brand-blue/35 hover:bg-[#eef3fc] focus-visible:border-brand-blue/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/15';
+    'inline-flex h-9 min-w-[11.5rem] cursor-pointer items-center gap-2 rounded-lg border border-border bg-card px-3 text-[13px] font-medium text-foreground shadow-none ring-0 transition-colors hover:border-brand-blue/40 hover:bg-muted/50 focus-visible:border-brand-blue/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/15 dark:border-white/12 dark:bg-white/5 dark:hover:border-brand-blue/45 dark:hover:bg-white/10';
 
 export function DateRangeFilter({
     value,
@@ -89,18 +89,14 @@ export function DateRangeFilter({
     };
 
     const today = todayRange();
-    const showReset =
-        value.from !== today.from || value.to !== today.to;
+    const showReset = value.from !== today.from || value.to !== today.to;
 
     return (
         <div className={cn('inline-flex items-center gap-1', className)}>
             <DropdownMenu open={open} onOpenChange={setOpen}>
                 <DropdownMenuTrigger asChild>
-                    <button
-                        type="button"
-                        className={triggerClassName}
-                    >
-                        <Calendar className="size-4 shrink-0 text-brand-blue" />
+                    <button type="button" className={triggerClassName}>
+                        <Calendar className="size-4 shrink-0 text-brand-blue dark:text-sky-400" />
                         <span className="truncate">{triggerText}</span>
                         <ChevronsUpDown className="ml-1 size-3.5 shrink-0 text-muted-foreground" />
                     </button>
@@ -108,7 +104,7 @@ export function DateRangeFilter({
 
                 <DropdownMenuContent
                     align="start"
-                    className="w-[min(100vw-2rem,22rem)] rounded-lg border border-[#d0dbef] p-0 shadow-lg"
+                    className="w-[min(100vw-2rem,22rem)] rounded-lg border border-border bg-popover p-0 text-popover-foreground shadow-lg dark:border-white/12"
                 >
                     <div className="py-1">
                         {DATE_RANGE_PRESETS.map((preset) => {
@@ -125,15 +121,16 @@ export function DateRangeFilter({
                                     type="button"
                                     onClick={() => applyPreset(preset)}
                                     className={cn(
-                                        'flex w-full cursor-pointer items-center gap-2 px-3 py-2.5 text-left text-[13px] transition-colors hover:bg-[#eef3fc]',
-                                        selected && 'bg-[#eef3fc]',
+                                        'flex w-full cursor-pointer items-center gap-2 px-3 py-2.5 text-left text-[13px] transition-colors hover:bg-muted/60 dark:hover:bg-white/8',
+                                        selected &&
+                                            'bg-brand-blue/10 dark:bg-brand-blue/25',
                                     )}
                                 >
                                     <span
                                         className={cn(
                                             'min-w-0 flex-1 font-medium',
                                             selected
-                                                ? 'text-brand-blue'
+                                                ? 'text-brand-blue dark:text-sky-300'
                                                 : 'text-foreground',
                                         )}
                                     >
@@ -153,7 +150,7 @@ export function DateRangeFilter({
                                         </span>
                                     )}
                                     {selected && (
-                                        <Check className="size-4 shrink-0 text-brand-blue" />
+                                        <Check className="size-4 shrink-0 text-brand-blue dark:text-sky-300" />
                                     )}
                                 </button>
                             );
@@ -161,7 +158,7 @@ export function DateRangeFilter({
                     </div>
 
                     {activePreset === 'custom' && (
-                        <div className="border-t border-border/80 px-3 py-3">
+                        <div className="border-t border-border/80 px-3 py-3 dark:border-white/10">
                             <div className="grid grid-cols-2 gap-2">
                                 <div>
                                     <label className="mb-1 block text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
@@ -173,7 +170,7 @@ export function DateRangeFilter({
                                         onChange={(e) =>
                                             setCustomFrom(e.target.value)
                                         }
-                                        className="h-9 bg-card text-[13px]"
+                                        className="h-9 bg-background text-[13px] dark:border-white/12 dark:bg-white/5"
                                     />
                                 </div>
                                 <div>
@@ -186,7 +183,7 @@ export function DateRangeFilter({
                                         onChange={(e) =>
                                             setCustomTo(e.target.value)
                                         }
-                                        className="h-9 bg-card text-[13px]"
+                                        className="h-9 bg-background text-[13px] dark:border-white/12 dark:bg-white/5"
                                     />
                                 </div>
                             </div>
@@ -211,7 +208,7 @@ export function DateRangeFilter({
                 <button
                     type="button"
                     onClick={resetToToday}
-                    className="inline-flex size-9 cursor-pointer items-center justify-center rounded-lg border border-[#d0dbef] bg-[#f8fafd] text-muted-foreground transition-colors hover:border-brand-blue/35 hover:bg-[#eef3fc] hover:text-foreground"
+                    className="inline-flex size-9 cursor-pointer items-center justify-center rounded-lg border border-border bg-card text-muted-foreground transition-colors hover:border-brand-blue/40 hover:bg-muted/50 hover:text-foreground dark:border-white/12 dark:bg-white/5 dark:hover:bg-white/10"
                     aria-label={t('date_range.clear')}
                 >
                     <X className="size-3.5" />

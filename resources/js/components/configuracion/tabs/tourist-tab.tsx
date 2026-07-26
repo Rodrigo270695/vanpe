@@ -34,8 +34,8 @@ export function TouristTab({ catalog, canManage }: TouristTabProps) {
                 title={t('configuracion.section_tourist_profile')}
                 description={t('configuracion.section_tourist_profile_hint')}
                 icon={<MapPinned className="size-5" />}
-                iconClass="bg-indigo-100 text-indigo-700 ring-indigo-200/80"
-                headerClass="bg-gradient-to-r from-indigo-500/10 via-violet-50/80 to-sky-500/8"
+                iconClass="bg-indigo-100 text-indigo-700 ring-indigo-200/80 dark:bg-indigo-500/20 dark:text-indigo-300 dark:ring-indigo-400/30"
+                headerClass="bg-gradient-to-r from-indigo-500/10 via-violet-50/80 to-sky-500/8 dark:from-indigo-500/15 dark:via-violet-500/10 dark:to-sky-500/10"
             >
                 <TouristProfileSection
                     options={catalog.options}
