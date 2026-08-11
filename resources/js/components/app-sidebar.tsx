@@ -158,7 +158,13 @@ const mainNavTemplate: NavTemplateItem[] = [
         titleKey: 'nav.events',
         href: '/mis-eventos',
         icon: PartyPopper,
-        tenantPermission: 'tenant.events.manage',
+        // events.manage es el ideal; también abrimos con permisos que ya tienen
+        // dueños de centro / negocio para no depender de un sync inmediato.
+        tenantPermissions: [
+            'tenant.events.manage',
+            'tenant.tour_spot.manage',
+            'tenant.publication.manage',
+        ],
         tenantTipos: ['restaurant', 'tour_spot'],
     },
     {

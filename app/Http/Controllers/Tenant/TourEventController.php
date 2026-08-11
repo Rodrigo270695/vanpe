@@ -22,7 +22,7 @@ class TourEventController extends Controller
 
     public function index(Request $request): Response
     {
-        abort_unless((bool) $request->user()?->can('tenant.events.manage'), 403);
+        $this->authorizeManage($request);
 
         $tenant = $this->currentTenant();
 
@@ -89,12 +89,28 @@ class TourEventController extends Controller
 
     public function destroy(Request $request, TourEvent $tour_event): RedirectResponse
     {
-        abort_unless((bool) $request->user()?->can('tenant.events.manage'), 403);
+        $this->authorizeManage($request);
         $this->assertOwned($tour_event);
 
         $tour_event->delete();
 
         return back()->with('success', 'Evento eliminado.');
+    }
+
+    private function authorizeManage(Request $request): void
+    {
+        abort_unless(self::userCanManageEvents($request->user()), 403);
+    }
+
+    public static function userCanManageEvents(mixed $user): bool
+    {
+        if ($user === null) {
+            return false;
+        }
+
+        return (bool) $user->can('tenant.events.manage')
+            || (bool) $user->can('tenant.tour_spot.manage')
+            || (bool) $user->can('tenant.publication.manage');
     }
 
     private function assertOwned(TourEvent $event): void

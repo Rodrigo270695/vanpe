@@ -10,7 +10,7 @@ class TourEventRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return (bool) $this->user()?->can('tenant.events.manage');
+        return \App\Http\Controllers\Tenant\TourEventController::userCanManageEvents($this->user());
     }
 
     /**
