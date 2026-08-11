@@ -3,6 +3,7 @@
 namespace App\Services\Platform;
 
 use App\Models\TourEvent;
+use App\Support\PublicMediaUrl;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -73,7 +74,7 @@ class TourEventCatalogQuery
             'slug' => $event->slug,
             'titulo' => $event->titulo,
             'resumen' => $event->resumen,
-            'portada_url' => $event->portada_url,
+            'portada_url' => PublicMediaUrl::make($event->portada_url),
             'lugar' => $event->lugar,
             'starts_at' => $event->starts_at?->timezone('America/Lima')->toIso8601String(),
             'ends_at' => $event->ends_at?->timezone('America/Lima')->toIso8601String(),
@@ -99,7 +100,7 @@ class TourEventCatalogQuery
                 'id' => $s->id,
                 'nombre' => $s->nombre,
                 'tipo' => $s->tipo,
-                'logo_url' => $s->logo_url,
+                'logo_url' => PublicMediaUrl::make($s->logo_url),
                 'website' => $s->website,
             ])->values()->all(),
         ];

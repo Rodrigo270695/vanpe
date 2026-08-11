@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Tourist;
 use App\Http\Controllers\Controller;
 use App\Models\PubRestaurant;
 use App\Services\Platform\PublicCatalogQuery;
+use App\Support\PublicMediaUrl;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -81,8 +82,8 @@ class RestaurantController extends Controller
             'direccion' => $restaurant->direccion,
             'latitud' => $restaurant->latitud,
             'longitud' => $restaurant->longitud,
-            'logo_url' => $restaurant->logo_url,
-            'portada_url' => $restaurant->portada_url,
+            'logo_url' => PublicMediaUrl::make($restaurant->logo_url),
+            'portada_url' => PublicMediaUrl::make($restaurant->portada_url),
             'tipo_cocina' => $restaurant->tipo_cocina ?? [],
             'rango_precio' => $restaurant->rango_precio,
             'rating_promedio' => (float) $restaurant->rating_promedio,
@@ -105,7 +106,7 @@ class RestaurantController extends Controller
             'anticipacion_min_horas' => $restaurant->anticipacion_min_horas,
             'capacidad_max_grupo' => $restaurant->capacidad_max_grupo,
             'photos' => $restaurant->photos->map(fn ($p): array => [
-                'image_url' => $p->image_url,
+                'image_url' => PublicMediaUrl::make($p->image_url),
                 'caption' => $p->caption,
             ])->values(),
             'hours' => $restaurant->hours->map(fn ($h): array => [
@@ -118,7 +119,7 @@ class RestaurantController extends Controller
                 'nombre' => $d->nombre,
                 'descripcion' => $d->descripcion,
                 'precio' => (float) $d->precio,
-                'imagen_url' => $d->imagen_url,
+                'imagen_url' => PublicMediaUrl::make($d->imagen_url),
                 'categoria' => $d->categoria_nombre,
                 'featured' => $d->featured,
             ])->values(),

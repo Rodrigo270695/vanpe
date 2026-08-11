@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Customer;
 use App\Models\RsvReservation;
 use App\Services\Tourist\TouristReservationService;
+use App\Support\PublicMediaUrl;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -176,7 +177,7 @@ class ReservationController extends Controller
                 'id' => $r->restaurant->id,
                 'nombre' => $r->restaurant->nombre,
                 'slug' => $r->restaurant->slug,
-                'portada_url' => $r->restaurant->portada_url,
+                'portada_url' => PublicMediaUrl::make($r->restaurant->portada_url),
                 'direccion' => $r->restaurant->direccion,
                 'telefono' => $r->restaurant->telefono,
                 'latitud' => $r->restaurant->latitud !== null ? (float) $r->restaurant->latitud : null,

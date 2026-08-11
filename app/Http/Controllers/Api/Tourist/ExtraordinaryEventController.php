@@ -7,6 +7,7 @@ use App\Models\Customer;
 use App\Models\ExtraordinaryEvent;
 use App\Models\TouristRoute;
 use App\Models\TouristRouteStop;
+use App\Support\PublicMediaUrl;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -184,7 +185,7 @@ class ExtraordinaryEventController extends Controller
             'cta_label' => $event->cta_label,
             'floating_text' => $event->floating_text ?: $event->cta_label,
             'descripcion' => $event->descripcion,
-            'logo_url' => $event->logo_url,
+            'logo_url' => PublicMediaUrl::make($event->logo_url),
             'year_effect' => $event->year_effect,
             'starts_at' => $event->starts_at?->toIso8601String(),
             'ends_at' => $event->ends_at?->toIso8601String(),

@@ -8,6 +8,7 @@ use App\Models\PubRestaurant;
 use App\Models\TourSpot;
 use App\Services\Platform\TourSpotCatalogQuery;
 use App\Services\Tourist\CustomerPreferenceService;
+use App\Support\PublicMediaUrl;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -77,8 +78,8 @@ class HomeController extends Controller
                         'slug' => $restaurant->slug,
                         'nombre' => $restaurant->nombre,
                         'direccion' => $restaurant->direccion,
-                        'portada_url' => $restaurant->portada_url,
-                        'logo_url' => $restaurant->logo_url,
+                        'portada_url' => PublicMediaUrl::make($restaurant->portada_url),
+                        'logo_url' => PublicMediaUrl::make($restaurant->logo_url),
                         'tipo_cocina' => $restaurant->tipo_cocina ?? [],
                         'rango_precio' => $restaurant->rango_precio,
                         'rating_promedio' => (float) $restaurant->rating_promedio,

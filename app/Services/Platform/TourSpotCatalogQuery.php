@@ -3,6 +3,7 @@
 namespace App\Services\Platform;
 
 use App\Models\TourSpot;
+use App\Support\PublicMediaUrl;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -89,7 +90,7 @@ class TourSpotCatalogQuery
             'direccion' => $spot->direccion,
             'latitud' => $spot->latitud !== null ? (float) $spot->latitud : null,
             'longitud' => $spot->longitud !== null ? (float) $spot->longitud : null,
-            'imagen_portada_url' => $spot->imagen_portada_url,
+            'imagen_portada_url' => PublicMediaUrl::make($spot->imagen_portada_url),
             'rating_promedio' => (float) $spot->rating_promedio,
             'total_resenas' => (int) $spot->total_resenas,
             'destacado' => (bool) $spot->destacado,
@@ -160,7 +161,7 @@ class TourSpotCatalogQuery
                 'name' => $m->labelForLocale($locale),
             ])->values(),
             'media' => $spot->media->map(fn ($m): array => [
-                'url' => $m->url,
+                'url' => PublicMediaUrl::make($m->url),
                 'caption' => $m->caption,
                 'is_cover' => $m->is_cover,
             ])->values(),

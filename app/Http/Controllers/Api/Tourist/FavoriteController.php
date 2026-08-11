@@ -7,6 +7,7 @@ use App\Models\AppFavorite;
 use App\Models\Customer;
 use App\Models\PubRestaurant;
 use App\Models\TourSpot;
+use App\Support\PublicMediaUrl;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -54,7 +55,7 @@ class FavoriteController extends Controller
                         'slug' => $item->slug,
                         'nombre' => $item->nombre,
                         'direccion' => $item->direccion,
-                        'portada_url' => $item->portada_url,
+                        'portada_url' => PublicMediaUrl::make($item->portada_url),
                         'rating_promedio' => (float) $item->rating_promedio,
                         'tipo_cocina' => $item->tipo_cocina ?? [],
                     ],
@@ -74,7 +75,7 @@ class FavoriteController extends Controller
                         'slug' => $item->slug,
                         'nombre' => $item->nombre,
                         'direccion' => $item->direccion,
-                        'imagen_portada_url' => $item->imagen_portada_url,
+                        'imagen_portada_url' => PublicMediaUrl::make($item->imagen_portada_url),
                         'rating_promedio' => (float) $item->rating_promedio,
                         'resumen' => $item->resumen,
                     ],

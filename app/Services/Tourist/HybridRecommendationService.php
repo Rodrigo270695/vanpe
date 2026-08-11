@@ -4,6 +4,7 @@ namespace App\Services\Tourist;
 
 use App\Models\PubRestaurant;
 use App\Models\TourSpot;
+use App\Support\PublicMediaUrl;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -306,8 +307,8 @@ class HybridRecommendationService
             'slug' => $restaurant->slug,
             'nombre' => $restaurant->nombre,
             'direccion' => $restaurant->direccion,
-            'portada_url' => $restaurant->portada_url,
-            'logo_url' => $restaurant->logo_url,
+            'portada_url' => PublicMediaUrl::make($restaurant->portada_url),
+            'logo_url' => PublicMediaUrl::make($restaurant->logo_url),
             'tipo_cocina' => $restaurant->tipo_cocina ?? [],
             'rango_precio' => $restaurant->rango_precio,
             'rating_promedio' => (float) $restaurant->rating_promedio,
@@ -330,7 +331,7 @@ class HybridRecommendationService
             'nombre' => $spot->nombre,
             'resumen' => $spot->resumen,
             'direccion' => $spot->direccion,
-            'imagen_portada_url' => $spot->imagen_portada_url,
+            'imagen_portada_url' => PublicMediaUrl::make($spot->imagen_portada_url),
             'rating_promedio' => (float) $spot->rating_promedio,
             'total_resenas' => (int) $spot->total_resenas,
             'destacado' => (bool) $spot->destacado,
