@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Tourist;
 
 use App\Http\Controllers\Controller;
+use App\Models\TourCategory;
 use App\Models\TourSpot;
 use App\Services\Platform\TourSpotCatalogQuery;
 use Illuminate\Http\JsonResponse;
@@ -36,6 +37,26 @@ class TourSpotController extends Controller
                 'total' => $paginator->total(),
             ],
         ]);
+    }
+
+    public function categories(Request $request): JsonResponse
+    {
+        $locale = $request->string('locale')->toString() ?: app()->getLocale();
+
+        $rows = TourCategory::query()
+            ->where('active', true)
+            ->orderBy('sort_order')
+            ->orderBy('name_es')
+            ->get()
+            ->map(fn (TourCategory $c): array => [
+                'id' => $c->id,
+                'slug' => $c->slug,
+                'name' => $c->labelForLocale($locale),
+                'icon' => $c->icon,
+            ])
+            ->values();
+
+        return response()->json(['data' => $rows]);
     }
 
     public function show(string $slug): JsonResponse

@@ -75,7 +75,12 @@ class TouristRouteController extends Controller
 
         $data = $request->validate([
             'name' => ['sometimes', 'string', 'max:160'],
-            'status' => ['sometimes', Rule::in([TouristRoute::STATUS_DRAFT, TouristRoute::STATUS_ARCHIVED])],
+            'status' => ['sometimes', Rule::in([
+                TouristRoute::STATUS_DRAFT,
+                TouristRoute::STATUS_ARCHIVED,
+                TouristRoute::STATUS_COMPLETED,
+                TouristRoute::STATUS_CANCELLED,
+            ])],
             'distance_meters' => ['sometimes', 'nullable', 'numeric', 'min:0'],
             'duration_seconds' => ['sometimes', 'nullable', 'integer', 'min:0'],
         ]);
@@ -114,7 +119,7 @@ class TouristRouteController extends Controller
         $customer = $request->user();
 
         $data = $request->validate([
-            'target_type' => ['required', Rule::in(['restaurant', 'tour_spot', 'tour_event'])],
+            'target_type' => ['required', Rule::in(['restaurant', 'tour_spot', 'tour_event', 'custom'])],
             'target_id' => ['required', 'uuid'],
             'slug' => ['nullable', 'string', 'max:180'],
             'nombre' => ['required', 'string', 'max:200'],
@@ -124,7 +129,38 @@ class TouristRouteController extends Controller
         ]);
 
         $route = DB::transaction(function () use ($customer, $data): TouristRoute {
-            $route = $this->draftFor($customer, $data['route_name'] ?? null);
+            $draft = TouristRoute::query()
+                ->where('customer_id', $customer->id)
+                ->where('status', TouristRoute::STATUS_DRAFT)
+                ->first();
+
+            if ($draft === null) {
+                $preferredName = isset($data['route_name']) ? trim((string) $data['route_name']) : '';
+                $hadClosedRoute = TouristRoute::query()
+                    ->where('customer_id', $customer->id)
+                    ->whereIn('status', [
+                        TouristRoute::STATUS_COMPLETED,
+                        TouristRoute::STATUS_CANCELLED,
+                    ])
+                    ->exists();
+
+                if ($hadClosedRoute && $preferredName === '') {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'route_name' => 'La ruta anterior ya está cerrada. Indica un nombre para la nueva ruta.',
+                    ]);
+                }
+
+                $route = TouristRoute::query()->create([
+                    'customer_id' => $customer->id,
+                    'name' => $preferredName !== ''
+                        ? $preferredName
+                        : ('Ruta '.now()->timezone('America/Lima')->format('d/m/Y H:i')),
+                    'status' => TouristRoute::STATUS_DRAFT,
+                    'stops_count' => 0,
+                ]);
+            } else {
+                $route = $draft;
+            }
 
             $exists = TouristRouteStop::query()
                 ->where('tourist_route_id', $route->id)
@@ -265,6 +301,7 @@ class TouristRouteController extends Controller
             'id' => $route->id,
             'name' => $route->name,
             'status' => $route->status,
+            'extraordinary_event_id' => $route->extraordinary_event_id,
             'stops_count' => (int) $route->stops_count,
             'distance_meters' => $route->distance_meters,
             'duration_seconds' => $route->duration_seconds,

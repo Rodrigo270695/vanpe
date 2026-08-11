@@ -44,6 +44,7 @@ return [
         'catalog' => 'Catálogo turístico',
         'tour_spots' => 'Centros turísticos',
         'events' => 'Ferias y festividades',
+        'extraordinary_events' => 'Eventos extraordinarios',
     ],
 
     'user_menu' => [

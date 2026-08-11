@@ -44,6 +44,7 @@ return [
         'catalog' => 'Tourist catalog',
         'tour_spots' => 'Tourist spots',
         'events' => 'Fairs & festivities',
+        'extraordinary_events' => 'Extraordinary events',
     ],
 
     'user_menu' => [

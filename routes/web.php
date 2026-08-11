@@ -17,6 +17,7 @@ use App\Http\Controllers\Platform\RoleController;
 use App\Http\Controllers\Platform\SubscriptionController;
 use App\Http\Controllers\Platform\SubscriptionPaymentController;
 use App\Http\Controllers\Platform\TenantController;
+use App\Http\Controllers\Platform\ExtraordinaryEventController;
 use App\Http\Controllers\Platform\TourEventController;
 use App\Http\Controllers\Platform\TourSpotController;
 use App\Http\Controllers\Platform\UserController;
@@ -308,6 +309,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('festividades', [TourEventController::class, 'store'])->name('events.store');
         Route::put('festividades/{tour_event}', [TourEventController::class, 'update'])->name('events.update');
         Route::delete('festividades/{tour_event}', [TourEventController::class, 'destroy'])->name('events.destroy');
+
+        Route::get('eventos-extraordinarios', [ExtraordinaryEventController::class, 'index'])
+            ->name('extraordinary-events.index');
+        Route::post('eventos-extraordinarios', [ExtraordinaryEventController::class, 'store'])
+            ->name('extraordinary-events.store');
+        Route::post('eventos-extraordinarios/{extraordinary_event}', [ExtraordinaryEventController::class, 'update'])
+            ->name('extraordinary-events.update');
+        Route::delete('eventos-extraordinarios/{extraordinary_event}', [ExtraordinaryEventController::class, 'destroy'])
+            ->name('extraordinary-events.destroy');
     });
 });
 

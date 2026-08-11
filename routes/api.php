@@ -17,6 +17,7 @@ use App\Http\Controllers\Api\Tourist\ReviewController;
 use App\Http\Controllers\Api\Tourist\SimilarPlacesController;
 use App\Http\Controllers\Api\Tourist\TourEventController;
 use App\Http\Controllers\Api\Tourist\TourSpotController;
+use App\Http\Controllers\Api\Tourist\ExtraordinaryEventController;
 use App\Http\Controllers\Api\Tourist\TouristRouteController;
 use Illuminate\Support\Facades\Route;
 
@@ -83,6 +84,7 @@ Route::prefix('v1/tourist')->group(function () {
         Route::post('routes/stops', [TouristRouteController::class, 'addStop']);
         Route::put('routes/{id}/stops/reorder', [TouristRouteController::class, 'reorderStops']);
         Route::delete('routes/stops/{stopId}', [TouristRouteController::class, 'removeStop']);
+        Route::post('extraordinary-events/{id}/claim', [ExtraordinaryEventController::class, 'claim']);
     });
 
     Route::get('catalog-options', CatalogOptionsController::class);
@@ -96,10 +98,12 @@ Route::prefix('v1/tourist')->group(function () {
     Route::get('restaurants/{slug}', [RestaurantController::class, 'show']);
     Route::get('restaurants/{slug}/slots', [RestaurantController::class, 'slots']);
     Route::get('tour-spots', [TourSpotController::class, 'index']);
+    Route::get('tour-spot-categories', [TourSpotController::class, 'categories']);
     Route::get('tour-spots/{slug}/similar', [SimilarPlacesController::class, 'tourSpot']);
     Route::get('tour-spots/{slug}', [TourSpotController::class, 'show']);
     Route::get('events/featured', [TourEventController::class, 'featured']);
     Route::get('events', [TourEventController::class, 'index']);
     Route::get('events/{slug}', [TourEventController::class, 'show']);
+    Route::get('extraordinary-events/active', [ExtraordinaryEventController::class, 'active']);
     Route::get('reviews', [ReviewController::class, 'index']);
 });

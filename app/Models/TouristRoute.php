@@ -15,8 +15,13 @@ class TouristRoute extends Model
 
     public const STATUS_ARCHIVED = 'archived';
 
+    public const STATUS_COMPLETED = 'completed';
+
+    public const STATUS_CANCELLED = 'cancelled';
+
     protected $fillable = [
         'customer_id',
+        'extraordinary_event_id',
         'name',
         'status',
         'stops_count',
