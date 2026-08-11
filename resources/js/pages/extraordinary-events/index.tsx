@@ -370,36 +370,38 @@ export default function ExtraordinaryEventsIndex({ events, can, mapbox_token }: 
                         Activo (visible en la app dentro del rango de fechas)
                     </label>
 
-                    <div className="rounded-xl border p-3">
-                        <div className="mb-3 flex items-center justify-between gap-2">
+                    <div className="space-y-3 rounded-xl border p-4">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
                             <p className="text-sm font-semibold">Paradas / lugares</p>
                             <Button
                                 type="button"
                                 size="sm"
                                 variant="outline"
-                                onClick={() =>
+                                onClick={() => {
+                                    const nextIndex = form.data.stops.length;
                                     form.setData('stops', [
                                         ...form.data.stops,
-                                        emptyStop(form.data.stops.length + 1),
-                                    ])
-                                }
+                                        emptyStop(nextIndex + 1),
+                                    ]);
+                                    setStopMapIndex(nextIndex);
+                                }}
                             >
                                 <Plus className="size-4" />
                                 Añadir lugar
                             </Button>
                         </div>
 
-                        <div className="mb-3 flex flex-wrap gap-2">
+                        <div className="flex flex-wrap gap-2">
                             {form.data.stops.map((s, i) => (
                                 <button
                                     key={i}
                                     type="button"
                                     onClick={() => setStopMapIndex(i)}
                                     className={cn(
-                                        'rounded-full border px-3 py-1 text-xs font-semibold',
+                                        'rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors',
                                         stopMapIndex === i
                                             ? 'border-primary bg-primary text-primary-foreground'
-                                            : 'bg-muted',
+                                            : 'bg-muted hover:bg-muted/80',
                                     )}
                                 >
                                     {i + 1}. {s.nombre || 'Sin nombre'}
@@ -407,114 +409,135 @@ export default function ExtraordinaryEventsIndex({ events, can, mapbox_token }: 
                             ))}
                         </div>
 
-                        {form.data.stops.map((stop, index) => (
-                            <div
-                                key={index}
-                                className={cn(
-                                    'mb-3 grid gap-3 rounded-lg border p-3',
-                                    stopMapIndex === index ? 'border-primary' : 'opacity-70',
-                                )}
-                            >
-                                <div className="flex items-start justify-between gap-2">
-                                    <p className="text-xs font-bold uppercase text-muted-foreground">
-                                        Lugar {index + 1}
-                                    </p>
-                                    {form.data.stops.length > 1 ? (
-                                        <Button
-                                            type="button"
-                                            size="icon"
-                                            variant="ghost"
-                                            onClick={() => {
-                                                const next = form.data.stops.filter((_, i) => i !== index);
-                                                form.setData('stops', next);
-                                                setStopMapIndex(Math.max(0, index - 1));
-                                            }}
+                        {form.data.stops.map((stop, index) => {
+                            if (stopMapIndex !== index) return null;
+
+                            return (
+                                <div
+                                    key={index}
+                                    className="space-y-4 rounded-xl border border-primary/40 bg-muted/20 p-4"
+                                >
+                                    <div className="flex items-center justify-between gap-3 border-b pb-3">
+                                        <p className="text-sm font-bold tracking-wide text-foreground">
+                                            Lugar {index + 1}
+                                        </p>
+                                        {form.data.stops.length > 1 ? (
+                                            <Button
+                                                type="button"
+                                                size="sm"
+                                                variant="ghost"
+                                                className="text-destructive hover:text-destructive"
+                                                onClick={() => {
+                                                    const next = form.data.stops.filter(
+                                                        (_, i) => i !== index,
+                                                    );
+                                                    form.setData('stops', next);
+                                                    setStopMapIndex(Math.max(0, index - 1));
+                                                }}
+                                            >
+                                                <Trash2 className="size-4" />
+                                                Quitar
+                                            </Button>
+                                        ) : null}
+                                    </div>
+
+                                    <div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2">
+                                        <FormField label="Nombre" required className="min-w-0">
+                                            <Input
+                                                value={stop.nombre}
+                                                onChange={(e) =>
+                                                    patchStop(index, { nombre: e.target.value })
+                                                }
+                                                className="bg-card"
+                                                placeholder="Ej. Catedral de Chiclayo"
+                                            />
+                                        </FormField>
+                                        <FormField label="Slug (opcional)" className="min-w-0">
+                                            <Input
+                                                value={stop.slug}
+                                                onChange={(e) =>
+                                                    patchStop(index, { slug: e.target.value })
+                                                }
+                                                className="bg-card"
+                                                placeholder="catedral-chiclayo"
+                                            />
+                                        </FormField>
+                                        <FormField label="Tipo" className="min-w-0">
+                                            <Select
+                                                value={stop.target_type}
+                                                onValueChange={(v) =>
+                                                    patchStop(index, {
+                                                        target_type: v as StopDraft['target_type'],
+                                                    })
+                                                }
+                                            >
+                                                <SelectTrigger className="w-full bg-card">
+                                                    <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="custom">
+                                                        Personalizado
+                                                    </SelectItem>
+                                                    <SelectItem value="tour_spot">
+                                                        Centro turístico
+                                                    </SelectItem>
+                                                    <SelectItem value="restaurant">
+                                                        Restaurante
+                                                    </SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </FormField>
+                                        <FormField
+                                            label="Fecha y hora visita"
+                                            className="min-w-0"
                                         >
-                                            <Trash2 className="size-4 text-destructive" />
-                                        </Button>
-                                    ) : null}
-                                </div>
+                                            <Input
+                                                type="datetime-local"
+                                                value={stop.visita_at}
+                                                onChange={(e) =>
+                                                    patchStop(index, {
+                                                        visita_at: e.target.value,
+                                                    })
+                                                }
+                                                className="w-full bg-card"
+                                            />
+                                        </FormField>
+                                        <FormField
+                                            label="ID destino (uuid opcional)"
+                                            className="min-w-0 sm:col-span-2"
+                                        >
+                                            <Input
+                                                value={stop.target_id}
+                                                onChange={(e) =>
+                                                    patchStop(index, {
+                                                        target_id: e.target.value,
+                                                    })
+                                                }
+                                                className="bg-card font-mono text-sm"
+                                                placeholder="Solo si enlaza a un restaurante o centro existente"
+                                            />
+                                        </FormField>
+                                    </div>
 
-                                <div className="grid gap-3 sm:grid-cols-2">
-                                    <FormField label="Nombre" required>
-                                        <Input
-                                            value={stop.nombre}
-                                            onChange={(e) => patchStop(index, { nombre: e.target.value })}
-                                            className="bg-card"
-                                        />
-                                    </FormField>
-                                    <FormField label="Slug (opcional)">
-                                        <Input
-                                            value={stop.slug}
-                                            onChange={(e) => patchStop(index, { slug: e.target.value })}
-                                            className="bg-card"
-                                        />
-                                    </FormField>
-                                </div>
-
-                                <div className="grid gap-3 sm:grid-cols-3">
-                                    <FormField label="Tipo">
-                                        <Select
-                                            value={stop.target_type}
-                                            onValueChange={(v) =>
+                                    <div className="min-w-0 space-y-2">
+                                        <p className="text-sm font-medium">Ubicación en mapa</p>
+                                        <LocationMapPicker
+                                            token={mapbox_token ?? null}
+                                            value={{
+                                                latitud: stop.latitud,
+                                                longitud: stop.longitud,
+                                            }}
+                                            onChange={(next) =>
                                                 patchStop(index, {
-                                                    target_type: v as StopDraft['target_type'],
+                                                    latitud: next.latitud,
+                                                    longitud: next.longitud,
                                                 })
                                             }
-                                        >
-                                            <SelectTrigger className="bg-card">
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="custom">Personalizado</SelectItem>
-                                                <SelectItem value="tour_spot">Centro turístico</SelectItem>
-                                                <SelectItem value="restaurant">Restaurante</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </FormField>
-                                    <FormField label="Fecha y hora visita">
-                                        <Input
-                                            type="datetime-local"
-                                            value={stop.visita_at}
-                                            onChange={(e) =>
-                                                patchStop(index, { visita_at: e.target.value })
-                                            }
-                                            className="bg-card"
                                         />
-                                    </FormField>
-                                    <FormField label="ID destino (uuid opcional)">
-                                        <Input
-                                            value={stop.target_id}
-                                            onChange={(e) =>
-                                                patchStop(index, { target_id: e.target.value })
-                                            }
-                                            className="bg-card"
-                                        />
-                                    </FormField>
+                                    </div>
                                 </div>
-
-                                {stopMapIndex === index ? (
-                                    <LocationMapPicker
-                                        token={mapbox_token ?? null}
-                                        value={{
-                                            latitud: stop.latitud,
-                                            longitud: stop.longitud,
-                                        }}
-                                        onChange={(next) =>
-                                            patchStop(index, {
-                                                latitud: next.latitud,
-                                                longitud: next.longitud,
-                                            })
-                                        }
-                                    />
-                                ) : (
-                                    <p className="text-xs text-muted-foreground">
-                                        Lat {stop.latitud ?? '—'} · Lng {stop.longitud ?? '—'} (elige el chip
-                                        para editar en mapa)
-                                    </p>
-                                )}
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 </div>
             </BaseModal>
