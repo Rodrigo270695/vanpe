@@ -71,6 +71,10 @@ class ExtraordinaryEventController extends Controller
                     ->update(['status' => TouristRoute::STATUS_ARCHIVED]);
             }
 
+            // Restaura paradas oficiales si el usuario las había quitado antes del bloqueo.
+            $this->ensureEventStops($existing, $event);
+            $existing->load('stops');
+
             return response()->json([
                 'data' => $this->serializeRoute($existing),
                 'meta' => ['created' => false],
@@ -113,6 +117,59 @@ class ExtraordinaryEventController extends Controller
             'data' => $this->serializeRoute($route),
             'meta' => ['created' => true],
         ], 201);
+    }
+
+    /**
+     * Vuelve a insertar paradas oficiales del evento que falten en la ruta.
+     */
+    private function ensureEventStops(TouristRoute $route, ExtraordinaryEvent $event): void
+    {
+        $route->loadMissing('stops');
+
+        $existingKeys = $route->stops
+            ->map(function (TouristRouteStop $stop): string {
+                if (filled($stop->target_id)) {
+                    return strtolower((string) $stop->target_type).':'.(string) $stop->target_id;
+                }
+
+                return 'slug:'.mb_strtolower((string) ($stop->slug ?: $stop->nombre));
+            })
+            ->all();
+
+        $nextOrder = (int) $route->stops->max('sort_order');
+        $added = 0;
+
+        foreach ($event->stops->values() as $stop) {
+            $key = filled($stop->target_id)
+                ? strtolower((string) ($stop->target_type ?: 'tour_spot')).':'.(string) $stop->target_id
+                : 'slug:'.mb_strtolower((string) ($stop->slug ?: $stop->nombre));
+
+            if (in_array($key, $existingKeys, true)) {
+                continue;
+            }
+
+            $nextOrder++;
+            TouristRouteStop::query()->create([
+                'tourist_route_id' => $route->id,
+                'target_type' => $stop->target_type ?: 'tour_spot',
+                'target_id' => $stop->target_id ?: (string) Str::uuid(),
+                'slug' => $stop->slug,
+                'nombre' => $stop->nombre,
+                'latitud' => $stop->latitud,
+                'longitud' => $stop->longitud,
+                'sort_order' => $nextOrder,
+            ]);
+            $existingKeys[] = $key;
+            $added++;
+        }
+
+        if ($added > 0) {
+            $route->update([
+                'stops_count' => TouristRouteStop::query()
+                    ->where('tourist_route_id', $route->id)
+                    ->count(),
+            ]);
+        }
     }
 
     /**

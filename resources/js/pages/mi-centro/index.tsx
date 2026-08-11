@@ -259,6 +259,16 @@ export default function MiCentroIndex({
                 return;
             }
 
+            // Misma ruta (cambio de ?tab=… u otros query): no es “salir”.
+            try {
+                const next = new URL(String(visit.url), window.location.origin);
+                if (next.pathname === window.location.pathname) {
+                    return;
+                }
+            } catch {
+                // ignore URL parse errors
+            }
+
             event.preventDefault();
             pendingLeaveRef.current = () => {
                 bypassLeaveGuardRef.current = true;

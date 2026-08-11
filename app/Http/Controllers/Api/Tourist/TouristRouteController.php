@@ -218,7 +218,15 @@ class TouristRouteController extends Controller
 
         abort_if($stop === null, 404, 'Parada no encontrada en tu ruta.');
 
-        $routeId = $stop->tourist_route_id;
+        $route = TouristRoute::query()->findOrFail($stop->tourist_route_id);
+
+        if (filled($route->extraordinary_event_id)) {
+            return response()->json([
+                'message' => 'No puedes quitar paradas de una ruta de evento extraordinario.',
+            ], 422);
+        }
+
+        $routeId = $route->id;
         $stop->delete();
 
         $route = TouristRoute::query()->with('stops')->findOrFail($routeId);

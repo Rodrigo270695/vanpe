@@ -75,12 +75,24 @@ class TourSpotWriter
      */
     private function normalizePayload(array $data, ?TourSpot $existing): array
     {
-        $distrito = Distrito::query()
-            ->with('provincia')
-            ->findOrFail($data['distrito_id']);
+        $distritoId = $data['distrito_id'] ?? null;
+        $departamentoId = $data['departamento_id'] ?? null;
+        $provinciaId = $data['provincia_id'] ?? null;
 
-        $provinciaId = (int) $distrito->provincia_id;
-        $departamentoId = (int) $distrito->provincia->departamento_id;
+        if (filled($distritoId)) {
+            $distrito = Distrito::query()
+                ->with('provincia')
+                ->findOrFail($distritoId);
+
+            $provinciaId = (int) $distrito->provincia_id;
+            $departamentoId = (int) $distrito->provincia->departamento_id;
+            $distritoId = (int) $distrito->id;
+        } else {
+            // Borrador sin ubicación aún (tenant centro / Mi centro).
+            $distritoId = null;
+            $provinciaId = filled($provinciaId) ? (int) $provinciaId : null;
+            $departamentoId = filled($departamentoId) ? (int) $departamentoId : null;
+        }
 
         $slug = trim((string) ($data['slug'] ?? ''));
         if ($slug === '') {
@@ -110,7 +122,7 @@ class TourSpotWriter
         return [
             'departamento_id' => $departamentoId,
             'provincia_id' => $provinciaId,
-            'distrito_id' => (int) $distrito->id,
+            'distrito_id' => $distritoId,
             'nombre' => $data['nombre'],
             'slug' => $slug,
             'resumen' => $data['resumen'] ?? null,
