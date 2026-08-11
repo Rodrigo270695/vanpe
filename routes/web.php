@@ -21,6 +21,7 @@ use App\Http\Controllers\Platform\ExtraordinaryEventController;
 use App\Http\Controllers\Platform\TourEventController;
 use App\Http\Controllers\Platform\TourSpotController;
 use App\Http\Controllers\Platform\UserController;
+use App\Http\Controllers\Tenant\TourEventController as TenantTourEventController;
 use App\Http\Controllers\Tenant\CajaController;
 use App\Http\Controllers\Tenant\CartaController;
 use App\Http\Controllers\Tenant\CocinaController;
@@ -262,6 +263,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->name('mi-centro.road-types.store');
         Route::post('mi-centro/inclusions', [TourSpotProfileController::class, 'storeInclusion'])
             ->name('mi-centro.inclusions.store');
+
+        // Ferias y festividades propias del tenant (restaurante o centro).
+        Route::get('mis-eventos', [TenantTourEventController::class, 'index'])->name('tenant.events.index');
+        Route::post('mis-eventos', [TenantTourEventController::class, 'store'])->name('tenant.events.store');
+        Route::put('mis-eventos/{tour_event}', [TenantTourEventController::class, 'update'])->name('tenant.events.update');
+        Route::delete('mis-eventos/{tour_event}', [TenantTourEventController::class, 'destroy'])->name('tenant.events.destroy');
     });
 
     // SaaS: planes, features y suscripciones (solo dominio central).

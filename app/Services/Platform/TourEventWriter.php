@@ -62,7 +62,9 @@ class TourEventWriter
 
         return [
             'owner_type' => $data['owner_type'] ?? $existing?->owner_type ?? TourEvent::OWNER_PLATFORM,
-            'tenant_id' => $data['tenant_id'] ?? $existing?->tenant_id,
+            'tenant_id' => array_key_exists('tenant_id', $data)
+                ? $data['tenant_id']
+                : $existing?->tenant_id,
             'titulo' => $titulo,
             'slug' => $slug,
             'resumen' => $data['resumen'] ?? null,

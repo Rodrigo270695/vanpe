@@ -155,6 +155,13 @@ const mainNavTemplate: NavTemplateItem[] = [
         ],
     },
     {
+        titleKey: 'nav.events',
+        href: '/mis-eventos',
+        icon: PartyPopper,
+        tenantPermission: 'tenant.events.manage',
+        tenantTipos: ['restaurant', 'tour_spot'],
+    },
+    {
         titleKey: 'nav.reservas',
         href: '/reservas',
         icon: CalendarClock,

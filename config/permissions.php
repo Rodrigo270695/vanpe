@@ -170,6 +170,7 @@ return [
                 'permissions' => [
                     'tenant.settings.manage' => 'Configuración del negocio',
                     'tenant.publication.manage' => 'Publicación en la app del turista',
+                    'tenant.events.manage' => 'Ferias y festividades en la app',
                 ],
             ],
             'centro_turistico' => [

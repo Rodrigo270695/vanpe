@@ -1,12 +1,14 @@
 <?php
 
-namespace App\Http\Controllers\Platform;
+namespace App\Http\Controllers\Tenant;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Platform\TourEventRequest;
+use App\Http\Requests\Tenant\TourEventRequest;
 use App\Models\Departamento;
+use App\Models\Tenant;
 use App\Models\TourEvent;
 use App\Services\Platform\TourEventWriter;
+use App\Tenancy\TenantManager;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -20,10 +22,13 @@ class TourEventController extends Controller
 
     public function index(Request $request): Response
     {
-        abort_unless((bool) $request->user()?->can('events.view'), 403);
+        abort_unless((bool) $request->user()?->can('tenant.events.manage'), 403);
+
+        $tenant = $this->currentTenant();
 
         $events = TourEvent::query()
-            ->where('owner_type', TourEvent::OWNER_PLATFORM)
+            ->where('owner_type', TourEvent::OWNER_TENANT)
+            ->where('tenant_id', $tenant->id)
             ->with(['departamento:id,name', 'sponsors'])
             ->orderByDesc('destacado')
             ->orderBy('sort_order')
@@ -38,26 +43,28 @@ class TourEventController extends Controller
                 ->orderBy('name')
                 ->get(['id', 'name']),
             'can' => [
-                'create' => (bool) $request->user()?->can('events.create'),
-                'update' => (bool) $request->user()?->can('events.update'),
-                'delete' => (bool) $request->user()?->can('events.delete'),
+                'create' => true,
+                'update' => true,
+                'delete' => true,
             ],
             'mapbox_token' => config('services.mapbox.token'),
-            'basePath' => '/festividades',
+            'basePath' => '/mis-eventos',
             'pageTitle' => 'Ferias y festividades',
-            'pageDescription' => 'Eventos de plataforma visibles en la app (ferias, fiestas, celebraciones).',
-            'defaultDestacado' => true,
-            'breadcrumbMode' => 'platform',
+            'pageDescription' => 'Publica ferias, fiestas y celebraciones de tu negocio en la app del turista.',
+            'defaultDestacado' => false,
+            'breadcrumbMode' => 'tenant',
         ]);
     }
 
     public function store(TourEventRequest $request): RedirectResponse
     {
+        $tenant = $this->currentTenant();
         $data = $request->validated();
         $sponsors = $data['sponsors'] ?? [];
         unset($data['sponsors']);
-        $data['owner_type'] = TourEvent::OWNER_PLATFORM;
-        $data['tenant_id'] = null;
+
+        $data['owner_type'] = TourEvent::OWNER_TENANT;
+        $data['tenant_id'] = $tenant->id;
 
         $this->writer->create($data, $sponsors);
 
@@ -66,13 +73,14 @@ class TourEventController extends Controller
 
     public function update(TourEventRequest $request, TourEvent $tour_event): RedirectResponse
     {
-        abort_unless($tour_event->owner_type === TourEvent::OWNER_PLATFORM, 404);
+        $this->assertOwned($tour_event);
 
         $data = $request->validated();
         $sponsors = $data['sponsors'] ?? [];
         unset($data['sponsors']);
-        $data['owner_type'] = TourEvent::OWNER_PLATFORM;
-        $data['tenant_id'] = null;
+
+        $data['owner_type'] = TourEvent::OWNER_TENANT;
+        $data['tenant_id'] = $this->currentTenant()->id;
 
         $this->writer->update($tour_event, $data, $sponsors);
 
@@ -81,11 +89,30 @@ class TourEventController extends Controller
 
     public function destroy(Request $request, TourEvent $tour_event): RedirectResponse
     {
-        abort_unless((bool) $request->user()?->can('events.delete'), 403);
-        abort_unless($tour_event->owner_type === TourEvent::OWNER_PLATFORM, 404);
+        abort_unless((bool) $request->user()?->can('tenant.events.manage'), 403);
+        $this->assertOwned($tour_event);
+
         $tour_event->delete();
 
         return back()->with('success', 'Evento eliminado.');
+    }
+
+    private function assertOwned(TourEvent $event): void
+    {
+        $tenant = $this->currentTenant();
+        abort_unless(
+            $event->owner_type === TourEvent::OWNER_TENANT
+            && $event->tenant_id === $tenant->id,
+            404,
+        );
+    }
+
+    private function currentTenant(): Tenant
+    {
+        $tenant = app(TenantManager::class)->tenant();
+        abort_if($tenant === null, 404);
+
+        return $tenant;
     }
 
     /**

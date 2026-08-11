@@ -66,6 +66,11 @@ type Props = {
     departamentos: { id: number; name: string }[];
     can: { create: boolean; update: boolean; delete: boolean };
     mapbox_token?: string | null;
+    basePath?: string;
+    pageTitle?: string;
+    pageDescription?: string;
+    defaultDestacado?: boolean;
+    breadcrumbMode?: 'platform' | 'tenant';
 };
 
 const emptySponsor = (): SponsorDraft => ({
@@ -77,7 +82,7 @@ const emptySponsor = (): SponsorDraft => ({
     remove_logo: false,
 });
 
-const makeEmptyForm = () => ({
+const makeEmptyForm = (destacado = true) => ({
     titulo: '',
     slug: '',
     resumen: '',
@@ -89,7 +94,7 @@ const makeEmptyForm = () => ({
     starts_at: '',
     ends_at: '',
     estado: 'publicado',
-    destacado: true,
+    destacado,
     sort_order: 0,
     cover: null as File | null,
     remove_cover: false,
@@ -101,6 +106,11 @@ export default function EventsIndex({
     departamentos,
     can,
     mapbox_token = null,
+    basePath = '/festividades',
+    pageTitle = 'Ferias y festividades',
+    pageDescription = 'Eventos de plataforma visibles en la app (ferias, fiestas, celebraciones).',
+    defaultDestacado = true,
+    breadcrumbMode = 'platform',
 }: Props) {
     const [formOpen, setFormOpen] = useState(false);
     const [editing, setEditing] = useState<EventRow | null>(null);
@@ -108,7 +118,7 @@ export default function EventsIndex({
     const [deleteTarget, setDeleteTarget] = useState<EventRow | null>(null);
     const [deleting, setDeleting] = useState(false);
 
-    const form = useForm(makeEmptyForm());
+    const form = useForm(makeEmptyForm(defaultDestacado));
 
     const publishedCount = useMemo(
         () => events.filter((e) => e.estado === 'publicado').length,
@@ -125,7 +135,7 @@ export default function EventsIndex({
         setEditing(null);
         setExistingCoverUrl(null);
         form.clearErrors();
-        form.setData(makeEmptyForm());
+        form.setData(makeEmptyForm(defaultDestacado));
         setFormOpen(true);
     };
 
@@ -179,17 +189,17 @@ export default function EventsIndex({
         }));
 
         if (editing) {
-            form.post(`/festividades/${editing.id}`, options);
+            form.post(`${basePath}/${editing.id}`, options);
             return;
         }
 
-        form.post('/festividades', options);
+        form.post(basePath, options);
     };
 
     const confirmDelete = () => {
         if (!deleteTarget) return;
         setDeleting(true);
-        router.delete(`/festividades/${deleteTarget.id}`, {
+        router.delete(`${basePath}/${deleteTarget.id}`, {
             preserveScroll: true,
             onSuccess: () => setDeleteTarget(null),
             onFinish: () => setDeleting(false),
@@ -204,11 +214,11 @@ export default function EventsIndex({
 
     return (
         <>
-            <Head title="Ferias y festividades" />
+            <Head title={pageTitle} />
             <div className="flex flex-col gap-5 p-4 md:p-6">
                 <PageHeader
-                    title="Ferias y festividades"
-                    description="Eventos de plataforma visibles en la app (ferias, fiestas, celebraciones)."
+                    title={pageTitle}
+                    description={pageDescription}
                     badges={[
                         {
                             label: 'Eventos',
@@ -604,15 +614,37 @@ export default function EventsIndex({
     );
 }
 
-EventsIndex.layout = (props: { translations?: TranslationTree }) => ({
-    breadcrumbs: [
-        {
-            title: translate(props.translations as TranslationTree, 'nav.saas'),
-            href: '/planes',
-        },
-        {
-            title: translate(props.translations as TranslationTree, 'nav.events'),
-            href: '/festividades',
-        },
-    ],
-});
+EventsIndex.layout = (props: {
+    translations?: TranslationTree;
+    breadcrumbMode?: 'platform' | 'tenant';
+    basePath?: string;
+    pageTitle?: string;
+}) => {
+    const mode = props.breadcrumbMode ?? 'platform';
+    const path = props.basePath ?? '/festividades';
+    const title =
+        props.pageTitle ??
+        translate(props.translations as TranslationTree, 'nav.events');
+
+    if (mode === 'tenant') {
+        return {
+            breadcrumbs: [
+                {
+                    title: translate(props.translations as TranslationTree, 'nav.dashboard'),
+                    href: '/dashboard',
+                },
+                { title, href: path },
+            ],
+        };
+    }
+
+    return {
+        breadcrumbs: [
+            {
+                title: translate(props.translations as TranslationTree, 'nav.saas'),
+                href: '/planes',
+            },
+            { title, href: path },
+        ],
+    };
+};

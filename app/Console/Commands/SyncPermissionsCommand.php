@@ -83,7 +83,7 @@ class SyncPermissionsCommand extends Command
     {
         $schema = (string) $tenant->schema_name;
 
-        $this->components->task("Tenant «{$tenant->slug}»", function () use ($schema): void {
+        $this->components->task("Tenant «{$tenant->slug}»", function () use ($schema, $tenant): void {
             Config::set('database.connections.tenant.search_path', $schema);
             DB::purge('tenant');
 
@@ -99,6 +99,19 @@ class SyncPermissionsCommand extends Command
                 }
 
                 RoleProvisioner::grantCoreMissingPermissions('tenant');
+
+                $templates = $tenant->isTourSpot()
+                    ? (array) Config::get('roles.tenant.roles_tour_spot', [])
+                    : (array) Config::get('roles.tenant.roles', []);
+
+                foreach ($templates as $roleName => $rolePermissions) {
+                    if ($rolePermissions === ['*'] || ! is_array($rolePermissions)) {
+                        continue;
+                    }
+
+                    $role = \App\Models\Permission\Role::findOrCreate((string) $roleName, 'web');
+                    $role->givePermissionTo(array_values($rolePermissions));
+                }
             } finally {
                 DB::setDefaultConnection($previousDefault);
                 app(\Spatie\Permission\PermissionRegistrar::class)->forgetCachedPermissions();

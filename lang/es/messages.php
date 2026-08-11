@@ -1931,6 +1931,7 @@ return [
                 'ventas' => 'Ventas y caja',
                 'informes' => 'Informes',
                 'negocio' => 'Negocio y publicación',
+                'centro_turistico' => 'Centro turístico',
                 'personal' => 'Personal',
             ],
             'items' => [
@@ -1944,6 +1945,9 @@ return [
                 'tenant.reports.view' => 'Reportes de ventas',
                 'tenant.settings.manage' => 'Configuración del negocio',
                 'tenant.publication.manage' => 'Publicación en la app del turista',
+                'tenant.events.manage' => 'Ferias y festividades en la app',
+                'tenant.tour_spot.manage' => 'Editar ficha del centro turístico',
+                'tenant.tour_spot.publish' => 'Publicar o pausar el centro en la app',
                 'tenant.users.manage' => 'Usuarios y roles del restaurante',
             ],
         ],

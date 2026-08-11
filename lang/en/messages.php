@@ -1930,6 +1930,7 @@ return [
                 'ventas' => 'Sales & cash register',
                 'informes' => 'Reports',
                 'negocio' => 'Business & publication',
+                'centro_turistico' => 'Tourist center',
                 'personal' => 'Staff',
             ],
             'items' => [
@@ -1943,6 +1944,9 @@ return [
                 'tenant.reports.view' => 'Sales reports',
                 'tenant.settings.manage' => 'Business settings',
                 'tenant.publication.manage' => 'Tourist app publication',
+                'tenant.events.manage' => 'Fairs & festivities in the app',
+                'tenant.tour_spot.manage' => 'Edit tourist center profile',
+                'tenant.tour_spot.publish' => 'Publish or pause the center in the app',
                 'tenant.users.manage' => 'Restaurant users and roles',
             ],
         ],

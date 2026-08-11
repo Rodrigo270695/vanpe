@@ -36,7 +36,14 @@ class TourEventCatalogQuery
     {
         return TourEvent::query()
             ->published()
-            ->with(['sponsors', 'departamento:id,name', 'provincia:id,name', 'distrito:id,name'])
+            ->with([
+                'sponsors',
+                'departamento:id,name',
+                'provincia:id,name',
+                'distrito:id,name',
+                'tenant.pubRestaurant:id,tenant_id,nombre,slug',
+                'tenant.tourSpot:id,tenant_id,nombre,slug',
+            ])
             ->where('slug', $slug)
             ->first();
     }
@@ -49,7 +56,12 @@ class TourEventCatalogQuery
         return TourEvent::query()
             ->published()
             ->activeWindow()
-            ->with(['departamento:id,name', 'distrito:id,name'])
+            ->with([
+                'departamento:id,name',
+                'distrito:id,name',
+                'tenant.pubRestaurant:id,tenant_id,nombre,slug',
+                'tenant.tourSpot:id,tenant_id,nombre,slug',
+            ])
             ->when($departamentoId, fn (Builder $b) => $b->where('departamento_id', $departamentoId))
             ->when($q, function (Builder $b) use ($q): void {
                 $term = '%'.mb_strtolower(trim($q)).'%';
@@ -82,6 +94,7 @@ class TourEventCatalogQuery
             'owner_type' => $event->owner_type,
             'departamento' => $event->departamento?->name,
             'distrito' => $event->distrito?->name,
+            'organizer' => $this->organizerPayload($event),
         ];
     }
 
@@ -103,6 +116,37 @@ class TourEventCatalogQuery
                 'logo_url' => PublicMediaUrl::make($s->logo_url),
                 'website' => $s->website,
             ])->values()->all(),
+        ];
+    }
+
+    /**
+     * @return array{tipo: string, slug: string, nombre: string}|null
+     */
+    private function organizerPayload(TourEvent $event): ?array
+    {
+        if ($event->owner_type !== TourEvent::OWNER_TENANT || $event->tenant === null) {
+            return null;
+        }
+
+        $tenant = $event->tenant;
+        $fallbackName = $tenant->nombre_comercial ?: $tenant->razon_social ?: $tenant->slug;
+
+        if ($tenant->isTourSpot()) {
+            $spot = $tenant->tourSpot;
+
+            return [
+                'tipo' => 'tour_spot',
+                'slug' => $spot?->slug ?: $tenant->slug,
+                'nombre' => $spot?->nombre ?: $fallbackName,
+            ];
+        }
+
+        $restaurant = $tenant->pubRestaurant;
+
+        return [
+            'tipo' => 'restaurant',
+            'slug' => $restaurant?->slug ?: $tenant->slug,
+            'nombre' => $restaurant?->nombre ?: $fallbackName,
         ];
     }
 }
