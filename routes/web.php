@@ -32,6 +32,7 @@ use App\Http\Controllers\Tenant\PedidosController;
 use App\Http\Controllers\Tenant\PushSubscriptionController;
 use App\Http\Controllers\Tenant\ReportesController;
 use App\Http\Controllers\Tenant\ReservasController;
+use App\Http\Controllers\Tenant\TourSpotProfileController;
 use App\Http\Controllers\Tenant\VentasController;
 use App\Http\Controllers\Tenant\WaitingListController;
 use Illuminate\Support\Facades\Route;
@@ -245,6 +246,22 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('lista-espera', [WaitingListController::class, 'store'])->name('lista-espera.store');
         Route::post('lista-espera/{listaEspera}/sentar', [WaitingListController::class, 'seat'])->name('lista-espera.seat');
         Route::post('lista-espera/{listaEspera}/retirar', [WaitingListController::class, 'withdraw'])->name('lista-espera.withdraw');
+
+        // Ficha "Mi centro" (TourSpot) para tenants tipo centro turístico.
+        Route::get('mi-centro', [TourSpotProfileController::class, 'edit'])->name('mi-centro.edit');
+        Route::post('mi-centro', [TourSpotProfileController::class, 'update'])->name('mi-centro.update');
+        Route::get('mi-centro/geo/provincias', [TourSpotProfileController::class, 'provincias'])
+            ->name('mi-centro.geo.provincias');
+        Route::get('mi-centro/geo/distritos', [TourSpotProfileController::class, 'distritos'])
+            ->name('mi-centro.geo.distritos');
+        Route::post('mi-centro/categories', [TourSpotProfileController::class, 'storeCategory'])
+            ->name('mi-centro.categories.store');
+        Route::post('mi-centro/access-modes', [TourSpotProfileController::class, 'storeAccessMode'])
+            ->name('mi-centro.access-modes.store');
+        Route::post('mi-centro/road-types', [TourSpotProfileController::class, 'storeRoadType'])
+            ->name('mi-centro.road-types.store');
+        Route::post('mi-centro/inclusions', [TourSpotProfileController::class, 'storeInclusion'])
+            ->name('mi-centro.inclusions.store');
     });
 
     // SaaS: planes, features y suscripciones (solo dominio central).

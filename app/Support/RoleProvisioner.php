@@ -21,11 +21,12 @@ class RoleProvisioner
 {
     /**
      * @param  'platform'|'tenant'  $scope
+     * @param  array<string, list<string>>|null  $rolesOverride  Si se pasa, reemplaza config roles.$scope.roles
      */
-    public static function provision(string $scope, string $guard = 'web'): void
+    public static function provision(string $scope, string $guard = 'web', ?array $rolesOverride = null): void
     {
         $permissions = self::ensurePermissions($scope, $guard);
-        $roles = (array) Config::get("roles.$scope.roles", []);
+        $roles = $rolesOverride ?? (array) Config::get("roles.$scope.roles", []);
 
         if ($permissions === [] && $roles === []) {
             throw new \InvalidArgumentException("Scope de roles desconocido o vacío: {$scope}");

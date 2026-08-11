@@ -150,6 +150,73 @@ class TenantDashboardService
     }
 
     /**
+     * Dashboard simplificado para tenants tipo centro turístico.
+     *
+     * @return array<string, mixed>
+     */
+    public function buildTourSpot(): array
+    {
+        $tenant = app(TenantManager::class)->tenant();
+        $spot = $tenant?->tourSpot()?->with(['categories', 'accessModes', 'media', 'hours'])->first();
+
+        $checklist = collect([
+            [
+                'key' => 'identity',
+                'done' => $spot !== null && filled($spot->nombre) && filled($spot->resumen),
+                'href' => '/mi-centro?tab=identity',
+            ],
+            [
+                'key' => 'photos',
+                'done' => $spot !== null && filled($spot->imagen_portada_url),
+                'href' => '/mi-centro?tab=photos',
+            ],
+            [
+                'key' => 'location',
+                'done' => $spot !== null
+                    && $spot->latitud !== null
+                    && $spot->longitud !== null
+                    && $spot->departamento_id !== null,
+                'href' => '/mi-centro?tab=location',
+            ],
+            [
+                'key' => 'access',
+                'done' => $spot !== null
+                    && $spot->categories->isNotEmpty()
+                    && $spot->accessModes->isNotEmpty(),
+                'href' => '/mi-centro?tab=access',
+            ],
+            [
+                'key' => 'hours',
+                'done' => $spot !== null && $spot->hours->where('active', true)->isNotEmpty(),
+                'href' => '/mi-centro?tab=hours',
+            ],
+            [
+                'key' => 'publish',
+                'done' => $spot?->estado === \App\Models\TourSpot::ESTADO_PUBLICADO,
+                'href' => '/mi-centro?tab=publication',
+            ],
+        ]);
+
+        $percent = (int) round(
+            $checklist->where('done', true)->count() / max($checklist->count(), 1) * 100,
+        );
+
+        return [
+            'spot' => $spot === null ? null : [
+                'id' => $spot->id,
+                'nombre' => $spot->nombre,
+                'estado' => $spot->estado,
+                'publicado_en' => $spot->publicado_en?->toIso8601String(),
+                'imagen_portada_url' => $spot->imagen_portada_url,
+            ],
+            'profile' => [
+                'percent' => $percent,
+                'checklist' => $checklist->values()->all(),
+            ],
+        ];
+    }
+
+    /**
      * @return list<array{date: string, label: string, count: int}>
      */
     private function reservationsByDay(): array

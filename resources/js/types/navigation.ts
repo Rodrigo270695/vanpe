@@ -20,4 +20,6 @@ export type NavItem = {
     tenantPermissions?: string[];
     /** Visible en subdominio del restaurante sin permiso tenant explícito (ej. Panel). */
     showInTenant?: boolean;
+    /** Si se define, solo visible para esos tipos de tenant. */
+    tenantTipos?: Array<'restaurant' | 'tour_spot'>;
 };

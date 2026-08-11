@@ -57,6 +57,7 @@ class HandleInertiaRequests extends Middleware
             'tenant' => $tenant === null ? null : [
                 'slug' => $tenant->slug,
                 'name' => $tenant->nombre_comercial,
+                'tipo' => $tenant->tipo ?: 'restaurant',
             ],
             'timezone' => $tenant?->timezone ?: 'America/Lima',
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',

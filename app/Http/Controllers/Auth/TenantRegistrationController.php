@@ -34,6 +34,7 @@ class TenantRegistrationController extends Controller
     public function store(Request $request, TenantProvisioner $provisioner): RedirectResponse|SymfonyResponse
     {
         $validated = $request->validate([
+            'tipo' => ['required', 'in:restaurant,tour_spot'],
             'nombre_comercial' => ['required', 'string', 'max:150'],
             'slug' => ['nullable', 'string', 'max:60', 'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/'],
             'ruc' => ['nullable', 'regex:/^\d{11}$/', 'unique:tenants,ruc'],
@@ -52,6 +53,7 @@ class TenantRegistrationController extends Controller
         try {
             $tenant = $provisioner->provision([
                 'slug' => $slug,
+                'tipo' => $validated['tipo'],
                 'razon_social' => $validated['nombre_comercial'],
                 'nombre_comercial' => $validated['nombre_comercial'],
                 'ruc' => $validated['ruc'] ?? null,

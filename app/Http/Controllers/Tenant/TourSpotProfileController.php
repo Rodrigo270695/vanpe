@@ -1,18 +1,21 @@
 <?php
 
-namespace App\Http\Controllers\Platform;
+namespace App\Http\Controllers\Tenant;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Platform\TourSpotRequest;
+use App\Http\Requests\Tenant\TourSpotProfileRequest;
 use App\Models\Departamento;
 use App\Models\Distrito;
 use App\Models\Provincia;
 use App\Models\RefCatalogItem;
+use App\Models\Tenant;
 use App\Models\TourCategory;
 use App\Models\TourSpot;
 use App\Models\TourSpotHour;
+use App\Services\Platform\TourSpotCatalogProvisioner;
 use App\Services\Platform\TourSpotWriter;
 use App\Support\RefCatalogTypes;
+use App\Tenancy\TenantManager;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -20,24 +23,27 @@ use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
-/** Centros / atractivos turísticos (solo plataforma). */
-class TourSpotController extends Controller
+/** Ficha "Mi centro" (TourSpot) para tenants tipo centro turístico (subdominio). */
+class TourSpotProfileController extends Controller
 {
     public function __construct(
         private readonly TourSpotWriter $writer,
+        private readonly TourSpotCatalogProvisioner $provisioner,
     ) {}
 
-    public function index(Request $request): Response
+    public function edit(Request $request): Response
     {
-        abort_unless((bool) $request->user()?->can('tour_spots.view'), 403);
+        $tenant = $this->currentTenant();
+        abort_unless($tenant->isTourSpot(), 404);
 
+        abort_unless(
+            (bool) $request->user()?->can('tenant.tour_spot.manage')
+            || (bool) $request->user()?->can('tenant.tour_spot.publish'),
+            403,
+        );
+
+        $spot = $this->resolveSpot($tenant);
         $locale = app()->getLocale();
-
-        $spots = TourSpot::query()
-            ->with(['tenant', 'departamento', 'provincia', 'distrito', 'categories', 'accessModes', 'inclusions', 'hours', 'media'])
-            ->orderByDesc('updated_at')
-            ->get()
-            ->map(fn (TourSpot $spot): array => $spot->toAdminArray($locale));
 
         $categories = TourCategory::query()
             ->where('active', true)
@@ -76,8 +82,8 @@ class TourSpotController extends Controller
                 'name' => $row->name,
             ]);
 
-        return Inertia::render('tour-spots/index', [
-            'spots' => $spots,
+        return Inertia::render('mi-centro/index', [
+            'spot' => $spot->toAdminArray($locale),
             'categories' => $categories,
             'accessModes' => $accessModes,
             'roadTypes' => $roadTypes,
@@ -87,49 +93,73 @@ class TourSpotController extends Controller
             'estados' => TourSpot::ESTADOS,
             'dificultades' => TourSpot::DIFICULTADES,
             'estacionamientos' => TourSpot::ESTACIONAMIENTOS,
-            'mapbox_token' => config('services.mapbox.token'),
+            'mapbox_token' => filled(config('services.mapbox.token'))
+                ? (string) config('services.mapbox.token')
+                : null,
             'can' => [
-                // Los centros se autoregistran como tenants; plataforma solo modera.
-                'create' => false,
-                'update' => $request->user()?->can('tour_spots.update'),
-                'delete' => $request->user()?->can('tour_spots.delete'),
-                'publish' => $request->user()?->can('tour_spots.publish'),
+                'manage' => (bool) $request->user()?->can('tenant.tour_spot.manage'),
+                'publish' => (bool) $request->user()?->can('tenant.tour_spot.publish'),
             ],
         ]);
     }
 
-    public function store(TourSpotRequest $request): RedirectResponse
+    public function update(TourSpotProfileRequest $request): RedirectResponse
     {
-        abort(403, 'Los centros turísticos se registran como tenants. Usa la moderación para editar o publicar.');
-    }
+        $tenant = $this->currentTenant();
+        abort_unless($tenant->isTourSpot(), 404);
 
-    public function update(TourSpotRequest $request, TourSpot $tourSpot): RedirectResponse
-    {
-        if ($request->input('estado') === TourSpot::ESTADO_PUBLICADO) {
-            abort_unless((bool) $request->user()?->can('tour_spots.publish'), 403);
-        }
+        $spot = $this->resolveSpot($tenant);
 
-        $this->writer->update($tourSpot, $request->validated(), $request->user()?->id);
+        $this->writer->update($spot, $request->validated(), $request->user()?->id);
 
         return back()->with('success', __('messages.tour_spots.updated'));
     }
 
-    public function destroy(Request $request, TourSpot $tourSpot): RedirectResponse
+    public function provincias(Request $request): JsonResponse
     {
-        abort_unless((bool) $request->user()?->can('tour_spots.delete'), 403);
+        $tenant = $this->currentTenant();
+        abort_unless($tenant->isTourSpot(), 404);
+        abort_unless((bool) $request->user()?->can('tenant.tour_spot.manage'), 403);
 
-        $tourSpot->delete();
+        $departamentoId = (int) $request->query('departamento_id');
 
-        return back()->with('success', __('messages.tour_spots.deleted'));
+        $rows = Provincia::query()
+            ->where('departamento_id', $departamentoId)
+            ->where('status', true)
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn (Provincia $row): array => [
+                'id' => $row->id,
+                'name' => $row->name,
+            ]);
+
+        return response()->json(['data' => $rows]);
+    }
+
+    public function distritos(Request $request): JsonResponse
+    {
+        $tenant = $this->currentTenant();
+        abort_unless($tenant->isTourSpot(), 404);
+        abort_unless((bool) $request->user()?->can('tenant.tour_spot.manage'), 403);
+
+        $provinciaId = (int) $request->query('provincia_id');
+
+        $rows = Distrito::query()
+            ->where('provincia_id', $provinciaId)
+            ->where('status', true)
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn (Distrito $row): array => [
+                'id' => $row->id,
+                'name' => $row->name,
+            ]);
+
+        return response()->json(['data' => $rows]);
     }
 
     public function storeCategory(Request $request): JsonResponse
     {
-        abort_unless(
-            (bool) $request->user()?->can('tour_spots.create')
-            || (bool) $request->user()?->can('tour_spots.update'),
-            403,
-        );
+        $this->authorizeManage($request);
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:100'],
@@ -182,11 +212,7 @@ class TourSpotController extends Controller
 
     private function storeCatalogOption(Request $request, string $type, string $fallbackPrefix): JsonResponse
     {
-        abort_unless(
-            (bool) $request->user()?->can('tour_spots.create')
-            || (bool) $request->user()?->can('tour_spots.update'),
-            403,
-        );
+        $this->authorizeManage($request);
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:100'],
@@ -243,41 +269,34 @@ class TourSpotController extends Controller
         ], 201);
     }
 
-    public function provincias(Request $request): JsonResponse
+    private function authorizeManage(Request $request): void
     {
-        abort_unless((bool) $request->user()?->can('tour_spots.view'), 403);
-
-        $departamentoId = (int) $request->query('departamento_id');
-
-        $rows = Provincia::query()
-            ->where('departamento_id', $departamentoId)
-            ->where('status', true)
-            ->orderBy('name')
-            ->get(['id', 'name'])
-            ->map(fn (Provincia $row): array => [
-                'id' => $row->id,
-                'name' => $row->name,
-            ]);
-
-        return response()->json(['data' => $rows]);
+        $tenant = $this->currentTenant();
+        abort_unless($tenant->isTourSpot(), 404);
+        abort_unless((bool) $request->user()?->can('tenant.tour_spot.manage'), 403);
     }
 
-    public function distritos(Request $request): JsonResponse
+    private function currentTenant(): Tenant
     {
-        abort_unless((bool) $request->user()?->can('tour_spots.view'), 403);
+        $tenant = app(TenantManager::class)->tenant();
+        abort_if($tenant === null, 404);
 
-        $provinciaId = (int) $request->query('provincia_id');
+        return $tenant;
+    }
 
-        $rows = Distrito::query()
-            ->where('provincia_id', $provinciaId)
-            ->where('status', true)
-            ->orderBy('name')
-            ->get(['id', 'name'])
-            ->map(fn (Distrito $row): array => [
-                'id' => $row->id,
-                'name' => $row->name,
-            ]);
+    private function resolveSpot(Tenant $tenant): TourSpot
+    {
+        $spot = $tenant->tourSpot ?? $this->provisioner->createStubForTenant($tenant);
 
-        return response()->json(['data' => $rows]);
+        return $spot->fresh([
+            'departamento',
+            'provincia',
+            'distrito',
+            'categories',
+            'accessModes',
+            'inclusions',
+            'hours',
+            'media',
+        ]) ?? $spot;
     }
 }

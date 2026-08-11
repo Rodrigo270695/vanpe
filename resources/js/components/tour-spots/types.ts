@@ -46,6 +46,9 @@ export type TourSpotMediaRow = {
 
 export type TourSpotRow = {
     id: string;
+    tenant_id?: string | null;
+    tenant_name?: string | null;
+    tenant_slug?: string | null;
     nombre: string;
     slug: string;
     resumen: string | null;

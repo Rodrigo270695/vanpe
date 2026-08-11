@@ -8,11 +8,12 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
- * Restaurante registrado en la plataforma (schema public).
+ * Negocio registrado en la plataforma (schema public): restaurante o centro turístico.
  *
  * @property string $id
  * @property string $slug
  * @property string $schema_name
+ * @property string $tipo
  */
 class Tenant extends Model
 {
@@ -20,9 +21,19 @@ class Tenant extends Model
 
     public const STATUSES = ['trial', 'active', 'suspended', 'cancelled'];
 
+    public const TYPE_RESTAURANT = 'restaurant';
+
+    public const TYPE_TOUR_SPOT = 'tour_spot';
+
+    public const TYPES = [
+        self::TYPE_RESTAURANT,
+        self::TYPE_TOUR_SPOT,
+    ];
+
     protected $fillable = [
         'slug',
         'schema_name',
+        'tipo',
         'razon_social',
         'nombre_comercial',
         'ruc',
@@ -63,8 +74,18 @@ class Tenant extends Model
         ];
     }
 
+    public function isRestaurant(): bool
+    {
+        return ($this->tipo ?: self::TYPE_RESTAURANT) === self::TYPE_RESTAURANT;
+    }
+
+    public function isTourSpot(): bool
+    {
+        return $this->tipo === self::TYPE_TOUR_SPOT;
+    }
+
     /**
-     * Host del subdominio del restaurante, según el entorno (.env → config/tenant).
+     * Host del subdominio del negocio, según el entorno (.env → config/tenant).
      * Ejemplo: negritalinda.vanpe.pe
      */
     public function subdomainHost(): string
@@ -98,5 +119,11 @@ class Tenant extends Model
     public function pubRestaurant(): HasOne
     {
         return $this->hasOne(PubRestaurant::class);
+    }
+
+    /** @return HasOne<TourSpot, $this> */
+    public function tourSpot(): HasOne
+    {
+        return $this->hasOne(TourSpot::class);
     }
 }

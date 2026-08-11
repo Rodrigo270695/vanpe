@@ -20,19 +20,23 @@ export const CONFIG_TAB_IDS: ConfigTabId[] = [
     'publication',
 ];
 
-export type ConfigTabItem = {
-    id: ConfigTabId;
+export type ConfigTabItem<T extends string = ConfigTabId> = {
+    id: T;
     label: string;
     icon: LucideIcon;
 };
 
-type ConfigTabsProps = {
-    tabs: ConfigTabItem[];
-    value: ConfigTabId;
-    onChange: (id: ConfigTabId) => void;
+type ConfigTabsProps<T extends string = ConfigTabId> = {
+    tabs: ConfigTabItem<T>[];
+    value: T;
+    onChange: (id: T) => void;
 };
 
-export function ConfigTabs({ tabs, value, onChange }: ConfigTabsProps) {
+export function ConfigTabs<T extends string = ConfigTabId>({
+    tabs,
+    value,
+    onChange,
+}: ConfigTabsProps<T>) {
     return (
         <div className="-mx-1 overflow-x-auto px-1 pb-1">
             <div
@@ -80,6 +84,27 @@ export function parseConfigTabFromUrl(): ConfigTabId {
 }
 
 export function syncConfigTabToUrl(tab: ConfigTabId): void {
+    const url = new URL(window.location.href);
+    url.searchParams.set('tab', tab);
+    window.history.replaceState({}, '', url);
+}
+
+/** Variante genérica para páginas con su propio conjunto de tabs (ej. Mi centro). */
+export function parseTabFromUrl<T extends string>(
+    validIds: T[],
+    fallback: T,
+): T {
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get('tab');
+
+    if (tab && validIds.includes(tab as T)) {
+        return tab as T;
+    }
+
+    return fallback;
+}
+
+export function syncTabToUrl(tab: string): void {
     const url = new URL(window.location.href);
     url.searchParams.set('tab', tab);
     window.history.replaceState({}, '', url);

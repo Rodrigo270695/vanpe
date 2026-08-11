@@ -87,6 +87,8 @@ export default function TourSpotsIndex({
             'provincia_name',
             'departamento_name',
             'primary_category_name',
+            'tenant_name',
+            'tenant_slug',
         ],
         initialSort: { key: 'nombre', dir: 'asc' },
     });
@@ -142,6 +144,26 @@ export default function TourSpotsIndex({
                         </div>
                     </div>
                 ),
+            },
+            {
+                key: 'tenant_name',
+                header: t('tour_spots.col_tenant'),
+                sortable: true,
+                render: (row) =>
+                    row.tenant_name ? (
+                        <div className="flex flex-col">
+                            <span className="text-[13px] font-medium">
+                                {row.tenant_name}
+                            </span>
+                            <span className="text-[11px] text-muted-foreground">
+                                {row.tenant_slug}
+                            </span>
+                        </div>
+                    ) : (
+                        <span className="text-[12px] text-muted-foreground">
+                            {t('tour_spots.tenant_none')}
+                        </span>
+                    ),
             },
             {
                 key: 'distrito_name',

@@ -20,6 +20,14 @@ class DashboardController extends Controller
         if ($tenancy->check()) {
             abort_unless($request->user(), 403);
 
+            $tenant = $tenancy->tenant();
+            if ($tenant?->isTourSpot()) {
+                return Inertia::render(
+                    'dashboard/tour-spot',
+                    $tenantDashboard->buildTourSpot(),
+                );
+            }
+
             return Inertia::render('dashboard/tenant', $tenantDashboard->build());
         }
 

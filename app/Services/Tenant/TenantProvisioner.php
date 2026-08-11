@@ -6,6 +6,7 @@ use App\Models\Tenant;
 use App\Models\Tenant\User as TenantUser;
 use App\Services\Platform\PlatformAuditLogger;
 use App\Services\Platform\PublicCatalogProvisioner;
+use App\Services\Platform\TourSpotCatalogProvisioner;
 use App\Services\Subscription\TrialSubscriptionProvisioner;
 use App\Support\RoleProvisioner;
 use Illuminate\Support\Facades\Artisan;
@@ -16,15 +17,14 @@ use Spatie\Permission\PermissionRegistrar;
 use Throwable;
 
 /**
- * Aprovisiona un restaurante completo:
+ * Aprovisiona un negocio (restaurante o centro turístico):
  *   1) crea el registro `tenants` (schema public),
  *   2) crea su schema PostgreSQL aislado (rst_xxxxxx),
  *   3) corre las migraciones del tenant en ese schema,
- *   4) siembra los roles del tenant (owner, admin, cajero, mozo, cocinero),
- *   5) crea el usuario dueño (owner),
- *   6) crea la suscripción trial inicial,
- *   7) crea la ficha pública vacía (`pub_restaurants`),
- *   8) registra auditoría de plataforma (`platform_audit_logs`).
+ *   4) siembra roles + usuario owner,
+ *   5) crea la suscripción trial inicial,
+ *   6) crea stub público (pub_restaurants o tour_spots),
+ *   7) registra auditoría de plataforma.
  */
 class TenantProvisioner
 {
@@ -33,6 +33,7 @@ class TenantProvisioner
     public function __construct(
         private readonly TrialSubscriptionProvisioner $trialSubscriptionProvisioner,
         private readonly PublicCatalogProvisioner $publicCatalogProvisioner,
+        private readonly TourSpotCatalogProvisioner $tourSpotCatalogProvisioner,
         private readonly PlatformAuditLogger $platformAuditLogger,
         private readonly TenantDefaultsSeeder $tenantDefaultsSeeder,
     ) {}
@@ -43,6 +44,7 @@ class TenantProvisioner
      *     razon_social: string,
      *     nombre_comercial: string,
      *     email_admin: string,
+     *     tipo?: string,
      *     ruc?: string|null,
      *     telefono?: string|null,
      *     departamento_id?: int|null,
@@ -56,10 +58,14 @@ class TenantProvisioner
     public function provision(array $data): Tenant
     {
         $schema = $this->generateSchemaName();
+        $tipo = in_array($data['tipo'] ?? null, Tenant::TYPES, true)
+            ? $data['tipo']
+            : Tenant::TYPE_RESTAURANT;
 
         $tenant = Tenant::create([
             'slug' => $data['slug'],
             'schema_name' => $schema,
+            'tipo' => $tipo,
             'razon_social' => $data['razon_social'],
             'nombre_comercial' => $data['nombre_comercial'],
             'ruc' => $data['ruc'] ?? null,
@@ -75,9 +81,15 @@ class TenantProvisioner
             $this->createSchema($schema);
             $this->migrateSchema($schema);
             $this->tenantDefaultsSeeder->seed($schema);
-            $this->seedRolesAndOwner($schema, $data['owner']);
+            $this->seedRolesAndOwner($schema, $data['owner'], $tipo);
             $this->trialSubscriptionProvisioner->provisionForTenant($tenant);
-            $this->publicCatalogProvisioner->createStubForTenant($tenant);
+
+            if ($tipo === Tenant::TYPE_TOUR_SPOT) {
+                $this->tourSpotCatalogProvisioner->createStubForTenant($tenant);
+            } else {
+                $this->publicCatalogProvisioner->createStubForTenant($tenant);
+            }
+
             $this->platformAuditLogger->record(
                 action: 'tenant.provisioned',
                 entity: 'tenants',
@@ -85,6 +97,7 @@ class TenantProvisioner
                 data: [
                     'slug' => $tenant->slug,
                     'schema_name' => $tenant->schema_name,
+                    'tipo' => $tenant->tipo,
                     'nombre_comercial' => $tenant->nombre_comercial,
                 ],
                 actorType: $data['actor_type'] ?? 'system',
@@ -152,7 +165,7 @@ class TenantProvisioner
     /**
      * @param  array{name: string, email: string, password: string, username?: string|null, telefono?: string|null, email_verified_at?: \DateTimeInterface|null, google_id?: string|null}  $owner
      */
-    private function seedRolesAndOwner(string $schema, array $owner): void
+    private function seedRolesAndOwner(string $schema, array $owner, string $tipo): void
     {
         $this->useTenantSchema($schema);
 
@@ -161,7 +174,11 @@ class TenantProvisioner
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
         try {
-            RoleProvisioner::provision('tenant');
+            $rolesOverride = $tipo === Tenant::TYPE_TOUR_SPOT
+                ? (array) Config::get('roles.tenant.roles_tour_spot', [])
+                : null;
+
+            RoleProvisioner::provision('tenant', 'web', $rolesOverride ?: null);
 
             $user = TenantUser::create([
                 'name' => $owner['name'],

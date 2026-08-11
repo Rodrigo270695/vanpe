@@ -47,6 +47,7 @@ class TenantController extends Controller
 
         $tenant = $provisioner->provision([
             'slug' => $slug,
+            'tipo' => Tenant::TYPE_RESTAURANT,
             'razon_social' => $data['razon_social'] ?: $data['nombre_comercial'],
             'nombre_comercial' => $data['nombre_comercial'],
             'ruc' => $data['ruc'] ?? null,
@@ -132,6 +133,7 @@ class TenantController extends Controller
             'id' => $tenant->id,
             'slug' => $tenant->slug,
             'schema_name' => $tenant->schema_name,
+            'tipo' => $tenant->tipo ?: Tenant::TYPE_RESTAURANT,
             'subdomain_host' => $tenant->subdomainHost(),
             'subdomain_url' => $tenant->subdomainUrl(),
             'razon_social' => $tenant->razon_social,

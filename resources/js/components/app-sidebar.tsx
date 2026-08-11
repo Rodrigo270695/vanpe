@@ -41,11 +41,14 @@ import type { NavItem } from '@/types';
 type NavTemplateItem = Omit<NavItem, 'title' | 'items'> & {
     titleKey: string;
     showInTenant?: boolean;
+    /** Si se define, solo visible para ese tipo de tenant. */
+    tenantTipos?: Array<'restaurant' | 'tour_spot'>;
     tenantPermissions?: string[];
     items?: Array<
         Omit<NavItem, 'title' | 'items'> & {
             titleKey: string;
             showInTenant?: boolean;
+            tenantTipos?: Array<'restaurant' | 'tour_spot'>;
             tenantPermissions?: string[];
         }
     >;
@@ -64,54 +67,63 @@ const mainNavTemplate: NavTemplateItem[] = [
         href: '/mesas',
         icon: Utensils,
         tenantPermission: 'tenant.tables.manage',
+        tenantTipos: ['restaurant'],
     },
     {
         titleKey: 'nav.carta',
         href: '/carta',
         icon: BookOpen,
         tenantPermission: 'tenant.menu.manage',
+        tenantTipos: ['restaurant'],
     },
     {
         titleKey: 'nav.pedidos',
         href: '/pedidos',
         icon: ClipboardList,
         tenantPermission: 'tenant.orders.take',
+        tenantTipos: ['restaurant'],
     },
     {
         titleKey: 'nav.cocina',
         href: '/cocina',
         icon: ChefHat,
         tenantPermission: 'tenant.kitchen.manage',
+        tenantTipos: ['restaurant'],
     },
     {
         titleKey: 'nav.caja',
         href: '/caja',
         icon: Receipt,
         tenantPermission: 'tenant.sales.manage',
+        tenantTipos: ['restaurant'],
     },
     {
         titleKey: 'nav.ventas',
         href: '/ventas',
         icon: ScrollText,
         tenantPermission: 'tenant.sales.manage',
+        tenantTipos: ['restaurant'],
     },
     {
         titleKey: 'nav.facturacion',
         href: '#',
         icon: FileStack,
         tenantPermission: 'tenant.invoicing.manage',
+        tenantTipos: ['restaurant'],
         items: [
             {
                 titleKey: 'nav.fel_documents',
                 href: '/facturacion/documentos',
                 icon: FileStack,
                 tenantPermission: 'tenant.invoicing.manage',
+                tenantTipos: ['restaurant'],
             },
             {
                 titleKey: 'nav.fel_series',
                 href: '/facturacion/series',
                 icon: Tags,
                 tenantPermission: 'tenant.invoicing.manage',
+                tenantTipos: ['restaurant'],
             },
         ],
     },
@@ -120,18 +132,34 @@ const mainNavTemplate: NavTemplateItem[] = [
         href: '/reportes',
         icon: BarChart3,
         tenantPermission: 'tenant.reports.view',
+        tenantTipos: ['restaurant'],
     },
     {
         titleKey: 'nav.negocio',
         href: '/configuracion',
         icon: Store,
-        tenantPermissions: ['tenant.settings.manage', 'tenant.publication.manage'],
+        tenantTipos: ['restaurant'],
+        tenantPermissions: [
+            'tenant.settings.manage',
+            'tenant.publication.manage',
+        ],
+    },
+    {
+        titleKey: 'nav.mi_centro',
+        href: '/mi-centro',
+        icon: MapPin,
+        tenantTipos: ['tour_spot'],
+        tenantPermissions: [
+            'tenant.tour_spot.manage',
+            'tenant.tour_spot.publish',
+        ],
     },
     {
         titleKey: 'nav.reservas',
         href: '/reservas',
         icon: CalendarClock,
         tenantPermission: 'tenant.reservations.manage',
+        tenantTipos: ['restaurant'],
     },
     {
         titleKey: 'nav.users',
@@ -226,35 +254,51 @@ const mainNavTemplate: NavTemplateItem[] = [
 /**
  * Filtra el menú según ámbito:
  * - Plataforma: ítems con `permission` (nunca los solo-tenant).
- * - Restaurante: ítems con `tenantPermission` o `showInTenant`.
- * - SaaS y demás módulos de plataforma no tienen `tenantPermission` → ocultos.
+ * - Tenant: ítems con `tenantPermission`/`showInTenant`, filtrados por `tenantTipos`.
  */
 function filterNav(
     items: NavItem[],
     can: (permission?: string | null) => boolean,
     isTenant: boolean,
+    tenantTipo: 'restaurant' | 'tour_spot' | null = null,
 ): NavItem[] {
     return items.reduce<NavItem[]>((acc, item) => {
+        if (
+            isTenant &&
+            item.tenantTipos &&
+            tenantTipo &&
+            !item.tenantTipos.includes(tenantTipo)
+        ) {
+            return acc;
+        }
+
         if (item.items && item.items.length > 0) {
-            const children = filterNav(item.items, can, isTenant);
+            const children = filterNav(item.items, can, isTenant, tenantTipo);
+
             if (children.length > 0) {
                 acc.push({ ...item, items: children });
             }
+
             return acc;
         }
 
         if (isTenant) {
             if (item.showInTenant) {
                 acc.push(item);
+
                 return acc;
             }
+
             if (item.tenantPermissions?.some((perm) => can(perm))) {
                 acc.push(item);
+
                 return acc;
             }
+
             if (item.tenantPermission && can(item.tenantPermission)) {
                 acc.push(item);
             }
+
             return acc;
         }
 
@@ -265,6 +309,7 @@ function filterNav(
         if (can(item.permission)) {
             acc.push(item);
         }
+
         return acc;
     }, []);
 }
@@ -272,7 +317,12 @@ function filterNav(
 export function AppSidebar() {
     const { can } = usePermissions();
     const { t } = useTranslations();
-    const isTenant = usePage().props.tenant !== null;
+    const page = usePage();
+    const tenant = page.props.tenant;
+    const isTenant = tenant !== null;
+    const tenantTipo =
+        (tenant?.tipo as 'restaurant' | 'tour_spot' | undefined) ??
+        (isTenant ? 'restaurant' : null);
 
     const mainNavItems = useMemo<NavItem[]>(
         () =>
@@ -284,6 +334,7 @@ export function AppSidebar() {
                 tenantPermission: item.tenantPermission,
                 tenantPermissions: item.tenantPermissions,
                 showInTenant: item.showInTenant,
+                tenantTipos: item.tenantTipos,
                 items: item.items?.map((sub) => ({
                     title: t(sub.titleKey),
                     href: sub.href,
@@ -292,14 +343,13 @@ export function AppSidebar() {
                     tenantPermission: sub.tenantPermission,
                     tenantPermissions: sub.tenantPermissions,
                     showInTenant: sub.showInTenant,
+                    tenantTipos: sub.tenantTipos,
                 })),
             })),
         [t],
     );
 
-    // Mismo filtrado por permisos en ambos ámbitos; en el restaurante se usan
-    // los permisos del tenant (tenantPermission) del usuario autenticado.
-    const navItems = filterNav(mainNavItems, can, isTenant);
+    const navItems = filterNav(mainNavItems, can, isTenant, tenantTipo);
 
     return (
         <Sidebar collapsible="icon" variant="inset">
@@ -307,7 +357,7 @@ export function AppSidebar() {
                 <Link
                     href={dashboard()}
                     prefetch
-                    className="flex items-center gap-1 px-1.5 py-1 transition-opacity hover:opacity-80 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
+                    className="flex items-center gap-1 px-1.5 py-1 transition-opacity group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0 hover:opacity-80"
                 >
                     <AppLogo />
                 </Link>

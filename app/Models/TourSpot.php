@@ -39,6 +39,7 @@ class TourSpot extends Model
     ];
 
     protected $fillable = [
+        'tenant_id',
         'departamento_id',
         'provincia_id',
         'distrito_id',
@@ -114,6 +115,11 @@ class TourSpot extends Model
         return $this->belongsTo(Departamento::class);
     }
 
+    public function tenant(): BelongsTo
+    {
+        return $this->belongsTo(Tenant::class);
+    }
+
     public function provincia(): BelongsTo
     {
         return $this->belongsTo(Provincia::class);
@@ -179,6 +185,9 @@ class TourSpot extends Model
 
         return [
             'id' => $this->id,
+            'tenant_id' => $this->tenant_id,
+            'tenant_name' => $this->tenant?->nombre_comercial,
+            'tenant_slug' => $this->tenant?->slug,
             'nombre' => $this->nombre,
             'slug' => $this->slug,
             'resumen' => $this->resumen,

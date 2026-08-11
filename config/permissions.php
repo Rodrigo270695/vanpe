@@ -172,6 +172,13 @@ return [
                     'tenant.publication.manage' => 'Publicación en la app del turista',
                 ],
             ],
+            'centro_turistico' => [
+                'label' => 'Centro turístico',
+                'permissions' => [
+                    'tenant.tour_spot.manage' => 'Editar ficha del centro turístico',
+                    'tenant.tour_spot.publish' => 'Publicar o pausar el centro en la app',
+                ],
+            ],
             'personal' => [
                 'label' => 'Personal',
                 'permissions' => [

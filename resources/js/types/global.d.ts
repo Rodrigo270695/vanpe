@@ -12,7 +12,7 @@ declare module '@inertiajs/core' {
         sharedPageProps: {
             name: string;
             auth: Auth;
-            tenant: { slug: string; name: string } | null;
+            tenant: { slug: string; name: string; tipo?: 'restaurant' | 'tour_spot' } | null;
             sidebarOpen: boolean;
             locale: string;
             timezone: string;

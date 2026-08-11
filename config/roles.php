@@ -42,6 +42,8 @@ return [
                 'tenant.invoicing.manage',
                 'tenant.reports.view',
                 'tenant.publication.manage',
+                'tenant.tour_spot.manage',
+                'tenant.tour_spot.publish',
             ],
 
             // Cajero: caja, ventas y facturación
@@ -63,6 +65,20 @@ return [
             // Cocinero: solo la cocina
             'cocinero' => [
                 'tenant.kitchen.manage',
+            ],
+        ],
+
+        // Plantillas cuando el tenant es un centro turístico (sin ops de salón).
+        'roles_tour_spot' => [
+            'owner' => [
+                'tenant.users.manage',
+                'tenant.tour_spot.manage',
+                'tenant.tour_spot.publish',
+            ],
+            'admin' => [
+                'tenant.users.manage',
+                'tenant.tour_spot.manage',
+                'tenant.tour_spot.publish',
             ],
         ],
     ],

@@ -50,6 +50,7 @@ class OwnerOnboardingController extends Controller
         $email = (string) $pending['email'];
 
         $validated = $request->validate([
+            'tipo' => ['required', 'in:restaurant,tour_spot'],
             'nombre_comercial' => ['required', 'string', 'max:150'],
             'slug' => ['nullable', 'string', 'max:60'],
             'name' => ['required', 'string', 'max:120'],
@@ -73,6 +74,7 @@ class OwnerOnboardingController extends Controller
 
         $tenant = $provisioner->provision([
             'slug' => $slug,
+            'tipo' => $validated['tipo'],
             'razon_social' => $validated['nombre_comercial'],
             'nombre_comercial' => $validated['nombre_comercial'],
             'ruc' => null,

@@ -79,6 +79,7 @@ export default function TenantsIndex({
             'ruc',
             'plan_name',
             'plan_code',
+            'tipo',
         ],
         initialSort: { key: 'created_at', dir: 'desc' },
     });
@@ -203,6 +204,14 @@ export default function TenantsIndex({
                     value: (r) => r.nombre_comercial,
                 },
                 {
+                    header: t('tenants.col_type'),
+                    width: 16,
+                    value: (r) =>
+                        r.tipo === 'tour_spot'
+                            ? t('tenants.type_tour_spot')
+                            : t('tenants.type_restaurant'),
+                },
+                {
                     header: t('tenants.field_slug'),
                     width: 18,
                     value: (r) => r.slug,
@@ -264,6 +273,22 @@ export default function TenantsIndex({
                             {row.slug}
                         </span>
                     </div>
+                ),
+            },
+            {
+                key: 'tipo',
+                header: t('tenants.col_type'),
+                sortable: true,
+                render: (row) => (
+                    <StatusPill
+                        variant={
+                            row.tipo === 'tour_spot' ? 'amber' : 'blue'
+                        }
+                    >
+                        {row.tipo === 'tour_spot'
+                            ? t('tenants.type_tour_spot')
+                            : t('tenants.type_restaurant')}
+                    </StatusPill>
                 ),
             },
             {

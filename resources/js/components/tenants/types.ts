@@ -8,6 +8,7 @@ export type TenantRow = {
     id: string;
     slug: string;
     schema_name: string;
+    tipo: 'restaurant' | 'tour_spot';
     subdomain_host: string;
     subdomain_url: string;
     razon_social: string;
