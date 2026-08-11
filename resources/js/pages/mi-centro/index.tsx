@@ -472,18 +472,7 @@ export default function MiCentroIndex({
                             icon: Rocket,
                         },
                     ]}
-                >
-                    {canManage && (
-                        <Button
-                            onClick={submit}
-                            disabled={processing}
-                            className="gap-2"
-                        >
-                            <Save className="size-4" />
-                            {t('mi_centro.save')}
-                        </Button>
-                    )}
-                </PageHeader>
+                />
 
                 {!canManage && (
                     <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
@@ -927,7 +916,6 @@ export default function MiCentroIndex({
                             </FormField>
                             <FormField
                                 label={t('tour_spots.field_map')}
-                                hint={t('tour_spots.map_hint')}
                                 error={errors.latitud ?? errors.longitud}
                                 className="sm:col-span-3"
                             >
