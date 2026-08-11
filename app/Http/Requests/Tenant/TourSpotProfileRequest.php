@@ -36,9 +36,10 @@ class TourSpotProfileRequest extends FormRequest
             ],
             'resumen' => ['nullable', 'string', 'max:300'],
             'descripcion' => ['nullable', 'string', 'max:10000'],
-            'departamento_id' => ['required', 'integer', 'exists:departamentos,id'],
-            'provincia_id' => ['required', 'integer', 'exists:provincias,id'],
-            'distrito_id' => ['required', 'integer', 'exists:distritos,id'],
+            // Ubicación: opcional en borrador; obligatoria al publicar (withValidator).
+            'departamento_id' => ['nullable', 'integer', 'exists:departamentos,id'],
+            'provincia_id' => ['nullable', 'integer', 'exists:provincias,id'],
+            'distrito_id' => ['nullable', 'integer', 'exists:distritos,id'],
             'direccion' => ['nullable', 'string', 'max:255'],
             'referencia' => ['nullable', 'string', 'max:255'],
             'latitud' => ['nullable', 'numeric', 'between:-90,90'],
@@ -109,6 +110,14 @@ class TourSpotProfileRequest extends FormRequest
 
             if ($this->input('latitud') === null || $this->input('longitud') === null) {
                 $validator->errors()->add('latitud', __('messages.tour_spots.publish_coords_required'));
+            }
+
+            if (
+                blank($this->input('departamento_id'))
+                || blank($this->input('provincia_id'))
+                || blank($this->input('distrito_id'))
+            ) {
+                $validator->errors()->add('departamento_id', __('messages.tour_spots.publish_location_required'));
             }
 
             $categories = $this->input('category_ids', []);
@@ -246,6 +255,9 @@ class TourSpotProfileRequest extends FormRequest
             'precio_entrada_hasta' => $this->blankToNull('precio_entrada_hasta'),
             'latitud' => $this->blankToNull('latitud'),
             'longitud' => $this->blankToNull('longitud'),
+            'departamento_id' => $this->blankToNull('departamento_id'),
+            'provincia_id' => $this->blankToNull('provincia_id'),
+            'distrito_id' => $this->blankToNull('distrito_id'),
             'tiempo_acceso_min' => $this->blankToNull('tiempo_acceso_min'),
             'distancia_acceso_km' => $this->blankToNull('distancia_acceso_km'),
             'duracion_visita_min' => $this->blankToNull('duracion_visita_min'),

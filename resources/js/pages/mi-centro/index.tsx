@@ -1,5 +1,6 @@
-import { Head, useForm } from '@inertiajs/react';
+import { Head, router, useForm } from '@inertiajs/react';
 import {
+    AlertTriangle,
     Camera,
     Clock,
     ImagePlus,
@@ -11,6 +12,7 @@ import {
     Trash2,
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { BaseModal } from '@/components/common/base-modal';
 import { CreatableCombobox } from '@/components/common/creatable-combobox';
 import { CreatableMultiCombobox } from '@/components/common/creatable-multi-combobox';
 import { FormField } from '@/components/common/form-field';
@@ -48,6 +50,7 @@ import { getCsrfToken } from '@/lib/csrf';
 import { translate } from '@/lib/i18n';
 import type { TranslationTree } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
+import { notify } from '@/lib/notify';
 
 type MiCentroTabId =
     'identity' | 'photos' | 'location' | 'access' | 'hours' | 'publication';
@@ -146,14 +149,15 @@ export default function MiCentroIndex({
     const existingMedia: TourSpotMediaRow[] = spot.media ?? [];
     const [galleryPreviews, setGalleryPreviews] = useState<string[]>([]);
 
-    const { data, setData, post, processing, errors, transform } = useForm({
+    const { data, setData, post, processing, errors, transform, isDirty } =
+        useForm({
         nombre: spot.nombre,
         slug: spot.slug,
         resumen: spot.resumen ?? '',
         descripcion: spot.descripcion ?? '',
-        departamento_id: spot.departamento_id as string | number,
-        provincia_id: spot.provincia_id as string | number,
-        distrito_id: spot.distrito_id as string | number,
+        departamento_id: (spot.departamento_id ?? '') as string | number,
+        provincia_id: (spot.provincia_id ?? '') as string | number,
+        distrito_id: (spot.distrito_id ?? '') as string | number,
         direccion: spot.direccion ?? '',
         referencia: spot.referencia ?? '',
         latitud: spot.latitud !== null ? String(spot.latitud) : '',
@@ -208,6 +212,67 @@ export default function MiCentroIndex({
             ? spot.hours
             : defaultHours) as ServiceHourRow[],
     });
+
+    const isDirtyRef = useRef(isDirty);
+    const bypassLeaveGuardRef = useRef(false);
+    const [leaveModalOpen, setLeaveModalOpen] = useState(false);
+    const pendingLeaveRef = useRef<(() => void) | null>(null);
+
+    useEffect(() => {
+        isDirtyRef.current = isDirty;
+    }, [isDirty]);
+
+    // Ctrl+R / cerrar pestaña: aviso nativo del navegador.
+    useEffect(() => {
+        if (!canManage) {
+            return;
+        }
+
+        const onBeforeUnload = (event: BeforeUnloadEvent) => {
+            if (!isDirtyRef.current || bypassLeaveGuardRef.current) {
+                return;
+            }
+
+            event.preventDefault();
+            event.returnValue = '';
+        };
+
+        window.addEventListener('beforeunload', onBeforeUnload);
+
+        return () => window.removeEventListener('beforeunload', onBeforeUnload);
+    }, [canManage]);
+
+    // Navegación Inertia (sidebar, links): modal de confirmación.
+    useEffect(() => {
+        if (!canManage) {
+            return;
+        }
+
+        return router.on('before', (event) => {
+            if (!isDirtyRef.current || bypassLeaveGuardRef.current) {
+                return;
+            }
+
+            const visit = event.detail.visit;
+            // Permitir POST/PUT del propio guardado.
+            if (visit.method !== 'get') {
+                return;
+            }
+
+            event.preventDefault();
+            pendingLeaveRef.current = () => {
+                bypassLeaveGuardRef.current = true;
+                router.visit(visit.url, {
+                    method: visit.method,
+                    data: visit.data,
+                    replace: visit.replace,
+                    preserveScroll: visit.preserveScroll,
+                    preserveState: visit.preserveState,
+                });
+            };
+            setLeaveModalOpen(true);
+        });
+    }, [canManage]);
 
     const loadProvincias = async (departamentoId: number | string) => {
         if (!departamentoId) {
@@ -424,8 +489,86 @@ export default function MiCentroIndex({
     };
 
     const submit = () => {
+        if (!data.nombre.trim()) {
+            setActiveTab('identity');
+            notify.error(t('mi_centro.nombre_required'));
+
+            return;
+        }
+
+        if (data.estado === 'publicado') {
+            if (
+                !data.departamento_id ||
+                !data.provincia_id ||
+                !data.distrito_id ||
+                !data.latitud ||
+                !data.longitud
+            ) {
+                setActiveTab('location');
+                notify.error(t('tour_spots.publish_location_required'));
+
+                return;
+            }
+
+            if (!data.resumen.trim()) {
+                setActiveTab('identity');
+                notify.error(t('tour_spots.publish_summary_required'));
+
+                return;
+            }
+
+            if (data.category_ids.length < 1) {
+                setActiveTab('access');
+                notify.error(t('tour_spots.publish_category_required'));
+
+                return;
+            }
+
+            if (
+                data.access_mode_ids.length < 1 ||
+                (!data.vialidad_principal && !data.acceso_notas.trim())
+            ) {
+                setActiveTab('access');
+                notify.error(t('tour_spots.publish_access_required'));
+
+                return;
+            }
+
+            const hasCover =
+                Boolean(data.cover) ||
+                (Boolean(existingCoverUrl) && !data.remove_cover);
+            if (!hasCover) {
+                setActiveTab('photos');
+                notify.error(t('tour_spots.publish_cover_required'));
+
+                return;
+            }
+        }
+
+        bypassLeaveGuardRef.current = true;
         transform((payload) => payload);
-        post('/mi-centro', { preserveScroll: true, forceFormData: true });
+        post('/mi-centro', {
+            preserveScroll: true,
+            forceFormData: true,
+            onFinish: () => {
+                bypassLeaveGuardRef.current = false;
+            },
+            onError: () => {
+                bypassLeaveGuardRef.current = false;
+            },
+        });
+    };
+
+    const confirmLeaveWithoutSaving = () => {
+        const proceed = pendingLeaveRef.current;
+        pendingLeaveRef.current = null;
+        setLeaveModalOpen(false);
+        proceed?.();
+    };
+
+    const cancelLeave = () => {
+        pendingLeaveRef.current = null;
+        setLeaveModalOpen(false);
     };
 
     const availableEstados = canPublish
@@ -524,6 +667,8 @@ export default function MiCentroIndex({
                             <FormField
                                 label={t('tour_spots.field_resumen')}
                                 className="sm:col-span-2"
+                                required
+                                hint={t('mi_centro.required_to_publish')}
                                 error={errors.resumen}
                             >
                                 <Input
@@ -771,6 +916,7 @@ export default function MiCentroIndex({
                             <FormField
                                 label={t('tour_spots.field_departamento')}
                                 required
+                                hint={t('mi_centro.required_to_publish')}
                                 error={errors.departamento_id}
                             >
                                 <Select
@@ -810,6 +956,7 @@ export default function MiCentroIndex({
                             <FormField
                                 label={t('tour_spots.field_provincia')}
                                 required
+                                hint={t('mi_centro.required_to_publish')}
                                 error={errors.provincia_id}
                             >
                                 <Select
@@ -851,6 +998,7 @@ export default function MiCentroIndex({
                             <FormField
                                 label={t('tour_spots.field_distrito')}
                                 required
+                                hint={t('mi_centro.required_to_publish')}
                                 error={errors.distrito_id}
                             >
                                 <Select
@@ -1428,6 +1576,28 @@ export default function MiCentroIndex({
                     </div>
                 )}
             </div>
+
+            <BaseModal
+                open={leaveModalOpen}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        cancelLeave();
+                    }
+                }}
+                title={t('mi_centro.leave_title')}
+                description={t('mi_centro.leave_description')}
+                icon={AlertTriangle}
+                iconClassName="bg-amber-100 text-amber-700 ring-amber-200"
+                submitLabel={t('mi_centro.leave_confirm')}
+                cancelLabel={t('mi_centro.leave_cancel')}
+                submitVariant="destructive"
+                onSubmit={confirmLeaveWithoutSaving}
+                size="sm"
+            >
+                <p className="text-sm text-muted-foreground">
+                    {t('mi_centro.leave_hint')}
+                </p>
+            </BaseModal>
         </>
     );
 }

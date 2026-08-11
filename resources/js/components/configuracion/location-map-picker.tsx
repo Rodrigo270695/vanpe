@@ -85,18 +85,15 @@ export function LocationMapPicker({
         if (!token || !mapContainerRef.current || mapRef.current) return;
 
         mapboxgl.accessToken = token;
-        // Telemetría de Mapbox (events.mapbox.com): uBlock/adblock la bloquea y
-        // ensucia la consola con ERR_BLOCKED_BY_CLIENT. No afecta el mapa.
+        // EVENTS_URL es un getter de solo lectura: hay que redefinirlo.
+        // Si no, Mapbox hace POST a events.mapbox.com y uBlock lo marca
+        // como ERR_BLOCKED_BY_CLIENT (no rompe el mapa, pero ensucia la consola).
         try {
-            const cfg = (
-                mapboxgl as unknown as {
-                    config?: { EVENTS_URL?: string; SESSION_PATH?: string };
-                }
-            ).config;
-            if (cfg) {
-                cfg.EVENTS_URL = 'https://127.0.0.1';
-                cfg.SESSION_PATH = '';
-            }
+            Object.defineProperty(mapboxgl.config, 'EVENTS_URL', {
+                configurable: true,
+                enumerable: true,
+                get: () => undefined,
+            });
         } catch {
             // ignore
         }
@@ -112,13 +109,6 @@ export function LocationMapPicker({
             zoom: hasCoords ? 15 : DEFAULT_ZOOM,
             attributionControl: true,
             collectResourceTiming: false,
-            transformRequest: (url) => {
-                if (url.includes('events.mapbox.com')) {
-                    return { url: 'data:,', headers: {} };
-                }
-
-                return { url };
-            },
         });
 
         map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'top-right');
