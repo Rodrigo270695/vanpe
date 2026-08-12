@@ -50,7 +50,8 @@ class ExtraordinaryEventController extends Controller
             return response()->json(['message' => 'El evento aún no tiene paradas.'], 422);
         }
 
-        // Idempotente: si ya reclamó este evento, devolver esa ruta (no duplicar).
+        // Idempotente: si ya reclamó este evento, sincronizar paradas oficiales
+        // (reemplazar, no acumular) y devolver esa ruta.
         $existing = TouristRoute::query()
             ->where('customer_id', $customer->id)
             ->where('extraordinary_event_id', $event->id)
@@ -72,8 +73,7 @@ class ExtraordinaryEventController extends Controller
                     ->update(['status' => TouristRoute::STATUS_ARCHIVED]);
             }
 
-            // Restaura paradas oficiales si el usuario las había quitado antes del bloqueo.
-            $this->ensureEventStops($existing, $event);
+            $this->replaceEventStops($existing, $event);
             $existing->load('stops');
 
             return response()->json([
@@ -121,56 +121,34 @@ class ExtraordinaryEventController extends Controller
     }
 
     /**
-     * Vuelve a insertar paradas oficiales del evento que falten en la ruta.
+     * Reemplaza las paradas de la ruta por las oficiales del evento.
+     * Evita acumulaciones (6 → 12) al reclamar varias veces.
      */
-    private function ensureEventStops(TouristRoute $route, ExtraordinaryEvent $event): void
+    private function replaceEventStops(TouristRoute $route, ExtraordinaryEvent $event): void
     {
-        $route->loadMissing('stops');
+        DB::transaction(function () use ($route, $event): void {
+            TouristRouteStop::query()
+                ->where('tourist_route_id', $route->id)
+                ->delete();
 
-        $existingKeys = $route->stops
-            ->map(function (TouristRouteStop $stop): string {
-                if (filled($stop->target_id)) {
-                    return strtolower((string) $stop->target_type).':'.(string) $stop->target_id;
-                }
-
-                return 'slug:'.mb_strtolower((string) ($stop->slug ?: $stop->nombre));
-            })
-            ->all();
-
-        $nextOrder = (int) $route->stops->max('sort_order');
-        $added = 0;
-
-        foreach ($event->stops->values() as $stop) {
-            $key = filled($stop->target_id)
-                ? strtolower((string) ($stop->target_type ?: 'tour_spot')).':'.(string) $stop->target_id
-                : 'slug:'.mb_strtolower((string) ($stop->slug ?: $stop->nombre));
-
-            if (in_array($key, $existingKeys, true)) {
-                continue;
+            foreach ($event->stops->values() as $index => $stop) {
+                TouristRouteStop::query()->create([
+                    'tourist_route_id' => $route->id,
+                    'target_type' => $stop->target_type ?: 'tour_spot',
+                    'target_id' => $stop->target_id ?: (string) Str::uuid(),
+                    'slug' => $stop->slug,
+                    'nombre' => $stop->nombre,
+                    'latitud' => $stop->latitud,
+                    'longitud' => $stop->longitud,
+                    'sort_order' => $index + 1,
+                ]);
             }
 
-            $nextOrder++;
-            TouristRouteStop::query()->create([
-                'tourist_route_id' => $route->id,
-                'target_type' => $stop->target_type ?: 'tour_spot',
-                'target_id' => $stop->target_id ?: (string) Str::uuid(),
-                'slug' => $stop->slug,
-                'nombre' => $stop->nombre,
-                'latitud' => $stop->latitud,
-                'longitud' => $stop->longitud,
-                'sort_order' => $nextOrder,
-            ]);
-            $existingKeys[] = $key;
-            $added++;
-        }
-
-        if ($added > 0) {
             $route->update([
-                'stops_count' => TouristRouteStop::query()
-                    ->where('tourist_route_id', $route->id)
-                    ->count(),
+                'name' => $event->titulo,
+                'stops_count' => $event->stops->count(),
             ]);
-        }
+        });
     }
 
     /**
