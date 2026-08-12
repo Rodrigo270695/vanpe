@@ -3,6 +3,7 @@ export type ConfigProfile = {
     subdomain_url: string;
     nombre_comercial: string;
     razon_social: string | null;
+    descripcion: string | null;
     ruc: string | null;
     telefono: string | null;
     email_admin: string | null;

@@ -22,7 +22,11 @@ class TenantController extends Controller
         abort_unless((bool) $request->user()?->can('tenants.view'), 403);
 
         $tenants = Tenant::query()
-            ->with(['subscription.plan:id,name,code'])
+            ->with([
+                'subscription.plan:id,name,code',
+                'pubRestaurant:id,tenant_id',
+                'tourSpot:id,tenant_id',
+            ])
             ->orderByDesc('created_at')
             ->get()
             ->map(fn (Tenant $tenant): array => $this->serialize($tenant));
@@ -129,11 +133,17 @@ class TenantController extends Controller
      */
     private function serialize(Tenant $tenant): array
     {
+        $tipo = $tenant->tipo ?: Tenant::TYPE_RESTAURANT;
+        $catalogId = $tipo === Tenant::TYPE_TOUR_SPOT
+            ? $tenant->tourSpot?->id
+            : $tenant->pubRestaurant?->id;
+
         return [
             'id' => $tenant->id,
+            'catalog_id' => $catalogId,
             'slug' => $tenant->slug,
             'schema_name' => $tenant->schema_name,
-            'tipo' => $tenant->tipo ?: Tenant::TYPE_RESTAURANT,
+            'tipo' => $tipo,
             'subdomain_host' => $tenant->subdomainHost(),
             'subdomain_url' => $tenant->subdomainUrl(),
             'razon_social' => $tenant->razon_social,

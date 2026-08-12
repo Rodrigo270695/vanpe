@@ -21,6 +21,7 @@ import { getCsrfToken } from '@/lib/csrf';
 type ProfileFormData = {
     nombre_comercial: string;
     razon_social: string;
+    descripcion: string;
     ruc: string;
     telefono: string;
     email_admin: string;
@@ -70,6 +71,7 @@ export function GeneralTab({
     const { data, setData, put, processing, errors } = useForm<ProfileFormData>({
         nombre_comercial: profile.nombre_comercial,
         razon_social: profile.razon_social ?? '',
+        descripcion: profile.descripcion ?? '',
         ruc: profile.ruc ?? '',
         telefono: profile.telefono ?? '',
         email_admin: profile.email_admin ?? '',
@@ -212,6 +214,22 @@ export function GeneralTab({
                         onChange={(e) => setData('email_admin', e.target.value)}
                         disabled={!canManage}
                         className="bg-card"
+                    />
+                </FormField>
+
+                <FormField
+                    label={t('configuracion.field_descripcion')}
+                    error={errors.descripcion}
+                    className="sm:col-span-2"
+                >
+                    <textarea
+                        value={data.descripcion}
+                        onChange={(e) => setData('descripcion', e.target.value)}
+                        disabled={!canManage}
+                        rows={4}
+                        maxLength={4000}
+                        placeholder={t('configuracion.field_descripcion_placeholder')}
+                        className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm disabled:opacity-60"
                     />
                 </FormField>
             </ConfigSection>

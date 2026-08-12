@@ -98,6 +98,7 @@ class ConfiguracionController extends Controller
                 'subdomain_url' => $tenant->subdomainUrl(),
                 'nombre_comercial' => $tenant->nombre_comercial,
                 'razon_social' => $tenant->razon_social,
+                'descripcion' => $tenant->descripcion,
                 'ruc' => $tenant->ruc,
                 'telefono' => $tenant->telefono,
                 'email_admin' => $tenant->email_admin,
@@ -175,6 +176,7 @@ class ConfiguracionController extends Controller
         $tenant->update([
             'nombre_comercial' => $data['nombre_comercial'],
             'razon_social' => $data['razon_social'] ?: $data['nombre_comercial'],
+            'descripcion' => $data['descripcion'] ?? null,
             'ruc' => $data['ruc'] ?? null,
             'telefono' => $data['telefono'] ?? null,
             'email_admin' => $data['email_admin'] ?? null,

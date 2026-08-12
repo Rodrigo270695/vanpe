@@ -22,6 +22,7 @@ class UpdateConfigProfileRequest extends FormRequest
             'ruc' => ['nullable', 'string', 'max:11', 'regex:/^[0-9]{11}$/'],
             'telefono' => ['nullable', 'string', 'max:20'],
             'email_admin' => ['nullable', 'email', 'max:150'],
+            'descripcion' => ['nullable', 'string', 'max:4000'],
             'direccion' => ['nullable', 'string', 'max:255'],
             'departamento_id' => ['nullable', 'integer', 'exists:departamentos,id'],
             'provincia_id' => ['nullable', 'integer', 'exists:provincias,id'],

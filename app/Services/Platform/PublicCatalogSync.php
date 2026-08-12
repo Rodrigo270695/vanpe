@@ -77,6 +77,7 @@ class PublicCatalogSync
         $payload = [
             'nombre' => $tenant->nombre_comercial,
             'slug' => $tenant->slug,
+            'descripcion' => $tenant->descripcion,
             'telefono' => $tenant->telefono,
             'direccion' => $tenant->direccion,
             'departamento_id' => $tenant->departamento_id,

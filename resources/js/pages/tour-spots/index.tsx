@@ -1,6 +1,6 @@
 import { Head, router } from '@inertiajs/react';
-import { MapPin, Pencil, Plus, Star, Trash2 } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { Copy, MapPin, Pencil, Plus, Star, Trash2 } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { BaseModal } from '@/components/common/base-modal';
 import { DataTable, type DataTableColumn } from '@/components/common/data-table';
 import { PageHeader } from '@/components/common/page-header';
@@ -19,8 +19,10 @@ import type {
     TourSpotRow,
 } from '@/components/tour-spots/types';
 import { useClientTable } from '@/hooks/use-client-table';
+import { useClipboard } from '@/hooks/use-clipboard';
 import { useTranslations } from '@/hooks/use-translations';
 import { translate, type TranslationTree } from '@/lib/i18n';
+import { notify } from '@/lib/notify';
 
 type TourSpotsPageProps = {
     spots: TourSpotRow[];
@@ -52,6 +54,7 @@ export default function TourSpotsIndex({
     mapbox_token,
 }: TourSpotsPageProps) {
     const { t } = useTranslations();
+    const [, copyUuid] = useClipboard();
 
     const [categories, setCategories] = useState(initialCategories);
     const [accessModes, setAccessModes] = useState(initialAccessModes);
@@ -220,9 +223,27 @@ export default function TourSpotsIndex({
         [t],
     );
 
+    const copySpotUuid = useCallback(
+        async (row: TourSpotRow) => {
+            const ok = await copyUuid(row.id);
+            if (ok) {
+                notify.success(t('tour_spots.uuid_copied'));
+            } else {
+                notify.error(t('tour_spots.uuid_copy_failed'));
+            }
+        },
+        [copyUuid, t],
+    );
+
     const actions = (row: TourSpotRow) => (
         <TableRowActions
             items={[
+                {
+                    key: 'copy-uuid',
+                    label: t('tour_spots.action_copy_uuid'),
+                    icon: Copy,
+                    onClick: () => void copySpotUuid(row),
+                },
                 {
                     key: 'edit',
                     label: t('roles.action_edit'),
@@ -306,9 +327,7 @@ export default function TourSpotsIndex({
                         rowKey={(row) => row.id}
                         sort={table.sort}
                         onSort={table.toggleSort}
-                        actions={
-                            can.update || can.delete ? actions : undefined
-                        }
+                        actions={actions}
                         emptyMessage={t('tour_spots.empty')}
                     />
                 </TableCard>

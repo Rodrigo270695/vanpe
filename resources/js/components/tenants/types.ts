@@ -6,6 +6,8 @@ export type TenantAbilities = {
 
 export type TenantRow = {
     id: string;
+    /** UUID del catálogo público (pub_restaurants / tour_spots) para enlazar en eventos. */
+    catalog_id: string | null;
     slug: string;
     schema_name: string;
     tipo: 'restaurant' | 'tour_spot';

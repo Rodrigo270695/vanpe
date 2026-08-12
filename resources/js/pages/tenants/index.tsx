@@ -3,6 +3,7 @@ import {
     Building2,
     CheckCircle2,
     CircleOff,
+    Copy,
     Download,
     ExternalLink,
     Eye,
@@ -13,7 +14,7 @@ import {
     Store,
     Trash2,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { BaseModal } from '@/components/common/base-modal';
 import { DataTable, type DataTableColumn } from '@/components/common/data-table';
 import { PageHeader } from '@/components/common/page-header';
@@ -27,9 +28,11 @@ import { TenantFormModal } from '@/components/tenants/tenant-form-modal';
 import type { TenantAbilities, TenantRow } from '@/components/tenants/types';
 import { Button } from '@/components/ui/button';
 import { useClientTable } from '@/hooks/use-client-table';
+import { useClipboard } from '@/hooks/use-clipboard';
 import { useTranslations } from '@/hooks/use-translations';
 import { downloadXlsx } from '@/lib/export-xlsx';
 import { formatLocaleDate, translate, type TranslationTree } from '@/lib/i18n';
+import { notify } from '@/lib/notify';
 
 type TenantsPageProps = {
     tenants: TenantRow[];
@@ -46,6 +49,7 @@ export default function TenantsIndex({
     can,
 }: TenantsPageProps) {
     const { t, locale } = useTranslations();
+    const [, copyUuid] = useClipboard();
 
     const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
     const [publishedFilter, setPublishedFilter] =
@@ -371,9 +375,32 @@ export default function TenantsIndex({
         [locale, t],
     );
 
+    const copyCatalogUuid = useCallback(
+        async (row: TenantRow) => {
+            const uuid = row.catalog_id;
+            if (!uuid) {
+                notify.warning(t('tenants.uuid_missing'));
+                return;
+            }
+            const ok = await copyUuid(uuid);
+            if (ok) {
+                notify.success(t('tenants.uuid_copied'));
+            } else {
+                notify.error(t('tenants.uuid_copy_failed'));
+            }
+        },
+        [copyUuid, t],
+    );
+
     const actions = (row: TenantRow) => (
         <TableRowActions
             items={[
+                {
+                    key: 'copy-uuid',
+                    label: t('tenants.action_copy_uuid'),
+                    icon: Copy,
+                    onClick: () => void copyCatalogUuid(row),
+                },
                 {
                     key: 'open-subdomain',
                     label: t('tenants.action_open_subdomain'),

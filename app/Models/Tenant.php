@@ -36,6 +36,7 @@ class Tenant extends Model
         'tipo',
         'razon_social',
         'nombre_comercial',
+        'descripcion',
         'ruc',
         'email_admin',
         'telefono',
