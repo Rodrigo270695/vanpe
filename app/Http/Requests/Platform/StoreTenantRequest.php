@@ -24,9 +24,28 @@ class StoreTenantRequest extends FormRequest
             'ruc' => ['nullable', 'regex:/^\d{11}$/', 'unique:tenants,ruc'],
             'email_admin' => ['required', 'email', 'max:150', 'unique:tenants,email_admin'],
             'telefono' => ['nullable', 'string', 'max:20'],
+            'direccion' => ['nullable', 'string', 'max:255'],
+            'latitud' => ['nullable', 'numeric', 'between:-90,90'],
+            'longitud' => ['nullable', 'numeric', 'between:-180,180'],
             'canal_adquisicion' => ['nullable', 'string', 'max:50'],
             'owner_name' => ['required', 'string', 'max:120'],
             'owner_password' => ['required', 'confirmed', Password::defaults()],
         ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'latitud' => $this->blankToNull('latitud'),
+            'longitud' => $this->blankToNull('longitud'),
+            'direccion' => $this->blankToNull('direccion'),
+        ]);
+    }
+
+    private function blankToNull(string $key): mixed
+    {
+        $value = $this->input($key);
+
+        return $value === '' || $value === null ? null : $value;
     }
 }

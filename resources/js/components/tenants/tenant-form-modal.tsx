@@ -32,7 +32,7 @@ export function TenantFormModal({
     const { t } = useTranslations();
     const isEditing = tenant !== null;
 
-    const { data, setData, post, put, processing, errors, reset, clearErrors } =
+    const { data, setData, post, put, processing, errors, reset, clearErrors, transform } =
         useForm({
             nombre_comercial: '',
             razon_social: '',
@@ -45,6 +45,8 @@ export function TenantFormModal({
             owner_password: '',
             owner_password_confirmation: '',
             direccion: '',
+            latitud: '',
+            longitud: '',
             estado: 'trial',
             suspension_reason: '',
             publicado: false,
@@ -66,6 +68,14 @@ export function TenantFormModal({
                 owner_password: '',
                 owner_password_confirmation: '',
                 direccion: tenant.direccion ?? '',
+                latitud:
+                    tenant.latitud !== null && tenant.latitud !== undefined
+                        ? String(tenant.latitud)
+                        : '',
+                longitud:
+                    tenant.longitud !== null && tenant.longitud !== undefined
+                        ? String(tenant.longitud)
+                        : '',
                 estado: tenant.estado,
                 suspension_reason: tenant.suspension_reason ?? '',
                 publicado: tenant.publicado,
@@ -105,6 +115,20 @@ export function TenantFormModal({
     }, [data, isEditing]);
 
     const submit = () => {
+        const parseCoord = (raw: string): number | null => {
+            const trimmed = raw.trim().replace(',', '.');
+            if (trimmed === '') return null;
+            const n = Number(trimmed);
+            return Number.isFinite(n) ? Number(n.toFixed(6)) : null;
+        };
+
+        transform((payload) => ({
+            ...payload,
+            latitud: parseCoord(String(payload.latitud ?? '')),
+            longitud: parseCoord(String(payload.longitud ?? '')),
+            direccion: payload.direccion || null,
+        }));
+
         const options = {
             preserveScroll: true,
             onSuccess: () => onOpenChange(false),
@@ -303,22 +327,45 @@ export function TenantFormModal({
                     </>
                 )}
 
+                <FormField
+                    label={t('tenants.field_direccion')}
+                    error={errors.direccion}
+                    className="sm:col-span-2"
+                >
+                    <Input
+                        value={data.direccion}
+                        onChange={(e) => setData('direccion', e.target.value)}
+                        className="bg-card"
+                    />
+                </FormField>
+
+                <FormField label={t('tenants.field_latitud')} error={errors.latitud}>
+                    <Input
+                        type="text"
+                        inputMode="decimal"
+                        value={data.latitud}
+                        onChange={(e) => setData('latitud', e.target.value)}
+                        placeholder="-6.771370"
+                        className="bg-card font-mono text-sm"
+                    />
+                </FormField>
+
+                <FormField
+                    label={t('tenants.field_longitud')}
+                    error={errors.longitud}
+                >
+                    <Input
+                        type="text"
+                        inputMode="decimal"
+                        value={data.longitud}
+                        onChange={(e) => setData('longitud', e.target.value)}
+                        placeholder="-79.840880"
+                        className="bg-card font-mono text-sm"
+                    />
+                </FormField>
+
                 {isEditing && (
                     <>
-                        <FormField
-                            label={t('tenants.field_direccion')}
-                            error={errors.direccion}
-                            className="sm:col-span-2"
-                        >
-                            <Input
-                                value={data.direccion}
-                                onChange={(e) =>
-                                    setData('direccion', e.target.value)
-                                }
-                                className="bg-card"
-                            />
-                        </FormField>
-
                         <FormField label={t('tenants.field_estado')} required>
                             <Select
                                 value={data.estado}

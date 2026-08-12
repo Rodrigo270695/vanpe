@@ -37,6 +37,8 @@ class UpdateTenantRequest extends FormRequest
             ],
             'telefono' => ['nullable', 'string', 'max:20'],
             'direccion' => ['nullable', 'string', 'max:255'],
+            'latitud' => ['nullable', 'numeric', 'between:-90,90'],
+            'longitud' => ['nullable', 'numeric', 'between:-180,180'],
             'estado' => ['required', Rule::in(Tenant::STATUSES)],
             'suspension_reason' => [
                 Rule::requiredIf(fn () => $this->input('estado') === 'suspended'),
@@ -49,5 +51,21 @@ class UpdateTenantRequest extends FormRequest
             'onboarding_paso' => ['integer', 'min:0', 'max:5'],
             'canal_adquisicion' => ['nullable', 'string', 'max:50'],
         ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'latitud' => $this->blankToNull('latitud'),
+            'longitud' => $this->blankToNull('longitud'),
+            'direccion' => $this->blankToNull('direccion'),
+        ]);
+    }
+
+    private function blankToNull(string $key): mixed
+    {
+        $value = $this->input($key);
+
+        return $value === '' || $value === null ? null : $value;
     }
 }

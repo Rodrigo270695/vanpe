@@ -19,6 +19,8 @@ export type TenantRow = {
     email_admin: string;
     telefono: string | null;
     direccion: string | null;
+    latitud: number | null;
+    longitud: number | null;
     estado: string;
     trial_ends_at: string | null;
     suspended_at: string | null;

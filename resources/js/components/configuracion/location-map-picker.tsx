@@ -29,7 +29,22 @@ type LocationMapPickerProps = {
     searchPlaceholder?: string;
     hint?: string;
     missingTokenHint?: string;
+    latLabel?: string;
+    lngLabel?: string;
 };
+
+function formatCoord(n: number | null): string {
+    return n == null || !Number.isFinite(n) ? '' : String(n);
+}
+
+function parseCoord(raw: string): number | null {
+    const trimmed = raw.trim().replace(',', '.');
+    if (trimmed === '' || trimmed === '-' || trimmed === '.' || trimmed === '-.') {
+        return null;
+    }
+    const n = Number(trimmed);
+    return Number.isFinite(n) ? Number(n.toFixed(6)) : null;
+}
 
 export function LocationMapPicker({
     token,
@@ -38,8 +53,10 @@ export function LocationMapPicker({
     onChange,
     className,
     searchPlaceholder = 'Buscar dirección en Perú…',
-    hint = 'Busca una dirección o haz clic en el mapa para fijar el pin.',
-    missingTokenHint = 'Configura VITE_MAPBOX_TOKEN para activar el mapa.',
+    hint = 'Busca una dirección, haz clic en el mapa o escribe latitud/longitud manualmente.',
+    missingTokenHint = 'Sin token de mapa: aún puedes ingresar latitud y longitud a mano.',
+    latLabel = 'Latitud (Y)',
+    lngLabel = 'Longitud (X)',
 }: LocationMapPickerProps) {
     const mapContainerRef = useRef<HTMLDivElement>(null);
     const mapRef = useRef<mapboxgl.Map | null>(null);
@@ -49,45 +66,86 @@ export function LocationMapPicker({
     const [searching, setSearching] = useState(false);
     const [openList, setOpenList] = useState(false);
     const debounceRef = useRef<number | null>(null);
+    const [latText, setLatText] = useState(() => formatCoord(value.latitud));
+    const [lngText, setLngText] = useState(() => formatCoord(value.longitud));
 
     const hasCoords = value.latitud != null && value.longitud != null;
 
-    const setMarker = useCallback((lng: number, lat: number) => {
-        const map = mapRef.current;
-        if (!map) return;
+    useEffect(() => {
+        setLatText(formatCoord(value.latitud));
+        setLngText(formatCoord(value.longitud));
+    }, [value.latitud, value.longitud]);
 
-        if (!markerRef.current) {
-            markerRef.current = new mapboxgl.Marker({ color: '#1769E0', draggable: !disabled })
-                .setLngLat([lng, lat])
-                .addTo(map);
+    const applyManualCoords = useCallback(
+        (latRaw: string, lngRaw: string) => {
+            const lat = parseCoord(latRaw);
+            const lng = parseCoord(lngRaw);
 
-            markerRef.current.on('dragend', () => {
-                const pos = markerRef.current?.getLngLat();
-                if (!pos) return;
-                const lat = Number(pos.lat.toFixed(6));
-                const lng = Number(pos.lng.toFixed(6));
-                onChange({ latitud: lat, longitud: lng });
-                if (token) {
-                    void reverseGeocode(token, lng, lat).then((place) => {
-                        if (place) {
-                            onChange({ latitud: lat, longitud: lng, direccion: place });
-                        }
-                    });
-                }
-            });
-        } else {
-            markerRef.current.setLngLat([lng, lat]);
-            markerRef.current.setDraggable(!disabled);
-        }
-    }, [disabled, onChange, token]);
+            if (lat == null && lng == null) {
+                onChange({ latitud: null, longitud: null });
+                return;
+            }
+
+            // Solo actualiza cuando ambos son números válidos en rango.
+            if (
+                lat == null ||
+                lng == null ||
+                lat < -90 ||
+                lat > 90 ||
+                lng < -180 ||
+                lng > 180
+            ) {
+                return;
+            }
+
+            onChange({ latitud: lat, longitud: lng });
+        },
+        [onChange],
+    );
+
+    const setMarker = useCallback(
+        (lng: number, lat: number) => {
+            const map = mapRef.current;
+            if (!map) return;
+
+            if (!markerRef.current) {
+                markerRef.current = new mapboxgl.Marker({
+                    color: '#1769E0',
+                    draggable: !disabled,
+                })
+                    .setLngLat([lng, lat])
+                    .addTo(map);
+
+                markerRef.current.on('dragend', () => {
+                    const pos = markerRef.current?.getLngLat();
+                    if (!pos) return;
+                    const nextLat = Number(pos.lat.toFixed(6));
+                    const nextLng = Number(pos.lng.toFixed(6));
+                    onChange({ latitud: nextLat, longitud: nextLng });
+                    if (token) {
+                        void reverseGeocode(token, nextLng, nextLat).then((place) => {
+                            if (place) {
+                                onChange({
+                                    latitud: nextLat,
+                                    longitud: nextLng,
+                                    direccion: place,
+                                });
+                            }
+                        });
+                    }
+                });
+            } else {
+                markerRef.current.setLngLat([lng, lat]);
+                markerRef.current.setDraggable(!disabled);
+            }
+        },
+        [disabled, onChange, token],
+    );
 
     useEffect(() => {
         if (!token || !mapContainerRef.current || mapRef.current) return;
 
         mapboxgl.accessToken = token;
-        // EVENTS_URL es un getter de solo lectura: hay que redefinirlo.
-        // Si no, Mapbox hace POST a events.mapbox.com y uBlock lo marca
-        // como ERR_BLOCKED_BY_CLIENT (no rompe el mapa, pero ensucia la consola).
         try {
             Object.defineProperty(mapboxgl.config, 'EVENTS_URL', {
                 configurable: true,
@@ -143,7 +201,6 @@ export function LocationMapPicker({
             map.remove();
             mapRef.current = null;
         };
-        // Solo montar una vez con token.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [token]);
 
@@ -201,15 +258,60 @@ export function LocationMapPicker({
         mapRef.current?.easeTo({ center: [lng, lat], zoom: 16, duration: 600 });
     };
 
+    const coordsInputs = (
+        <div className="grid gap-3 sm:grid-cols-2">
+            <label className="space-y-1.5">
+                <span className="text-xs font-medium text-muted-foreground">{latLabel}</span>
+                <Input
+                    type="text"
+                    inputMode="decimal"
+                    value={latText}
+                    disabled={disabled}
+                    placeholder="-6.771370"
+                    className="bg-card font-mono text-sm"
+                    onChange={(e) => {
+                        const next = e.target.value;
+                        setLatText(next);
+                        applyManualCoords(next, lngText);
+                    }}
+                    onBlur={() => {
+                        const parsed = parseCoord(latText);
+                        setLatText(formatCoord(parsed));
+                        applyManualCoords(formatCoord(parsed), lngText);
+                    }}
+                />
+            </label>
+            <label className="space-y-1.5">
+                <span className="text-xs font-medium text-muted-foreground">{lngLabel}</span>
+                <Input
+                    type="text"
+                    inputMode="decimal"
+                    value={lngText}
+                    disabled={disabled}
+                    placeholder="-79.840880"
+                    className="bg-card font-mono text-sm"
+                    onChange={(e) => {
+                        const next = e.target.value;
+                        setLngText(next);
+                        applyManualCoords(latText, next);
+                    }}
+                    onBlur={() => {
+                        const parsed = parseCoord(lngText);
+                        setLngText(formatCoord(parsed));
+                        applyManualCoords(latText, formatCoord(parsed));
+                    }}
+                />
+            </label>
+        </div>
+    );
+
     if (!token) {
         return (
-            <div
-                className={cn(
-                    'sm:col-span-2 rounded-xl border border-dashed border-amber-300/80 bg-amber-50/60 px-4 py-3 text-sm text-amber-900',
-                    className,
-                )}
-            >
-                {missingTokenHint}
+            <div className={cn('space-y-3 sm:col-span-2', className)}>
+                <div className="rounded-xl border border-dashed border-amber-300/80 bg-amber-50/60 px-4 py-3 text-sm text-amber-900">
+                    {missingTokenHint}
+                </div>
+                {coordsInputs}
             </div>
         );
     }
@@ -256,20 +358,7 @@ export function LocationMapPicker({
                 className="h-64 w-full overflow-hidden rounded-xl border border-border bg-muted/30"
             />
 
-            <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
-                <span>
-                    Lat:{' '}
-                    <strong className="font-mono text-foreground">
-                        {value.latitud ?? '—'}
-                    </strong>
-                </span>
-                <span>
-                    Lng:{' '}
-                    <strong className="font-mono text-foreground">
-                        {value.longitud ?? '—'}
-                    </strong>
-                </span>
-            </div>
+            {coordsInputs}
         </div>
     );
 }
