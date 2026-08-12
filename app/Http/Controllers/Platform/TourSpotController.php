@@ -89,8 +89,7 @@ class TourSpotController extends Controller
             'estacionamientos' => TourSpot::ESTACIONAMIENTOS,
             'mapbox_token' => config('services.mapbox.token'),
             'can' => [
-                // Los centros se autoregistran como tenants; plataforma solo modera.
-                'create' => false,
+                'create' => $request->user()?->can('tour_spots.create'),
                 'update' => $request->user()?->can('tour_spots.update'),
                 'delete' => $request->user()?->can('tour_spots.delete'),
                 'publish' => $request->user()?->can('tour_spots.publish'),
@@ -100,7 +99,9 @@ class TourSpotController extends Controller
 
     public function store(TourSpotRequest $request): RedirectResponse
     {
-        abort(403, 'Los centros turísticos se registran como tenants. Usa la moderación para editar o publicar.');
+        $this->writer->create($request->validated(), $request->user()?->id);
+
+        return back()->with('success', __('messages.tour_spots.created'));
     }
 
     public function update(TourSpotRequest $request, TourSpot $tourSpot): RedirectResponse

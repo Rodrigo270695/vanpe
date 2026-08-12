@@ -1287,43 +1287,6 @@ export default function MiCentroIndex({
                                 </Select>
                             </FormField>
                             <FormField
-                                label={t('tour_spots.field_tiempo_acceso')}
-                                error={errors.tiempo_acceso_min}
-                            >
-                                <Input
-                                    type="number"
-                                    min="0"
-                                    value={data.tiempo_acceso_min}
-                                    onChange={(e) =>
-                                        setData(
-                                            'tiempo_acceso_min',
-                                            e.target.value,
-                                        )
-                                    }
-                                    disabled={disabled}
-                                    className="bg-card"
-                                />
-                            </FormField>
-                            <FormField
-                                label={t('tour_spots.field_distancia_acceso')}
-                                error={errors.distancia_acceso_km}
-                            >
-                                <Input
-                                    type="number"
-                                    step="0.1"
-                                    min="0"
-                                    value={data.distancia_acceso_km}
-                                    onChange={(e) =>
-                                        setData(
-                                            'distancia_acceso_km',
-                                            e.target.value,
-                                        )
-                                    }
-                                    disabled={disabled}
-                                    className="bg-card"
-                                />
-                            </FormField>
-                            <FormField
                                 label={t('tour_spots.field_estacionamiento')}
                             >
                                 <Select
@@ -1435,24 +1398,6 @@ export default function MiCentroIndex({
                                     value={data.mejor_epoca}
                                     onChange={(e) =>
                                         setData('mejor_epoca', e.target.value)
-                                    }
-                                    disabled={disabled}
-                                    className="bg-card"
-                                />
-                            </FormField>
-                            <FormField
-                                label={t('tour_spots.field_duracion')}
-                                error={errors.duracion_visita_min}
-                            >
-                                <Input
-                                    type="number"
-                                    min="0"
-                                    value={data.duracion_visita_min}
-                                    onChange={(e) =>
-                                        setData(
-                                            'duracion_visita_min',
-                                            e.target.value,
-                                        )
                                     }
                                     disabled={disabled}
                                     className="bg-card"
