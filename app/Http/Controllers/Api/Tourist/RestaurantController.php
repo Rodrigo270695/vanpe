@@ -109,11 +109,7 @@ class RestaurantController extends Controller
                 'image_url' => PublicMediaUrl::make($p->image_url),
                 'caption' => $p->caption,
             ])->values(),
-            'hours' => $restaurant->hours->map(fn ($h): array => [
-                'day_of_week' => $h->day_of_week,
-                'opens_at' => substr((string) $h->opens_at, 0, 5),
-                'closes_at' => substr((string) $h->closes_at, 0, 5),
-            ])->values(),
+            'hours' => $this->serializeHours($restaurant),
             'highlights' => $restaurant->highlights->map(fn ($d): array => [
                 'dish_ref' => $d->dish_ref,
                 'nombre' => $d->nombre,
@@ -131,5 +127,43 @@ class RestaurantController extends Controller
                 ])->values(),
             ),
         ];
+    }
+
+    /**
+     * Semana completa Lun(0)–Dom(6), alineada con cfg_service_hours del tenant.
+     *
+     * @return list<array{day_of_week: int, opens_at: string|null, closes_at: string|null, closed: bool}>
+     */
+    private function serializeHours(PubRestaurant $restaurant): array
+    {
+        if ($restaurant->hours->isEmpty()) {
+            return [];
+        }
+
+        $byDay = $restaurant->hours->keyBy(fn ($h): int => (int) $h->day_of_week);
+
+        $rows = [];
+        for ($day = 0; $day < 7; $day++) {
+            $hour = $byDay->get($day);
+            if ($hour === null) {
+                $rows[] = [
+                    'day_of_week' => $day,
+                    'opens_at' => null,
+                    'closes_at' => null,
+                    'closed' => true,
+                ];
+                continue;
+            }
+
+            $closed = (bool) ($hour->cerrado ?? false);
+            $rows[] = [
+                'day_of_week' => $day,
+                'opens_at' => $closed ? null : substr((string) $hour->opens_at, 0, 5),
+                'closes_at' => $closed ? null : substr((string) $hour->closes_at, 0, 5),
+                'closed' => $closed,
+            ];
+        }
+
+        return $rows;
     }
 }

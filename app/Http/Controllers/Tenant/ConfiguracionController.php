@@ -267,7 +267,8 @@ class ConfiguracionController extends Controller
 
         CfgServiceHour::syncAll($data['service_hours']);
 
-        $this->publisher->maybePublish($tenant, ['horarios', 'disponibilidad']);
+        // Los horarios deben verse al instante en la app del turista.
+        $this->publisher->publishNow($tenant, ['horarios', 'disponibilidad']);
 
         return back()->with('success', __('messages.configuracion.updated'));
     }

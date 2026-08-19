@@ -145,8 +145,9 @@ class PublicCatalogSync
         $this->ensurePubRestaurant($tenant);
 
         $hours = $this->withTenantSchema($tenant, function (): Collection {
+            CfgServiceHour::ensureDefaults();
+
             return CfgServiceHour::query()
-                ->where('active', true)
                 ->orderBy('day_of_week')
                 ->get();
         });
@@ -157,12 +158,18 @@ class PublicCatalogSync
 
         $rows = [];
         foreach ($hours as $hour) {
+            $active = (bool) $hour->active;
             $row = [
                 'tenant_id' => $tenant->id,
                 'day_of_week' => (int) $hour->day_of_week,
+                'cerrado' => ! $active,
                 // Reloj de pared Perú (H:i), sin conversión UTC.
-                'opens_at' => substr((string) $hour->opens_at, 0, 5),
-                'closes_at' => substr((string) $hour->closes_at, 0, 5),
+                'opens_at' => $active
+                    ? substr((string) $hour->opens_at, 0, 5)
+                    : '00:00',
+                'closes_at' => $active
+                    ? substr((string) $hour->closes_at, 0, 5)
+                    : '00:00',
             ];
             $rows[] = $row;
             PubRestaurantHour::query()->create($row);

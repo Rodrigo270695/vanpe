@@ -15,6 +15,7 @@ class PubRestaurantHour extends Model
     protected $fillable = [
         'tenant_id',
         'day_of_week',
+        'cerrado',
         'opens_at',
         'closes_at',
     ];
@@ -23,6 +24,7 @@ class PubRestaurantHour extends Model
     {
         return [
             'day_of_week' => 'integer',
+            'cerrado' => 'boolean',
         ];
     }
 

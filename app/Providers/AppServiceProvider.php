@@ -41,11 +41,9 @@ class AppServiceProvider extends ServiceProvider
             app()->isProduction(),
         );
 
-        Password::defaults(fn (): Password => Password::min(app()->isProduction() ? 12 : 10)
-            ->mixedCase()
+        Password::defaults(fn (): Password => Password::min(8)
             ->letters()
             ->numbers()
-            ->symbols()
             ->when(app()->isProduction(), fn (Password $rule) => $rule->uncompromised()),
         );
     }
