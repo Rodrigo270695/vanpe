@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Tourist;
 
 use App\Http\Controllers\Controller;
 use App\Services\Tourist\CustomerPreferenceService;
+use App\Services\Tourist\TouristInterestService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -11,6 +12,7 @@ class CatalogOptionsController extends Controller
 {
     public function __construct(
         private readonly CustomerPreferenceService $preferences,
+        private readonly TouristInterestService $interests,
     ) {}
 
     public function __invoke(Request $request): JsonResponse
@@ -18,9 +20,13 @@ class CatalogOptionsController extends Controller
         $locale = $this->resolveLocale($request);
 
         return response()->json([
-            'data' => $this->preferences->catalogOptions($locale),
+            'data' => [
+                'interest_groups' => $this->interests->interestOptions($locale),
+                'catalog' => $this->preferences->catalogOptions($locale),
+            ],
             'meta' => [
                 'locale' => $locale,
+                'preference_mode' => 'interest_groups',
                 'types' => CustomerPreferenceService::PREFERENCE_TYPES,
             ],
         ]);

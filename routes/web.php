@@ -10,6 +10,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DocumentLookupController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\Platform\CatalogController;
+use App\Http\Controllers\Platform\TouristInterestController;
 use App\Http\Controllers\Platform\PlanController;
 use App\Http\Controllers\Platform\PlanFeatureController;
 use App\Http\Controllers\Platform\PromoCodeController;
@@ -311,6 +312,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->name('catalog.proposals.approve');
         Route::post('catalogo/proposals/{proposal}/reject', [CatalogController::class, 'rejectProposal'])
             ->name('catalog.proposals.reject');
+
+        Route::get('catalogo/intereses', [TouristInterestController::class, 'index'])->name('catalog.interests.index');
+        Route::put('catalogo/intereses/categorias/{category}/catalog-items', [TouristInterestController::class, 'syncCatalogItems'])
+            ->name('catalog.interests.sync-catalog');
+        Route::put('catalogo/intereses/categorias/{category}/tour-categories', [TouristInterestController::class, 'syncTourCategories'])
+            ->name('catalog.interests.sync-tour');
 
         Route::get('centros-turisticos', [TourSpotController::class, 'index'])->name('tour-spots.index');
         Route::get('centros-turisticos/geo/provincias', [TourSpotController::class, 'provincias'])

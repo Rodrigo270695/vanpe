@@ -7,6 +7,7 @@ use Database\Factories\CustomerFactory;
 use Illuminate\Auth\Passwords\CanResetPassword;
 use Illuminate\Contracts\Auth\CanResetPassword as CanResetPasswordContract;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -113,5 +114,22 @@ class Customer extends Authenticatable implements CanResetPasswordContract
     public function catalogPreferences(): HasMany
     {
         return $this->hasMany(CustomerCatalogPreference::class);
+    }
+
+    /** @return HasMany<CustomerInterestGroupPreference, $this> */
+    public function interestGroupPreferences(): HasMany
+    {
+        return $this->hasMany(CustomerInterestGroupPreference::class);
+    }
+
+    /** @return BelongsToMany<TouristInterestGroup, $this> */
+    public function interestGroups(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            TouristInterestGroup::class,
+            'customer_interest_group_preferences',
+            'customer_id',
+            'interest_group_id',
+        )->withTimestamps();
     }
 }

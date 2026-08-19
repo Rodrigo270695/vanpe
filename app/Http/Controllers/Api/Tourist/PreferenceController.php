@@ -8,6 +8,7 @@ use App\Models\Customer;
 use App\Services\Tourist\CustomerPreferenceService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class PreferenceController extends Controller
 {
@@ -31,16 +32,29 @@ class PreferenceController extends Controller
         $customer = $request->user();
 
         $validated = $request->validate([
-            'catalog_item_ids' => ['required', 'array', 'min:1'],
+            'interest_group_ids' => ['sometimes', 'array', 'min:1'],
+            'interest_group_ids.*' => ['uuid'],
+            'catalog_item_ids' => ['sometimes', 'array', 'min:1'],
             'catalog_item_ids.*' => ['uuid'],
         ]);
 
-        /** @var list<string> $ids */
-        $ids = array_values(array_unique($validated['catalog_item_ids']));
+        if (isset($validated['interest_group_ids'])) {
+            /** @var list<string> $groupIds */
+            $groupIds = array_values(array_unique($validated['interest_group_ids']));
+            $this->preferences->syncInterestGroups($customer, $groupIds);
+        } elseif (isset($validated['catalog_item_ids'])) {
+            /** @var list<string> $ids */
+            $ids = array_values(array_unique($validated['catalog_item_ids']));
+            $this->preferences->sync($customer, $ids);
+        } else {
+            throw ValidationException::withMessages([
+                'interest_group_ids' => ['Indica al menos un grupo de interés.'],
+            ]);
+        }
 
-        $this->preferences->sync($customer, $ids);
         $customer->unsetRelation('catalogPreferences');
-        $customer->load('catalogPreferences');
+        $customer->unsetRelation('interestGroupPreferences');
+        $customer->load(['catalogPreferences', 'interestGroupPreferences']);
 
         return response()->json([
             'message' => 'Preferencias guardadas.',

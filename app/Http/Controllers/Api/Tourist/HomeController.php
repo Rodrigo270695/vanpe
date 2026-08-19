@@ -42,6 +42,7 @@ class HomeController extends Controller
 
         $mode = 'ranking';
         $recommendedRestaurants = null;
+        $recommendedSpots = null;
 
         if (
             $personalized
@@ -49,6 +50,8 @@ class HomeController extends Controller
             && $this->preferences->hasPreferences($customer)
         ) {
             $recommendedRestaurants = $this->preferences->recommendRestaurants($customer, $limit);
+            $recommendedSpots = $this->preferences->recommendTourSpots($customer, $limit)
+                ->load(['categories', 'departamento:id,name', 'distrito:id,name']);
             $mode = 'ai_preferences';
         }
 
@@ -61,13 +64,15 @@ class HomeController extends Controller
                 ->get();
         }
 
-        $recommendedSpots = TourSpot::query()
-            ->where('estado', TourSpot::ESTADO_PUBLICADO)
-            ->with(['categories', 'departamento:id,name', 'distrito:id,name'])
-            ->orderByDesc('score_ranking')
-            ->orderByDesc('destacado')
-            ->limit($limit)
-            ->get();
+        if ($recommendedSpots === null) {
+            $recommendedSpots = TourSpot::query()
+                ->where('estado', TourSpot::ESTADO_PUBLICADO)
+                ->with(['categories', 'departamento:id,name', 'distrito:id,name'])
+                ->orderByDesc('score_ranking')
+                ->orderByDesc('destacado')
+                ->limit($limit)
+                ->get();
+        }
 
         return response()->json([
             'data' => [

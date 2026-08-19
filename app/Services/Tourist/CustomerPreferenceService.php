@@ -5,7 +5,6 @@ namespace App\Services\Tourist;
 use App\Models\Customer;
 use App\Models\CustomerCatalogPreference;
 use App\Models\PubRestaurant;
-use App\Models\PubRestaurantCatalogItem;
 use App\Models\RefCatalogItem;
 use App\Support\RefCatalogTypes;
 use Illuminate\Support\Collection;
@@ -13,7 +12,11 @@ use Illuminate\Support\Facades\DB;
 
 class CustomerPreferenceService
 {
-    /** Tipos que el turista elige en onboarding. */
+    public function __construct(
+        private readonly TouristInterestService $interests,
+    ) {}
+
+    /** Tipos que el turista elige en onboarding (legacy). */
     public const PREFERENCE_TYPES = [
         RefCatalogTypes::CUISINE,
         RefCatalogTypes::SERVICE,
@@ -46,7 +49,13 @@ class CustomerPreferenceService
     }
 
     /**
-     * @return array{cuisine: list<string>, service: list<string>, ambiance: list<string>, ids: list<string>}
+     * @return array{
+     *     interest_group_ids: list<string>,
+     *     cuisine: list<string>,
+     *     service: list<string>,
+     *     ambiance: list<string>,
+     *     ids: list<string>
+     * }
      */
     public function preferencePayload(Customer $customer): array
     {
@@ -67,6 +76,7 @@ class CustomerPreferenceService
         }
 
         return [
+            ...$this->interests->preferencePayload($customer),
             'cuisine' => $grouped[RefCatalogTypes::CUISINE],
             'service' => $grouped[RefCatalogTypes::SERVICE],
             'ambiance' => $grouped[RefCatalogTypes::AMBIANCE],
@@ -76,7 +86,8 @@ class CustomerPreferenceService
 
     public function hasPreferences(Customer $customer): bool
     {
-        return $customer->catalogPreferences()->exists();
+        return $this->interests->hasInterestPreferences($customer)
+            || $customer->catalogPreferences()->exists();
     }
 
     /**
@@ -121,53 +132,26 @@ class CustomerPreferenceService
     }
 
     /**
-     * Restaurants ordenados por overlap de preferencias + tops (score_ranking).
-     *
+     * @param  list<string>  $groupIds
+     */
+    public function syncInterestGroups(Customer $customer, array $groupIds): void
+    {
+        $this->interests->syncGroups($customer, $groupIds);
+    }
+
+    /**
      * @return Collection<int, PubRestaurant>
      */
     public function recommendRestaurants(Customer $customer, int $limit = 10): Collection
     {
-        $prefIds = $customer->catalogPreferences()
-            ->pluck('catalog_item_id')
-            ->unique()
-            ->values()
-            ->all();
+        return $this->interests->recommendRestaurants($customer, $limit);
+    }
 
-        if ($prefIds === []) {
-            return PubRestaurant::query()
-                ->where('activo', true)
-                ->orderByDesc('score_ranking')
-                ->orderByDesc('destacado')
-                ->orderByDesc('rating_promedio')
-                ->limit($limit)
-                ->get();
-        }
-
-        /** @var Collection<string, int> $matchCounts */
-        $matchCounts = PubRestaurantCatalogItem::query()
-            ->whereIn('catalog_item_id', $prefIds)
-            ->whereIn('catalog_type', self::PREFERENCE_TYPES)
-            ->selectRaw('tenant_id, COUNT(*) as match_count')
-            ->groupBy('tenant_id')
-            ->pluck('match_count', 'tenant_id');
-
-        $restaurants = PubRestaurant::query()
-            ->where('activo', true)
-            ->get();
-
-        return $restaurants
-            ->map(function (PubRestaurant $restaurant) use ($matchCounts): array {
-                $matches = (int) ($matchCounts[$restaurant->tenant_id] ?? 0);
-                $score = ($matches * 100)
-                    + ((float) $restaurant->score_ranking * 10)
-                    + ((float) $restaurant->rating_promedio)
-                    + ($restaurant->destacado ? 5 : 0);
-
-                return ['restaurant' => $restaurant, 'score' => $score, 'matches' => $matches];
-            })
-            ->sortByDesc('score')
-            ->take($limit)
-            ->values()
-            ->map(fn (array $row): PubRestaurant => $row['restaurant']);
+    /**
+     * @return Collection<int, \App\Models\TourSpot>
+     */
+    public function recommendTourSpots(Customer $customer, int $limit = 10): Collection
+    {
+        return $this->interests->recommendTourSpots($customer, $limit);
     }
 }

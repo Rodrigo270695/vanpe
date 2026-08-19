@@ -1,5 +1,5 @@
-import { Head, router } from '@inertiajs/react';
-import { Check, Clock, Plus, Store, Tags, X } from 'lucide-react';
+import { Head, Link, router } from '@inertiajs/react';
+import { Check, Clock, Link2, Plus, Store, Tags, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { CatalogItemCard } from '@/components/catalog/catalog-item-card';
 import { CatalogItemFormModal } from '@/components/catalog/catalog-item-form-modal';
@@ -142,6 +142,16 @@ export default function CatalogIndex({
                         },
                     ]}
                 >
+                    <Button
+                        variant="outline"
+                        className="cursor-pointer gap-2"
+                        asChild
+                    >
+                        <Link href="/catalogo/intereses">
+                            <Link2 className="size-4" />
+                            Intereses turista
+                        </Link>
+                    </Button>
                     {can.create && activeTab !== 'proposals' && (
                         <Button
                             type="button"

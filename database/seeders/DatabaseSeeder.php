@@ -19,6 +19,7 @@ class DatabaseSeeder extends Seeder
             PlanSeeder::class,
             RefCatalogSeeder::class,
             TourCategorySeeder::class,
+            TouristInterestSeeder::class,
             LambayequeGeoSeeder::class,
             TourSpotContentSeeder::class,
             TourEventSeeder::class,
