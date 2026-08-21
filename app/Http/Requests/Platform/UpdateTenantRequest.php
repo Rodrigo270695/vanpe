@@ -50,6 +50,7 @@ class UpdateTenantRequest extends FormRequest
             'onboarding_completado' => ['boolean'],
             'onboarding_paso' => ['integer', 'min:0', 'max:5'],
             'canal_adquisicion' => ['nullable', 'string', 'max:50'],
+            'descripcion' => ['nullable', 'string', 'max:4000'],
         ];
     }
 
@@ -59,6 +60,7 @@ class UpdateTenantRequest extends FormRequest
             'latitud' => $this->blankToNull('latitud'),
             'longitud' => $this->blankToNull('longitud'),
             'direccion' => $this->blankToNull('direccion'),
+            'descripcion' => $this->blankToNull('descripcion'),
         ]);
     }
 

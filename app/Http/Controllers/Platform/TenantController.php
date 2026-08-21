@@ -6,11 +6,16 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Platform\StoreTenantRequest;
 use App\Http\Requests\Platform\UpdateTenantRequest;
 use App\Models\Tenant;
+use App\Models\Tenant\CfgVenuePhoto;
 use App\Services\Platform\PublicCatalogPublisher;
 use App\Services\Tenant\TenantProvisioner;
+use App\Services\Tenant\VenueImageStorage;
 use App\Support\TenantSlug;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -45,6 +50,8 @@ class TenantController extends Controller
     public function store(
         StoreTenantRequest $request,
         TenantProvisioner $provisioner,
+        VenueImageStorage $venueImages,
+        PublicCatalogPublisher $publisher,
     ): RedirectResponse {
         $data = $request->validated();
         $slug = $data['slug'] ?? TenantSlug::unique($data['nombre_comercial']);
@@ -70,9 +77,36 @@ class TenantController extends Controller
             ],
         ]);
 
+        $updates = [];
+
         if (! empty($data['canal_adquisicion'])) {
-            $tenant->update(['canal_adquisicion' => $data['canal_adquisicion']]);
+            $updates['canal_adquisicion'] = $data['canal_adquisicion'];
         }
+
+        if (! empty($data['descripcion'])) {
+            $updates['descripcion'] = $data['descripcion'];
+        }
+
+        if ($request->hasFile('portada')) {
+            $updates['portada_url'] = $venueImages->storeBranded(
+                $request->file('portada'),
+                (string) $tenant->slug,
+                'portada',
+            );
+        }
+
+        if ($updates !== []) {
+            $tenant->update($updates);
+        }
+
+        $this->seedGalleryPhotos(
+            $tenant->fresh(),
+            $request->file('photos', []),
+            $venueImages,
+            $provisioner,
+        );
+
+        $publisher->publishNow($tenant->fresh(), ['ficha', 'galeria']);
 
         return back()->with('success', __('messages.tenants.created'));
     }
@@ -89,6 +123,7 @@ class TenantController extends Controller
             'email_admin' => $data['email_admin'],
             'telefono' => $data['telefono'] ?? null,
             'direccion' => $data['direccion'] ?? null,
+            'descripcion' => $data['descripcion'] ?? null,
             'latitud' => $data['latitud'] ?? null,
             'longitud' => $data['longitud'] ?? null,
             'estado' => $data['estado'],
@@ -134,6 +169,56 @@ class TenantController extends Controller
     }
 
     /**
+     * @param  list<UploadedFile>|UploadedFile|null  $files
+     */
+    private function seedGalleryPhotos(
+        Tenant $tenant,
+        array|UploadedFile|null $files,
+        VenueImageStorage $venueImages,
+        TenantProvisioner $provisioner,
+    ): void {
+        $uploads = is_array($files) ? $files : ($files ? [$files] : []);
+        $uploads = array_values(array_filter(
+            $uploads,
+            fn ($file): bool => $file instanceof UploadedFile && $file->isValid(),
+        ));
+
+        if ($uploads === []) {
+            return;
+        }
+
+        $uploads = array_slice($uploads, 0, CfgVenuePhoto::MAX_PHOTOS);
+
+        $previous = DB::getDefaultConnection();
+        $previousPath = config('database.connections.tenant.search_path');
+
+        $provisioner->bindSchema($tenant);
+        DB::setDefaultConnection('tenant');
+
+        try {
+            foreach ($uploads as $index => $file) {
+                $photo = CfgVenuePhoto::query()->create([
+                    'caption' => null,
+                    'sort_order' => $index + 1,
+                    'image_url' => '',
+                ]);
+
+                $imageUrl = $venueImages->storeGallery(
+                    $file,
+                    (string) $tenant->slug,
+                    (string) $photo->id,
+                );
+
+                $photo->update(['image_url' => $imageUrl]);
+            }
+        } finally {
+            DB::setDefaultConnection($previous);
+            Config::set('database.connections.tenant.search_path', $previousPath);
+            DB::purge('tenant');
+        }
+    }
+
+    /**
      * @return array<string, mixed>
      */
     private function serialize(Tenant $tenant): array
@@ -153,6 +238,7 @@ class TenantController extends Controller
             'subdomain_url' => $tenant->subdomainUrl(),
             'razon_social' => $tenant->razon_social,
             'nombre_comercial' => $tenant->nombre_comercial,
+            'descripcion' => $tenant->descripcion,
             'ruc' => $tenant->ruc,
             'email_admin' => $tenant->email_admin,
             'telefono' => $tenant->telefono,

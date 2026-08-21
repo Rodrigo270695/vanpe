@@ -28,6 +28,10 @@ class StoreTenantRequest extends FormRequest
             'latitud' => ['nullable', 'numeric', 'between:-90,90'],
             'longitud' => ['nullable', 'numeric', 'between:-180,180'],
             'canal_adquisicion' => ['nullable', 'string', 'max:50'],
+            'descripcion' => ['nullable', 'string', 'max:4000'],
+            'portada' => ['nullable', 'image', 'mimes:jpeg,jpg,png,webp', 'max:4096'],
+            'photos' => ['nullable', 'array', 'max:8'],
+            'photos.*' => ['image', 'mimes:jpeg,jpg,png,webp', 'max:4096'],
             'owner_name' => ['required', 'string', 'max:120'],
             'owner_password' => ['required', 'confirmed', Password::defaults()],
         ];
@@ -39,6 +43,7 @@ class StoreTenantRequest extends FormRequest
             'latitud' => $this->blankToNull('latitud'),
             'longitud' => $this->blankToNull('longitud'),
             'direccion' => $this->blankToNull('direccion'),
+            'descripcion' => $this->blankToNull('descripcion'),
         ]);
     }
 

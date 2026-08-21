@@ -1,8 +1,9 @@
 import { useForm } from '@inertiajs/react';
-import { Store } from 'lucide-react';
-import { useEffect, useMemo } from 'react';
+import { Store, Trash2 } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { BaseModal } from '@/components/common/base-modal';
 import { FormField } from '@/components/common/form-field';
+import { ImageUploadField } from '@/components/common/image-upload-field';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import {
@@ -15,6 +16,8 @@ import {
 import type { TenantRow } from '@/components/tenants/types';
 import { useTranslations } from '@/hooks/use-translations';
 import { cn } from '@/lib/utils';
+
+const MAX_GALLERY = 8;
 
 type TenantFormModalProps = {
     open: boolean;
@@ -31,9 +34,33 @@ export function TenantFormModal({
 }: TenantFormModalProps) {
     const { t } = useTranslations();
     const isEditing = tenant !== null;
+    const galleryInputRef = useRef<HTMLInputElement>(null);
+    const [galleryPreviews, setGalleryPreviews] = useState<string[]>([]);
 
     const { data, setData, post, put, processing, errors, reset, clearErrors, transform } =
-        useForm({
+        useForm<{
+            nombre_comercial: string;
+            razon_social: string;
+            slug: string;
+            ruc: string;
+            email_admin: string;
+            telefono: string;
+            canal_adquisicion: string;
+            owner_name: string;
+            owner_password: string;
+            owner_password_confirmation: string;
+            direccion: string;
+            latitud: string;
+            longitud: string;
+            descripcion: string;
+            portada: File | null;
+            photos: File[];
+            estado: string;
+            suspension_reason: string;
+            publicado: boolean;
+            onboarding_completado: boolean;
+            onboarding_paso: number;
+        }>({
             nombre_comercial: '',
             razon_social: '',
             slug: '',
@@ -47,6 +74,9 @@ export function TenantFormModal({
             direccion: '',
             latitud: '',
             longitud: '',
+            descripcion: '',
+            portada: null,
+            photos: [],
             estado: 'trial',
             suspension_reason: '',
             publicado: false,
@@ -76,18 +106,31 @@ export function TenantFormModal({
                     tenant.longitud !== null && tenant.longitud !== undefined
                         ? String(tenant.longitud)
                         : '',
+                descripcion: tenant.descripcion ?? '',
+                portada: null,
+                photos: [],
                 estado: tenant.estado,
                 suspension_reason: tenant.suspension_reason ?? '',
                 publicado: tenant.publicado,
                 onboarding_completado: tenant.onboarding_completado,
                 onboarding_paso: tenant.onboarding_paso,
             });
+            setGalleryPreviews([]);
         }
         if (open && !tenant) {
             reset();
+            setGalleryPreviews([]);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open, tenant]);
+
+    useEffect(() => {
+        const urls = data.photos.map((file) => URL.createObjectURL(file));
+        setGalleryPreviews(urls);
+        return () => {
+            urls.forEach((url) => URL.revokeObjectURL(url));
+        };
+    }, [data.photos]);
 
     const statusLabel = (status: string) =>
         t(`tenants.status_${status}` as 'tenants.status_trial');
@@ -114,6 +157,21 @@ export function TenantFormModal({
         return true;
     }, [data, isEditing]);
 
+    const addGalleryFiles = (files: FileList | null) => {
+        if (!files?.length) return;
+        const incoming = Array.from(files);
+        const next = [...data.photos, ...incoming].slice(0, MAX_GALLERY);
+        setData('photos', next);
+        if (galleryInputRef.current) galleryInputRef.current.value = '';
+    };
+
+    const removeGalleryFile = (index: number) => {
+        setData(
+            'photos',
+            data.photos.filter((_, i) => i !== index),
+        );
+    };
+
     const submit = () => {
         const parseCoord = (raw: string): number | null => {
             const trimmed = raw.trim().replace(',', '.');
@@ -127,10 +185,12 @@ export function TenantFormModal({
             latitud: parseCoord(String(payload.latitud ?? '')),
             longitud: parseCoord(String(payload.longitud ?? '')),
             direccion: payload.direccion || null,
+            descripcion: payload.descripcion || null,
         }));
 
         const options = {
             preserveScroll: true,
+            forceFormData: true as const,
             onSuccess: () => onOpenChange(false),
         };
 
@@ -168,6 +228,7 @@ export function TenantFormModal({
             onAfterClose={() => {
                 reset();
                 clearErrors();
+                setGalleryPreviews([]);
             }}
         >
             <div className="grid gap-5 sm:grid-cols-2">
@@ -363,6 +424,103 @@ export function TenantFormModal({
                         className="bg-card font-mono text-sm"
                     />
                 </FormField>
+
+                <div className="space-y-3 rounded-xl border border-border bg-muted/20 p-4 sm:col-span-2">
+                    <p className="text-sm font-semibold text-foreground">
+                        {t('tenants.section_content')}
+                    </p>
+
+                    <FormField
+                        label={t('tenants.field_descripcion')}
+                        error={errors.descripcion}
+                    >
+                        <textarea
+                            value={data.descripcion}
+                            onChange={(e) => setData('descripcion', e.target.value)}
+                            rows={4}
+                            maxLength={4000}
+                            placeholder={t('tenants.field_descripcion_placeholder')}
+                            className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm"
+                        />
+                    </FormField>
+
+                    {!isEditing && (
+                        <div className="grid gap-4 sm:grid-cols-2">
+                            <FormField
+                                label={t('tenants.field_portada')}
+                                error={errors.portada}
+                            >
+                                <p className="mb-2 text-[12px] text-muted-foreground">
+                                    {t('tenants.field_portada_hint')}
+                                </p>
+                                <ImageUploadField
+                                    value={data.portada}
+                                    existingUrl={null}
+                                    removed={false}
+                                    onFileChange={(file) => setData('portada', file)}
+                                    onRemove={() => setData('portada', null)}
+                                    layout="compact"
+                                    previewAspect="video"
+                                />
+                            </FormField>
+
+                            <div className="space-y-2">
+                                <p className="text-sm font-medium">
+                                    {t('tenants.field_gallery')}
+                                </p>
+                                <p className="text-[12px] text-muted-foreground">
+                                    {t('tenants.field_gallery_hint', {
+                                        max: MAX_GALLERY,
+                                    })}
+                                </p>
+
+                                <div className="grid grid-cols-3 gap-2">
+                                    {galleryPreviews.map((url, index) => (
+                                        <div
+                                            key={`${url}-${index}`}
+                                            className="group relative overflow-hidden rounded-lg border border-brand-blue/30"
+                                        >
+                                            <img
+                                                src={url}
+                                                alt=""
+                                                className="aspect-square w-full object-cover"
+                                            />
+                                            <button
+                                                type="button"
+                                                className="absolute top-1 right-1 rounded-full bg-black/60 p-1 text-white opacity-0 transition-opacity group-hover:opacity-100"
+                                                onClick={() => removeGalleryFile(index)}
+                                            >
+                                                <Trash2 className="size-3.5" />
+                                            </button>
+                                        </div>
+                                    ))}
+
+                                    {data.photos.length < MAX_GALLERY ? (
+                                        <button
+                                            type="button"
+                                            onClick={() => galleryInputRef.current?.click()}
+                                            className="flex aspect-square items-center justify-center rounded-lg border border-dashed border-border bg-card text-xs font-medium text-muted-foreground hover:border-brand-blue/40 hover:text-brand-blue"
+                                        >
+                                            + Foto
+                                        </button>
+                                    ) : null}
+                                </div>
+
+                                <input
+                                    ref={galleryInputRef}
+                                    type="file"
+                                    accept="image/jpeg,image/png,image/webp"
+                                    multiple
+                                    className="hidden"
+                                    onChange={(e) => addGalleryFiles(e.target.files)}
+                                />
+                                {errors.photos ? (
+                                    <p className="text-xs text-destructive">{errors.photos}</p>
+                                ) : null}
+                            </div>
+                        </div>
+                    )}
+                </div>
 
                 {isEditing && (
                     <>

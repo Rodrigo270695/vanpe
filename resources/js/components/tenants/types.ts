@@ -15,6 +15,7 @@ export type TenantRow = {
     subdomain_url: string;
     razon_social: string;
     nombre_comercial: string;
+    descripcion: string | null;
     ruc: string | null;
     email_admin: string;
     telefono: string | null;
