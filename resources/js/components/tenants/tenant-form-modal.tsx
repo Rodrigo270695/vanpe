@@ -37,7 +37,7 @@ export function TenantFormModal({
     const galleryInputRef = useRef<HTMLInputElement>(null);
     const [galleryPreviews, setGalleryPreviews] = useState<string[]>([]);
 
-    const { data, setData, post, put, processing, errors, reset, clearErrors, transform } =
+    const { data, setData, post, processing, errors, reset, clearErrors, transform } =
         useForm<{
             nombre_comercial: string;
             razon_social: string;
@@ -180,25 +180,49 @@ export function TenantFormModal({
             return Number.isFinite(n) ? Number(n.toFixed(6)) : null;
         };
 
-        transform((payload) => ({
-            ...payload,
-            latitud: parseCoord(String(payload.latitud ?? '')),
-            longitud: parseCoord(String(payload.longitud ?? '')),
-            direccion: payload.direccion || null,
-            descripcion: payload.descripcion || null,
-        }));
-
         const options = {
             preserveScroll: true,
             forceFormData: true as const,
             onSuccess: () => onOpenChange(false),
         };
 
+        // PUT multipart no se parsea en PHP: en edición se envía POST + _method=put
+        // (mismo patrón que carta / centros turísticos).
         if (isEditing) {
-            put(`/restaurantes/${tenant.id}`, options);
-        } else {
-            post('/restaurantes', options);
+            transform((payload) => ({
+                nombre_comercial: payload.nombre_comercial,
+                razon_social: payload.razon_social,
+                ruc: payload.ruc || null,
+                email_admin: payload.email_admin,
+                telefono: payload.telefono || null,
+                canal_adquisicion: payload.canal_adquisicion || null,
+                direccion: payload.direccion || null,
+                descripcion: payload.descripcion || null,
+                latitud: parseCoord(String(payload.latitud ?? '')),
+                longitud: parseCoord(String(payload.longitud ?? '')),
+                estado: payload.estado,
+                suspension_reason: payload.suspension_reason || null,
+                publicado: Boolean(payload.publicado),
+                onboarding_completado: Boolean(payload.onboarding_completado),
+                onboarding_paso: Number(payload.onboarding_paso) || 0,
+                _method: 'put',
+            }));
+            post(`/restaurantes/${tenant.id}`, options);
+            return;
         }
+
+        transform((payload) => ({
+            ...payload,
+            latitud: parseCoord(String(payload.latitud ?? '')),
+            longitud: parseCoord(String(payload.longitud ?? '')),
+            direccion: payload.direccion || null,
+            descripcion: payload.descripcion || null,
+            ruc: payload.ruc || null,
+            telefono: payload.telefono || null,
+            canal_adquisicion: payload.canal_adquisicion || null,
+            slug: payload.slug || null,
+        }));
+        post('/restaurantes', options);
     };
 
     return (

@@ -61,6 +61,13 @@ class UpdateTenantRequest extends FormRequest
             'longitud' => $this->blankToNull('longitud'),
             'direccion' => $this->blankToNull('direccion'),
             'descripcion' => $this->blankToNull('descripcion'),
+            'ruc' => $this->blankToNull('ruc'),
+            'telefono' => $this->blankToNull('telefono'),
+            'canal_adquisicion' => $this->blankToNull('canal_adquisicion'),
+            'suspension_reason' => $this->blankToNull('suspension_reason'),
+            'publicado' => $this->boolean('publicado'),
+            'onboarding_completado' => $this->boolean('onboarding_completado'),
+            'onboarding_paso' => (int) $this->input('onboarding_paso', 0),
         ]);
     }
 

@@ -94,6 +94,8 @@ class TourEventCatalogQuery
             'owner_type' => $event->owner_type,
             'departamento' => $event->departamento?->name,
             'distrito' => $event->distrito?->name,
+            'latitud' => $event->latitud,
+            'longitud' => $event->longitud,
             'organizer' => $this->organizerPayload($event),
         ];
     }
