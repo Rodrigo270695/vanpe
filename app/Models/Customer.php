@@ -25,6 +25,7 @@ use Laravel\Sanctum\HasApiTokens;
  * @property string|null $avatar_url
  * @property string|null $password
  * @property string|null $google_id
+ * @property string|null $facebook_id
  * @property string $status
  * @property Carbon|null $email_verified_at
  * @property Carbon|null $last_login_at
@@ -53,6 +54,7 @@ class Customer extends Authenticatable implements CanResetPasswordContract
         'avatar_url',
         'password',
         'google_id',
+        'facebook_id',
         'status',
         'email_verified_at',
         'last_login_at',
@@ -62,6 +64,7 @@ class Customer extends Authenticatable implements CanResetPasswordContract
         'password',
         'remember_token',
         'google_id',
+        'facebook_id',
     ];
 
     /**

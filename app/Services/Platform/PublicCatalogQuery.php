@@ -11,6 +11,16 @@ use Illuminate\Database\Eloquent\Builder;
 class PublicCatalogQuery
 {
     /**
+     * Solo fichas activas con tenant vivo y visible en app (publicado).
+     *
+     * @return Builder<PubRestaurant>
+     */
+    private function visibleRestaurantsQuery(): Builder
+    {
+        return PubRestaurant::query()->visibleInApp();
+    }
+
+    /**
      * @return LengthAwarePaginator<int, PubRestaurant>
      */
     public function listRestaurants(
@@ -23,8 +33,7 @@ class PublicCatalogQuery
     ): LengthAwarePaginator {
         $term = $search !== null ? trim($search) : '';
 
-        return PubRestaurant::query()
-            ->where('activo', true)
+        return $this->visibleRestaurantsQuery()
             ->when($departamentoId, fn (Builder $q) => $q->where('departamento_id', $departamentoId))
             ->when($provinciaId, fn (Builder $q) => $q->where('provincia_id', $provinciaId))
             ->when($distritoId, fn (Builder $q) => $q->where('distrito_id', $distritoId))
@@ -46,9 +55,8 @@ class PublicCatalogQuery
 
     public function findBySlug(string $slug): ?PubRestaurant
     {
-        return PubRestaurant::query()
+        return $this->visibleRestaurantsQuery()
             ->where('slug', $slug)
-            ->where('activo', true)
             ->with([
                 'photos' => fn ($q) => $q->orderBy('sort_order'),
                 'hours' => fn ($q) => $q->orderBy('day_of_week'),
@@ -63,9 +71,8 @@ class PublicCatalogQuery
      */
     public function availabilityForSlug(string $slug, ?string $date = null): \Illuminate\Support\Collection
     {
-        $restaurant = PubRestaurant::query()
+        $restaurant = $this->visibleRestaurantsQuery()
             ->where('slug', $slug)
-            ->where('activo', true)
             ->first();
 
         if ($restaurant === null) {

@@ -4,10 +4,15 @@ namespace App\Http\Controllers\Api\Tourist;
 
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
+use App\Models\PubRestaurant;
+use App\Models\TourEvent;
 use App\Models\TouristRoute;
 use App\Models\TouristRouteStop;
+use App\Models\TourSpot;
+use App\Support\PublicMediaUrl;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
@@ -305,6 +310,10 @@ class TouristRouteController extends Controller
      */
     private function serialize(TouristRoute $route): array
     {
+        $imageByKey = $route->relationLoaded('stops')
+            ? $this->resolveStopImages($route->stops)
+            : [];
+
         return [
             'id' => $route->id,
             'name' => $route->name,
@@ -316,17 +325,73 @@ class TouristRouteController extends Controller
             'created_at' => $route->created_at?->toIso8601String(),
             'updated_at' => $route->updated_at?->toIso8601String(),
             'stops' => $route->relationLoaded('stops')
-                ? $route->stops->map(fn (TouristRouteStop $stop): array => [
-                    'id' => $stop->id,
-                    'target_type' => $stop->target_type,
-                    'target_id' => $stop->target_id,
-                    'slug' => $stop->slug,
-                    'nombre' => $stop->nombre,
-                    'latitud' => (float) $stop->latitud,
-                    'longitud' => (float) $stop->longitud,
-                    'sort_order' => (int) $stop->sort_order,
-                ])->values()->all()
+                ? $route->stops->map(function (TouristRouteStop $stop) use ($imageByKey): array {
+                    $key = $stop->target_type.':'.$stop->target_id;
+
+                    return [
+                        'id' => $stop->id,
+                        'target_type' => $stop->target_type,
+                        'target_id' => $stop->target_id,
+                        'slug' => $stop->slug,
+                        'nombre' => $stop->nombre,
+                        'latitud' => (float) $stop->latitud,
+                        'longitud' => (float) $stop->longitud,
+                        'sort_order' => (int) $stop->sort_order,
+                        'image_url' => $imageByKey[$key] ?? null,
+                    ];
+                })->values()->all()
                 : [],
         ];
+    }
+
+    /**
+     * @param  Collection<int, TouristRouteStop>  $stops
+     * @return array<string, string|null>
+     */
+    private function resolveStopImages(Collection $stops): array
+    {
+        $restaurantIds = $stops->where('target_type', 'restaurant')->pluck('target_id')->unique()->values();
+        $spotIds = $stops->where('target_type', 'tour_spot')->pluck('target_id')->unique()->values();
+        $eventIds = $stops->where('target_type', 'tour_event')->pluck('target_id')->unique()->values();
+
+        $restaurants = $restaurantIds->isEmpty()
+            ? collect()
+            : PubRestaurant::query()
+                ->whereIn('id', $restaurantIds)
+                ->get(['id', 'portada_url', 'logo_url'])
+                ->keyBy('id');
+
+        $spots = $spotIds->isEmpty()
+            ? collect()
+            : TourSpot::query()
+                ->whereIn('id', $spotIds)
+                ->get(['id', 'imagen_portada_url'])
+                ->keyBy('id');
+
+        $events = $eventIds->isEmpty()
+            ? collect()
+            : TourEvent::query()
+                ->whereIn('id', $eventIds)
+                ->get(['id', 'portada_url'])
+                ->keyBy('id');
+
+        $out = [];
+        foreach ($stops as $stop) {
+            $key = $stop->target_type.':'.$stop->target_id;
+            $url = null;
+
+            if ($stop->target_type === 'restaurant') {
+                $row = $restaurants->get($stop->target_id);
+                $url = $row?->portada_url ?: $row?->logo_url;
+            } elseif ($stop->target_type === 'tour_spot') {
+                $url = $spots->get($stop->target_id)?->imagen_portada_url;
+            } elseif ($stop->target_type === 'tour_event') {
+                $url = $events->get($stop->target_id)?->portada_url;
+            }
+
+            $out[$key] = PublicMediaUrl::make($url);
+        }
+
+        return $out;
     }
 }

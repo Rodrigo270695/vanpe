@@ -7,7 +7,6 @@ use App\Http\Requests\Tourist\StoreReviewRequest;
 use App\Models\Customer;
 use App\Models\CustomerReview;
 use App\Services\Tourist\ReviewRatingService;
-use App\Services\Tourist\TouristReservationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -15,7 +14,6 @@ class ReviewController extends Controller
 {
     public function __construct(
         private readonly ReviewRatingService $ratings,
-        private readonly TouristReservationService $reservations,
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -68,19 +66,6 @@ class ReviewController extends Controller
         $targetType = (string) $request->validated('target_type');
         $targetId = (string) $request->validated('target_id');
 
-        if ($targetType === CustomerReview::TARGET_RESTAURANT) {
-            $allowed = $this->reservations->customerCanReviewRestaurant($customer, $targetId);
-
-            if (! $allowed) {
-                return response()->json([
-                    'message' => 'Primero marca tu visita como realizada en Mis reservas.',
-                    'errors' => [
-                        'target_id' => ['Solo puedes reseñar un restaurante después de visitarlo.'],
-                    ],
-                ], 422);
-            }
-        }
-
         $review = $this->ratings->upsert(
             $customer,
             $targetType,
@@ -104,23 +89,16 @@ class ReviewController extends Controller
 
     public function eligibility(Request $request): JsonResponse
     {
-        /** @var Customer $customer */
-        $customer = $request->user();
-
-        $data = $request->validate([
+        $request->validate([
             'target_type' => ['required', 'in:restaurant,tour_spot'],
             'target_id' => ['required', 'uuid'],
         ]);
 
-        $canReview = $data['target_type'] === 'tour_spot'
-            || $this->reservations->customerCanReviewRestaurant($customer, $data['target_id']);
-
+        // Por ahora: cualquier turista autenticado puede reseñar (sin exigir reserva/visita).
         return response()->json([
             'data' => [
-                'can_review' => $canReview,
-                'reason' => $canReview
-                    ? null
-                    : 'Marca tu visita en Mis reservas para poder reseñar.',
+                'can_review' => true,
+                'reason' => null,
             ],
         ]);
     }

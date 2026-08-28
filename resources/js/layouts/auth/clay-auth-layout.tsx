@@ -292,6 +292,22 @@ export default function ClayAuthLayout({ children }: { children: ReactNode }) {
                                     </Link>
                                 </div>
                             )}
+
+                            <div className="mt-4 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-center text-xs text-muted-foreground">
+                                <Link
+                                    href="/privacidad"
+                                    className="hover:text-brand-blue dark:hover:text-brand-blue-light"
+                                >
+                                    {t('legal.nav.privacy')}
+                                </Link>
+                                <span aria-hidden="true">·</span>
+                                <Link
+                                    href="/terminos"
+                                    className="hover:text-brand-blue dark:hover:text-brand-blue-light"
+                                >
+                                    {t('legal.nav.terms')}
+                                </Link>
+                            </div>
                         </div>
                     </div>
                 </div>

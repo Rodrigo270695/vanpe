@@ -57,7 +57,7 @@ class HomeController extends Controller
 
         if ($recommendedRestaurants === null) {
             $recommendedRestaurants = PubRestaurant::query()
-                ->where('activo', true)
+                ->visibleInApp()
                 ->orderByDesc('score_ranking')
                 ->orderByDesc('destacado')
                 ->limit($limit)
@@ -78,26 +78,105 @@ class HomeController extends Controller
             'data' => [
                 'mode' => $mode,
                 'restaurants' => $recommendedRestaurants->map(function (PubRestaurant $restaurant): array {
-                    return [
-                        'id' => $restaurant->id,
-                        'slug' => $restaurant->slug,
-                        'nombre' => $restaurant->nombre,
-                        'direccion' => $restaurant->direccion,
-                        'portada_url' => PublicMediaUrl::make($restaurant->portada_url),
-                        'logo_url' => PublicMediaUrl::make($restaurant->logo_url),
-                        'tipo_cocina' => $restaurant->tipo_cocina ?? [],
-                        'rango_precio' => $restaurant->rango_precio,
-                        'rating_promedio' => (float) $restaurant->rating_promedio,
-                        'total_resenas' => (int) $restaurant->total_resenas,
-                        'destacado' => (bool) $restaurant->destacado,
-                        'latitud' => $restaurant->latitud !== null ? (float) $restaurant->latitud : null,
-                        'longitud' => $restaurant->longitud !== null ? (float) $restaurant->longitud : null,
-                    ];
+                    return $this->serializeRestaurant($restaurant);
                 })->values(),
                 'tour_spots' => $recommendedSpots
                     ->map(fn (TourSpot $spot): array => $this->tourSpots->toListItem($spot))
                     ->values(),
+                'featured' => [
+                    'restaurants' => $this->featuredRestaurants($limit)
+                        ->map(fn (PubRestaurant $r): array => $this->serializeRestaurant($r))
+                        ->values(),
+                    'tour_spots' => $this->featuredTourSpots($limit)
+                        ->map(fn (TourSpot $spot): array => $this->tourSpots->toListItem($spot))
+                        ->values(),
+                ],
+                'recent' => [
+                    'restaurants' => $this->recentRestaurants($limit)
+                        ->map(fn (PubRestaurant $r): array => $this->serializeRestaurant($r))
+                        ->values(),
+                    'tour_spots' => $this->recentTourSpots($limit)
+                        ->map(fn (TourSpot $spot): array => $this->tourSpots->toListItem($spot))
+                        ->values(),
+                ],
             ],
         ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function serializeRestaurant(PubRestaurant $restaurant): array
+    {
+        return [
+            'id' => $restaurant->id,
+            'slug' => $restaurant->slug,
+            'nombre' => $restaurant->nombre,
+            'direccion' => $restaurant->direccion,
+            'portada_url' => PublicMediaUrl::make($restaurant->portada_url),
+            'logo_url' => PublicMediaUrl::make($restaurant->logo_url),
+            'tipo_cocina' => $restaurant->tipo_cocina ?? [],
+            'rango_precio' => $restaurant->rango_precio,
+            'rating_promedio' => (float) $restaurant->rating_promedio,
+            'total_resenas' => (int) $restaurant->total_resenas,
+            'destacado' => (bool) $restaurant->destacado,
+            'latitud' => $restaurant->latitud !== null ? (float) $restaurant->latitud : null,
+            'longitud' => $restaurant->longitud !== null ? (float) $restaurant->longitud : null,
+            'created_at' => $restaurant->created_at?->toIso8601String(),
+        ];
+    }
+
+    /** @return \Illuminate\Support\Collection<int, PubRestaurant> */
+    private function featuredRestaurants(int $limit)
+    {
+        return PubRestaurant::query()
+            ->visibleInApp()
+            ->where('destacado', true)
+            ->where(function ($q): void {
+                $q->whereNull('destacado_hasta')
+                    ->orWhere('destacado_hasta', '>=', now());
+            })
+            ->orderByDesc('score_ranking')
+            ->limit($limit)
+            ->get();
+    }
+
+    /** @return \Illuminate\Support\Collection<int, TourSpot> */
+    private function featuredTourSpots(int $limit)
+    {
+        return TourSpot::query()
+            ->where('estado', TourSpot::ESTADO_PUBLICADO)
+            ->where('destacado', true)
+            ->where(function ($q): void {
+                $q->whereNull('destacado_hasta')
+                    ->orWhere('destacado_hasta', '>=', now());
+            })
+            ->with(['categories', 'departamento:id,name', 'distrito:id,name'])
+            ->orderByDesc('score_ranking')
+            ->limit($limit)
+            ->get();
+    }
+
+    /** @return \Illuminate\Support\Collection<int, PubRestaurant> */
+    private function recentRestaurants(int $limit)
+    {
+        return PubRestaurant::query()
+            ->visibleInApp()
+            ->where('created_at', '>=', now()->subDays(7))
+            ->orderByDesc('created_at')
+            ->limit($limit)
+            ->get();
+    }
+
+    /** @return \Illuminate\Support\Collection<int, TourSpot> */
+    private function recentTourSpots(int $limit)
+    {
+        return TourSpot::query()
+            ->where('estado', TourSpot::ESTADO_PUBLICADO)
+            ->where('created_at', '>=', now()->subDays(7))
+            ->with(['categories', 'departamento:id,name', 'distrito:id,name'])
+            ->orderByDesc('created_at')
+            ->limit($limit)
+            ->get();
     }
 }

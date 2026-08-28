@@ -67,6 +67,22 @@ class PubRestaurant extends Model
         return $this->belongsTo(Tenant::class);
     }
 
+    /**
+     * Visible en la app turista: ficha activa + tenant vivo y publicado.
+     *
+     * @param  \Illuminate\Database\Eloquent\Builder<static>  $query
+     * @return \Illuminate\Database\Eloquent\Builder<static>
+     */
+    public function scopeVisibleInApp($query)
+    {
+        return $query
+            ->where('activo', true)
+            ->whereHas('tenant', function ($q): void {
+                $q->where('publicado', true)
+                    ->whereIn('estado', ['trial', 'active']);
+            });
+    }
+
     /** @return HasMany<PubRestaurantPhoto, $this> */
     public function photos(): HasMany
     {

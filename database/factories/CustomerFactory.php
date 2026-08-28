@@ -26,6 +26,7 @@ class CustomerFactory extends Factory
             'avatar_url' => null,
             'password' => static::$password ??= Hash::make('password'),
             'google_id' => null,
+            'facebook_id' => null,
             'status' => Customer::STATUS_ACTIVE,
             'email_verified_at' => now(),
             'last_login_at' => null,

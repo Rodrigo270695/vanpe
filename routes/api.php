@@ -42,6 +42,7 @@ Route::prefix('v1/tourist')->group(function () {
         Route::post('register', [AuthController::class, 'register']);
         Route::post('login', [AuthController::class, 'login']);
         Route::post('google', [AuthController::class, 'google']);
+        Route::post('facebook', [AuthController::class, 'facebook']);
         Route::post('forgot-password', [PasswordResetController::class, 'forgot']);
         Route::post('reset-password', [PasswordResetController::class, 'reset']);
     });

@@ -8,6 +8,7 @@ use App\Http\Requests\Platform\UpdateTenantRequest;
 use App\Models\Tenant;
 use App\Models\Tenant\CfgVenuePhoto;
 use App\Services\Platform\PublicCatalogPublisher;
+use App\Services\Platform\PublicCatalogSync;
 use App\Services\Tenant\TenantProvisioner;
 use App\Services\Tenant\VenueImageStorage;
 use App\Support\TenantSlug;
@@ -159,9 +160,18 @@ class TenantController extends Controller
         return back()->with('success', __('messages.tenants.updated'));
     }
 
-    public function destroy(Request $request, Tenant $tenant): RedirectResponse
-    {
+    public function destroy(
+        Request $request,
+        Tenant $tenant,
+        PublicCatalogSync $catalogSync,
+    ): RedirectResponse {
         abort_unless((bool) $request->user()?->can('tenants.delete'), 403);
+
+        try {
+            $catalogSync->deactivate($tenant);
+        } catch (\Throwable) {
+            // Si no hay ficha pública, seguimos con el soft-delete del tenant.
+        }
 
         $tenant->delete();
 

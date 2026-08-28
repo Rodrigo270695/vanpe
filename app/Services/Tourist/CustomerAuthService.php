@@ -71,4 +71,44 @@ class CustomerAuthService
             'email_verified_at' => now(),
         ]);
     }
+
+    /**
+     * Crea o vincula cuenta Facebook por correo (sin contraseña falsa).
+     *
+     * @param  array{sub: string, email: string, name: string|null, picture: string|null, email_verified: bool}  $facebook
+     */
+    public function findOrCreateFromFacebook(array $facebook): Customer
+    {
+        $customer = Customer::query()
+            ->where('facebook_id', $facebook['sub'])
+            ->first();
+
+        if ($customer !== null) {
+            return $customer;
+        }
+
+        $customer = Customer::query()
+            ->where('email', $facebook['email'])
+            ->first();
+
+        if ($customer !== null) {
+            $customer->forceFill([
+                'facebook_id' => $facebook['sub'],
+                'avatar_url' => $customer->avatar_url ?: $facebook['picture'],
+                'email_verified_at' => $customer->email_verified_at ?? now(),
+            ])->save();
+
+            return $customer->fresh() ?? $customer;
+        }
+
+        return Customer::query()->create([
+            'name' => $facebook['name'] ?: strstr($facebook['email'], '@', true) ?: 'Turista VanPe',
+            'email' => $facebook['email'],
+            'password' => null,
+            'facebook_id' => $facebook['sub'],
+            'avatar_url' => $facebook['picture'],
+            'status' => Customer::STATUS_ACTIVE,
+            'email_verified_at' => now(),
+        ]);
+    }
 }

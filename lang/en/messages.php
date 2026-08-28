@@ -1969,4 +1969,152 @@ return [
             ],
         ],
     ],
+
+    'legal' => [
+        'updated' => 'Last updated: August 27, 2026',
+        'nav' => [
+            'aria' => 'Legal documents',
+            'privacy' => 'Privacy',
+            'terms' => 'Terms',
+            'cookies' => 'Cookies',
+            'deletion' => 'Data deletion',
+        ],
+        'footer' => [
+            'contact' => 'Contact: privacidad@vanpe.pe',
+            'rights' => '© :year VanPe — Peru. All rights reserved.',
+        ],
+        'privacy' => [
+            'title' => 'Privacy policy',
+            'body' => <<<'TEXT'
+VanPe (“we”, “our platform”) respects your privacy and processes personal data in accordance with Peru’s Law No. 29733 on Personal Data Protection and its regulations. This policy explains what information we collect, how we use it, and your rights.
+
+1. Data controller
+VanPe Peru, operator of the VanPe mobile app and vanpe.pe. To exercise your ARCO rights (access, rectification, cancellation, and objection), email privacidad@vanpe.pe.
+
+2. Data we collect
+We collect: name; email address; phone (optional); profile photo (if you sign in with Google or Facebook or upload one); Google or Facebook account identifiers when you use those sign-in methods; travel, food, and interest preferences; approximate or precise location (only if you authorize it on your device); “My plan” stops, favorites, reviews, and reservation requests; basic technical usage data (app version, language, navigation events); and session tokens to keep you signed in.
+
+3. Purposes of processing
+We use your data to: create and manage your account; personalize recommendations and travel routes; sync your trip plan across devices; process and manage reservations with restaurants or tourist centers; send notifications related to your activity (confirmations, reminders); improve security, prevent fraud, and analyze aggregated service usage; and comply with legal obligations.
+
+4. Legal basis
+Processing is based on your consent (registration, geolocation, non-essential cookies), performance of the service contract (account and reservations), and VanPe’s legitimate interests (security, product improvement, and support), always respecting your rights.
+
+5. Third-party sign-in
+If you choose “Continue with Google” or “Continue with Facebook”, we receive the information you authorize from those providers (e.g. name, email, profile picture). VanPe does not access your Google or Facebook password. Use of those services is also governed by Google’s and Meta’s policies.
+
+6. Sharing with third parties
+We share only the information necessary with venues when you request a reservation (name, contact, date, and reservation details). We may use infrastructure providers (hosting, email, maps, aggregated analytics) as processors under contract. We do not sell or rent your personal data.
+
+7. Geolocation and maps
+Location is used to show nearby places, center maps, and optimize routes in “My plan”. You can revoke permission in your device settings; some features will become unavailable without affecting the rest of the app.
+
+8. Retention
+We keep your data while you maintain an active account or as needed to provide the service, resolve disputes, or meet legal obligations. After you request account deletion, we delete or anonymize your data within a reasonable period, except where retention is required by law.
+
+9. Security
+We apply reasonable technical and organizational measures (encryption in transit, access controls, session tokens). No system is perfect; we recommend strong passwords and not sharing your credentials.
+
+10. Your rights
+You can access, rectify, update, or delete your account from Profile in the app. You may also object to certain processing, withdraw consent, and file a complaint with Peru’s National Authority for Personal Data Protection (ANPDP). Email privacidad@vanpe.pe for additional requests.
+
+11. Minors
+VanPe is intended for users with legal capacity to contract. If you are a minor, use the app under supervision of a responsible adult.
+
+12. Changes
+We may update this policy. The current version will be published at vanpe.pe/privacidad with the update date. Continued use after a material change implies your acknowledgment, unless additional consent is required by law.
+
+By registering or using VanPe, you confirm that you have read and understood this privacy policy.
+TEXT,
+        ],
+        'terms' => [
+            'title' => 'Terms and conditions',
+            'body' => <<<'TEXT'
+Welcome to VanPe. These terms govern access to and use of the VanPe mobile app, vanpe.pe, and related services. By creating an account or using the platform, you accept these terms and our privacy policy.
+
+1. The service
+VanPe is a tourism platform connecting travelers with restaurants, tourist centers, fairs, festivities, and personalized recommendations. Some features require registration. VanPe acts as a technology intermediary; the final service at the venue is provided by third parties.
+
+2. User account
+You must provide accurate information and keep your password confidential. You are responsible for activity on your account. Notify us immediately of unauthorized use. VanPe may suspend or close accounts that violate these terms or the law.
+
+3. Reservations
+Reservations are subject to venue availability. VanPe facilitates the request; confirmation, modification, or rejection is done by the business. Arrive on time and respect venue policies. VanPe does not guarantee tables, schedules, or specific third-party conditions.
+
+4. Content and reviews
+Content you publish (reviews, comments) must be lawful, truthful, and respectful. It must not include third parties’ sensitive data, spam, or defamatory material. VanPe may moderate or remove content that violates these rules or others’ rights.
+
+5. Acceptable use
+You may not use VanPe for fraud, harassment, impersonation, unauthorized scraping, interference with the service, reverse engineering, or any illegal activity. Do not attempt to access data or systems outside your account.
+
+6. Intellectual property
+VanPe, its brand, design, software, and own content are protected. You acquire no rights except a limited license to use the app under these terms. Third-party content (venue photos, trademarks) belongs to its owners.
+
+7. Availability and changes
+We may modify, suspend, or discontinue features with reasonable notice when possible. The service is provided “as is” and “as available”, without warranty of error-free or uninterrupted operation.
+
+8. Limitation of liability
+To the extent permitted by Peruvian law, VanPe is not liable for indirect damages, lost profits, decisions based on recommendations, maps, routes, or third-party information, or acts or omissions of venues. Your direct contractual relationship for consumption or visits is with the venue.
+
+9. Emergencies
+Access to Peru emergency numbers (e.g. Police 105, Firefighters 116, SAMU 106) opens the phone dialer. Verify local coverage and conditions; VanPe does not provide emergency services.
+
+10. Governing law
+These terms are governed by the laws of the Republic of Peru. Any dispute shall be submitted to the competent courts of Lima, unless mandatory law provides otherwise.
+
+11. Changes
+We may update these terms. The current version will be at vanpe.pe/terminos. Continued use after publication implies acceptance of the changes.
+
+By creating an account, you accept these terms and VanPe’s privacy policy.
+TEXT,
+        ],
+        'cookies' => [
+            'title' => 'Cookie policy',
+            'body' => <<<'TEXT'
+This policy explains how VanPe uses cookies and similar technologies on vanpe.pe and related web services.
+
+1. What are cookies?
+Small files stored in your browser to remember preferences, maintain sessions, or measure site usage.
+
+2. Cookies we use
+On the VanPe web panel (vanpe.pe) we may use: session cookies (to keep you signed in securely); preference cookies (language, light/dark appearance); technical cookies required for the site to work; and, if enabled, aggregated analytics cookies to understand panel usage.
+
+3. Third-party cookies
+Google sign-in may involve Google cookies or technologies under their policy. Embedded maps or third-party resources may use their own cookies.
+
+4. Management
+You can configure your browser to block or delete cookies. If you disable essential cookies, you may not be able to sign in or some panel features may not work correctly.
+
+5. Mobile app
+The VanPe mobile app does not use browser cookies, but may store tokens and preferences locally on your device for similar purposes (session, language, settings).
+
+6. More information
+For privacy and cookie questions, contact privacidad@vanpe.pe. See also our privacy policy at vanpe.pe/privacidad.
+TEXT,
+        ],
+        'deletion' => [
+            'title' => 'Data and account deletion',
+            'body' => <<<'TEXT'
+At VanPe we respect your right to request deletion of your account and associated personal data.
+
+1. Deletion from the app
+If you have the VanPe mobile app installed, you can delete your account from Profile → Account settings → Delete account. This action is irreversible and removes your access, synced trip plan, favorites, and profile-linked reviews, except data we must retain by legal obligation.
+
+2. Request by email
+If you cannot access the app, email privacidad@vanpe.pe from the address linked to your account (or provide enough data to verify your identity). We will respond within a reasonable time under Law No. 29733.
+
+3. Data that may be retained
+We may retain anonymized or aggregated records, billing records, reservations already communicated to venues (as needed for disputes or legal obligations), and backups for the strictly necessary time before automatic purge.
+
+4. Google or Facebook sign-in
+After deleting your VanPe account, revoking VanPe app access in Google or Facebook security settings is recommended but is separate from deletion on our servers.
+
+5. Business platform
+If you are a restaurant or tourist center owner on the web panel (vanpe.pe subdomain), closing your business account is handled through VanPe support and may involve additional SaaS or billing steps.
+
+6. Contact
+privacidad@vanpe.pe — Suggested subject: “VanPe account deletion”.
+TEXT,
+        ],
+    ],
 ];

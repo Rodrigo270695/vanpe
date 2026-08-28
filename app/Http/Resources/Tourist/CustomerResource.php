@@ -29,6 +29,7 @@ class CustomerResource extends JsonResource
             'status' => $this->status,
             'has_password' => $this->hasPassword(),
             'has_google' => filled($this->google_id),
+            'has_facebook' => filled($this->facebook_id),
             'preferences_completed' => count($interestGroupIds) > 0 || count($preferenceIds) > 0,
             'interest_group_ids' => $interestGroupIds,
             'preference_ids' => $preferenceIds,

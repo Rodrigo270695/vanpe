@@ -3,12 +3,14 @@
 namespace App\Http\Controllers\Api\Tourist;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Tourist\FacebookLoginRequest;
 use App\Http\Requests\Tourist\GoogleLoginRequest;
 use App\Http\Requests\Tourist\LoginCustomerRequest;
 use App\Http\Requests\Tourist\RegisterCustomerRequest;
 use App\Http\Resources\Tourist\CustomerResource;
 use App\Models\Customer;
 use App\Services\Tourist\CustomerAuthService;
+use App\Services\Tourist\FacebookAccessTokenVerifier;
 use App\Services\Tourist\GoogleIdTokenVerifier;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -20,6 +22,7 @@ class AuthController extends Controller
     public function __construct(
         private readonly CustomerAuthService $authService,
         private readonly GoogleIdTokenVerifier $googleVerifier,
+        private readonly FacebookAccessTokenVerifier $facebookVerifier,
     ) {}
 
     public function register(RegisterCustomerRequest $request): JsonResponse
@@ -85,6 +88,26 @@ class AuthController extends Controller
 
         return response()->json([
             'message' => 'Sesión iniciada con Google.',
+            'data' => [
+                'token' => $session['token'],
+                'token_type' => $session['token_type'],
+                'customer' => new CustomerResource($session['customer']),
+            ],
+        ]);
+    }
+
+    public function facebook(FacebookLoginRequest $request): JsonResponse
+    {
+        $facebook = $this->facebookVerifier->verify($request->string('access_token')->toString());
+        $customer = $this->authService->findOrCreateFromFacebook($facebook);
+
+        $session = $this->authService->issueToken(
+            $customer,
+            $request->string('device_name')->toString() ?: 'facebook',
+        );
+
+        return response()->json([
+            'message' => 'Sesión iniciada con Facebook.',
             'data' => [
                 'token' => $session['token'],
                 'token_type' => $session['token_type'],

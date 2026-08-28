@@ -41,6 +41,11 @@ return [
         'redirect' => env('GOOGLE_REDIRECT_URI', '/auth/google/callback'),
     ],
 
+    'facebook' => [
+        'client_id' => env('FACEBOOK_APP_ID'),
+        'client_secret' => env('FACEBOOK_APP_SECRET'),
+    ],
+
     'apiperu' => [
         'base_url' => env('APIPERU_BASE_URL', 'https://apiperu.dev/api'),
         'token' => env('APIPERU_TOKEN'),

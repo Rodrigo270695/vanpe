@@ -79,6 +79,13 @@ if (app()->environment('local')) {
 
 Route::post('locale/{locale}', [LocaleController::class, 'update'])->name('locale.update');
 
+Route::middleware('tenant.none')->group(function () {
+    Route::inertia('privacidad', 'legal/privacidad')->name('legal.privacy');
+    Route::inertia('terminos', 'legal/terminos')->name('legal.terms');
+    Route::inertia('cookies', 'legal/cookies')->name('legal.cookies');
+    Route::inertia('eliminacion-datos', 'legal/eliminacion-datos')->name('legal.deletion');
+});
+
 /*
 | Google OAuth NO va bajo `guest`: si el Superadmin tiene sesión en vanpe.pe
 | y alguien abre Google desde un subdominio (popup al dominio central),

@@ -1970,4 +1970,152 @@ return [
             ],
         ],
     ],
+
+    'legal' => [
+        'updated' => 'Última actualización: 27 de agosto de 2026',
+        'nav' => [
+            'aria' => 'Documentos legales',
+            'privacy' => 'Privacidad',
+            'terms' => 'Términos',
+            'cookies' => 'Cookies',
+            'deletion' => 'Eliminación de datos',
+        ],
+        'footer' => [
+            'contact' => 'Contacto: privacidad@vanpe.pe',
+            'rights' => '© :year VanPe — Perú. Todos los derechos reservados.',
+        ],
+        'privacy' => [
+            'title' => 'Política de privacidad',
+            'body' => <<<'TEXT'
+VanPe (“nosotros”, “nuestra plataforma”) respeta tu privacidad y trata tus datos personales conforme a la Ley N.° 29733 — Ley de Protección de Datos Personales del Perú y su reglamento. Esta política describe qué información recopilamos, cómo la usamos y qué derechos tienes.
+
+1. Responsable del tratamiento
+VanPe Perú, operador de la aplicación móvil VanPe y del sitio vanpe.pe. Para ejercer tus derechos ARCO (acceso, rectificación, cancelación y oposición), escribe a privacidad@vanpe.pe.
+
+2. Datos que recopilamos
+Recopilamos: nombre y apellidos; correo electrónico; teléfono (opcional); foto de perfil (si inicias sesión con Google o Facebook o la subes manualmente); identificadores de cuenta de Google o Facebook cuando usas esos métodos de acceso; preferencias de viaje, gastronomía e intereses; ubicación aproximada o precisa (solo si la autorizas en tu dispositivo); paradas de “Mi plan”, favoritos, reseñas y solicitudes de reserva; datos técnicos de uso (versión de la app, idioma, eventos de navegación básicos) y tokens de sesión para mantenerte conectado.
+
+3. Finalidades del tratamiento
+Usamos tus datos para: crear y administrar tu cuenta; personalizar recomendaciones y rutas turísticas; sincronizar tu plan de viaje entre dispositivos; procesar y gestionar reservas con restaurantes o centros turísticos; enviarte notificaciones relacionadas con tu actividad (confirmaciones, recordatorios); mejorar la seguridad, prevenir fraude y analizar el uso agregado del servicio; y cumplir obligaciones legales.
+
+4. Base legal
+El tratamiento se basa en tu consentimiento (registro, geolocalización, cookies no esenciales), la ejecución del contrato de servicios (cuenta y reservas) y el interés legítimo de VanPe (seguridad, mejora del producto y soporte), siempre respetando tus derechos.
+
+5. Inicio de sesión con terceros
+Si eliges “Continuar con Google” o “Continuar con Facebook”, recibimos de esos proveedores la información que autorices (por ejemplo nombre, correo e imagen de perfil). VanPe no accede a tu contraseña de Google o Facebook. El uso de esos servicios también se rige por las políticas de Google y Meta.
+
+6. Compartición con terceros
+Compartimos únicamente la información necesaria con establecimientos cuando solicitas una reserva (nombre, contacto, fecha y detalles de la reserva). Podemos usar proveedores de infraestructura (hosting, correo, mapas, analítica agregada) que actúan como encargados del tratamiento bajo contrato. No vendemos ni alquilamos tus datos personales.
+
+7. Geolocalización y mapas
+La ubicación se usa para mostrar lugares cercanos, centrar mapas y optimizar rutas en “Mi plan”. Puedes revocar el permiso en la configuración de tu dispositivo; algunas funciones dejarán de estar disponibles sin afectar el resto de la app.
+
+8. Conservación
+Conservamos tus datos mientras mantengas una cuenta activa o sea necesario para prestar el servicio, resolver disputas o cumplir obligaciones legales. Tras solicitar la eliminación de cuenta, borramos o anonimizamos tus datos en un plazo razonable, salvo retención exigida por ley.
+
+9. Seguridad
+Aplicamos medidas técnicas y organizativas razonables (cifrado en tránsito, controles de acceso, tokens de sesión). Ningún sistema es infalible; te recomendamos usar contraseñas robustas y no compartir tus credenciales.
+
+10. Tus derechos
+Puedes acceder, rectificar, actualizar o eliminar tu cuenta desde Perfil en la app. También puedes oponerte a ciertos tratamientos, revocar consentimientos y presentar una reclamación ante la Autoridad Nacional de Protección de Datos Personales del Perú (ANPDP). Escríbenos a privacidad@vanpe.pe para solicitudes adicionales.
+
+11. Menores de edad
+VanPe está orientado a usuarios con capacidad legal para contratar. Si eres menor de edad, utiliza la aplicación con supervisión de un adulto responsable.
+
+12. Cambios
+Podemos actualizar esta política. Publicaremos la versión vigente en vanpe.pe/privacidad e indicaremos la fecha de actualización. El uso continuado del servicio tras un cambio material implica tu conocimiento, salvo que la ley exija un consentimiento adicional.
+
+Al registrarte o usar VanPe, confirmas que has leído y comprendido esta política de privacidad.
+TEXT,
+        ],
+        'terms' => [
+            'title' => 'Términos y condiciones',
+            'body' => <<<'TEXT'
+Bienvenido a VanPe. Estos términos regulan el acceso y uso de la aplicación móvil VanPe, del sitio vanpe.pe y de los servicios relacionados. Al crear una cuenta o usar la plataforma, aceptas estos términos y nuestra política de privacidad.
+
+1. El servicio
+VanPe es una plataforma turística que conecta viajeros con restaurantes, centros turísticos, ferias, festividades y recomendaciones personalizadas. Algunas funciones requieren registro. VanPe actúa como intermediario tecnológico; la prestación final del servicio en el establecimiento corresponde a terceros.
+
+2. Cuenta de usuario
+Debes proporcionar información veraz y mantener la confidencialidad de tu contraseña. Eres responsable de la actividad realizada desde tu cuenta. Notifícanos de inmediato cualquier uso no autorizado. VanPe puede suspender o cerrar cuentas que incumplan estos términos o la ley.
+
+3. Reservas
+Las reservas están sujetas a disponibilidad del establecimiento. VanPe facilita la solicitud; la confirmación, modificación o rechazo la realiza el negocio. Debes presentarte puntualmente y respetar las políticas del local. VanPe no garantiza mesas, horarios ni condiciones específicas del tercero.
+
+4. Contenido y reseñas
+El contenido que publiques (reseñas, comentarios) debe ser lícito, veraz y respetuoso. No debe incluir datos sensibles de terceros, spam ni material difamatorio. VanPe puede moderar o eliminar contenido que viole estas reglas o derechos de otros.
+
+5. Uso aceptable
+Queda prohibido usar VanPe para fraude, acoso, suplantación, scraping no autorizado, interferencia con el servicio, ingeniería inversa o cualquier actividad ilegal. No intentes acceder a datos o sistemas ajenos a tu cuenta.
+
+6. Propiedad intelectual
+VanPe, su marca, diseño, software y contenidos propios están protegidos. No adquieres derechos sobre ellos salvo la licencia limitada para usar la app conforme a estos términos. Los contenidos de terceros (fotos de locales, marcas) pertenecen a sus titulares.
+
+7. Disponibilidad y cambios
+Podemos modificar, suspender o discontinuar funciones con aviso razonable cuando sea posible. El servicio se ofrece “tal cual” y “según disponibilidad”, sin garantía de ausencia de errores o interrupciones.
+
+8. Limitación de responsabilidad
+En la medida permitida por la ley peruana, VanPe no responde por daños indirectos, lucro cesante, decisiones basadas en recomendaciones, mapas, rutas o información de terceros, ni por actos u omisiones de establecimientos. Tu relación contractual directa por la consumición o visita es con el establecimiento.
+
+9. Emergencias
+Los accesos a números de emergencia del Perú (p. ej. Policía 105, Bomberos 116, SAMU 106) abren el marcador telefónico. Verifica cobertura y situación local; VanPe no presta servicios de emergencia.
+
+10. Ley aplicable
+Estos términos se rigen por las leyes de la República del Perú. Cualquier controversia se someterá a los tribunales competentes de Lima, salvo norma imperativa en contrario.
+
+11. Cambios
+Podemos actualizar estos términos. La versión vigente estará en vanpe.pe/terminos. El uso continuado tras la publicación implica aceptación de los cambios.
+
+Al crear una cuenta, aceptas estos términos y la política de privacidad de VanPe.
+TEXT,
+        ],
+        'cookies' => [
+            'title' => 'Política de cookies',
+            'body' => <<<'TEXT'
+Esta política explica cómo VanPe utiliza cookies y tecnologías similares en vanpe.pe y servicios web relacionados.
+
+1. ¿Qué son las cookies?
+Son pequeños archivos que se almacenan en tu navegador para recordar preferencias, mantener sesiones o medir el uso del sitio.
+
+2. Cookies que utilizamos
+En el panel web de VanPe (vanpe.pe) podemos usar: cookies de sesión (para mantener tu inicio de sesión de forma segura); cookies de preferencias (idioma, apariencia clara/oscura); cookies técnicas necesarias para el funcionamiento del sitio; y, si las habilitamos, cookies analíticas agregadas para entender el uso del panel.
+
+3. Cookies de terceros
+El inicio de sesión con Google puede implicar cookies o tecnologías de Google conforme a su política. Los mapas o recursos embebidos de terceros pueden usar sus propias cookies.
+
+4. Gestión
+Puedes configurar tu navegador para bloquear o eliminar cookies. Si desactivas cookies esenciales, es posible que no puedas iniciar sesión o que algunas funciones del panel no operen correctamente.
+
+5. App móvil
+La aplicación móvil VanPe no usa cookies del navegador, pero puede almacenar tokens y preferencias localmente en tu dispositivo con fines similares (sesión, idioma, configuración).
+
+6. Más información
+Para dudas sobre privacidad y cookies, contacta a privacidad@vanpe.pe. Consulta también nuestra política de privacidad en vanpe.pe/privacidad.
+TEXT,
+        ],
+        'deletion' => [
+            'title' => 'Eliminación de datos y cuenta',
+            'body' => <<<'TEXT'
+En VanPe respetas tu derecho a solicitar la eliminación de tu cuenta y datos personales asociados.
+
+1. Eliminación desde la app
+Si tienes la aplicación móvil VanPe instalada, puedes eliminar tu cuenta desde Perfil → Configuración de cuenta → Eliminar cuenta. Esta acción es irreversible y suprime tu acceso, plan de viaje sincronizado, favoritos y reseñas vinculadas a tu perfil, salvo datos que debamos conservar por obligación legal.
+
+2. Solicitud por correo
+Si no puedes acceder a la app, envía un correo a privacidad@vanpe.pe desde la dirección asociada a tu cuenta (o indica datos suficientes para verificar tu identidad). Responderemos en un plazo razonable conforme a la Ley N.° 29733.
+
+3. Datos que pueden conservarse
+Podemos retener registros anonimizados o agregados, registros de facturación, reservas ya comunicadas a establecimientos (en la medida necesaria para disputas o obligaciones legales) y copias de seguridad durante el tiempo estrictamente necesario antes de su purga automática.
+
+4. Inicio de sesión con Google o Facebook
+Tras eliminar tu cuenta en VanPe, revocar el acceso de la app VanPe desde la configuración de seguridad de Google o Facebook es recomendable, pero es independiente de la eliminación en nuestros servidores.
+
+5. Plataforma para negocios
+Si eres dueño de un restaurante o centro turístico registrado en el panel web (subdominio vanpe.pe), la baja de tu cuenta de negocio se gestiona desde soporte VanPe y puede implicar pasos adicionales por contratos SaaS o facturación.
+
+6. Contacto
+privacidad@vanpe.pe — Asunto sugerido: “Eliminación de cuenta VanPe”.
+TEXT,
+        ],
+    ],
 ];

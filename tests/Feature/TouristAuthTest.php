@@ -135,6 +135,75 @@ test('google vincula cuenta existente por email verificado', function () {
     expect($customer->fresh()->hasPassword())->toBeTrue();
 });
 
+test('facebook crea cuenta nueva sin contraseña falsa', function () {
+    config()->set('services.facebook.client_id', 'fb-app-id');
+    config()->set('services.facebook.client_secret', 'fb-app-secret');
+
+    Http::fake([
+        'graph.facebook.com/debug_token*' => Http::response([
+            'data' => [
+                'is_valid' => true,
+                'app_id' => 'fb-app-id',
+                'user_id' => 'fb-user-001',
+            ],
+        ]),
+        'graph.facebook.com/me*' => Http::response([
+            'id' => 'fb-user-001',
+            'name' => 'Facebook User',
+            'email' => 'facebook.user@example.com',
+            'picture' => ['data' => ['url' => 'https://example.com/fb.png']],
+        ]),
+    ]);
+
+    $response = $this->postJson('/api/v1/tourist/facebook', [
+        'access_token' => 'fake-fb-token',
+    ]);
+
+    $response->assertOk()
+        ->assertJsonPath('data.customer.email', 'facebook.user@example.com')
+        ->assertJsonPath('data.customer.has_password', false)
+        ->assertJsonPath('data.customer.has_facebook', true);
+
+    $this->assertDatabaseHas('customers', [
+        'email' => 'facebook.user@example.com',
+        'facebook_id' => 'fb-user-001',
+        'password' => null,
+    ]);
+});
+
+test('facebook vincula cuenta existente por email', function () {
+    config()->set('services.facebook.client_id', 'fb-app-id');
+    config()->set('services.facebook.client_secret', 'fb-app-secret');
+
+    $customer = Customer::factory()->create([
+        'email' => 'fb.link@example.com',
+        'password' => 'password123',
+        'facebook_id' => null,
+    ]);
+
+    Http::fake([
+        'graph.facebook.com/debug_token*' => Http::response([
+            'data' => [
+                'is_valid' => true,
+                'app_id' => 'fb-app-id',
+                'user_id' => 'fb-user-link',
+            ],
+        ]),
+        'graph.facebook.com/me*' => Http::response([
+            'id' => 'fb-user-link',
+            'name' => 'FB Link',
+            'email' => 'fb.link@example.com',
+        ]),
+    ]);
+
+    $this->postJson('/api/v1/tourist/facebook', [
+        'access_token' => 'fake-token',
+    ])->assertOk();
+
+    expect($customer->fresh()->facebook_id)->toBe('fb-user-link');
+    expect($customer->fresh()->hasPassword())->toBeTrue();
+});
+
 test('me y logout requieren token válido', function () {
     $customer = Customer::factory()->create();
     $token = $customer->createToken('tourist-app', ['tourist-app'])->plainTextToken;
