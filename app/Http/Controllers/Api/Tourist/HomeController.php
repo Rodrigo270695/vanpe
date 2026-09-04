@@ -49,10 +49,18 @@ class HomeController extends Controller
             && $customer instanceof Customer
             && $this->preferences->hasPreferences($customer)
         ) {
-            $recommendedRestaurants = $this->preferences->recommendRestaurants($customer, $limit);
-            $recommendedSpots = $this->preferences->recommendTourSpots($customer, $limit)
-                ->load(['categories', 'departamento:id,name', 'distrito:id,name']);
-            $mode = 'ai_preferences';
+            try {
+                $recommendedRestaurants = $this->preferences->recommendRestaurants($customer, $limit);
+                // recommendTourSpots devuelve Support\Collection (no Eloquent), sin ->load().
+                $spotModels = $this->preferences->recommendTourSpots($customer, $limit);
+                $recommendedSpots = $this->hydrateTourSpots($spotModels);
+                $mode = 'ai_preferences';
+            } catch (\Throwable $e) {
+                report($e);
+                $recommendedRestaurants = null;
+                $recommendedSpots = null;
+                $mode = 'ranking';
+            }
         }
 
         if ($recommendedRestaurants === null) {
@@ -81,13 +89,17 @@ class HomeController extends Controller
 
         // Personalizado: no rellenar featured/recent con el otro tipo si no hay interés.
         if ($mode === 'ai_preferences' && $customer instanceof Customer) {
-            if (! $this->preferences->hasTourSpotInterestGroups($customer)) {
-                $featuredSpots = collect();
-                $recentSpots = collect();
-            }
-            if (! $this->preferences->hasRestaurantInterestGroups($customer)) {
-                $featuredRestaurants = collect();
-                $recentRestaurants = collect();
+            try {
+                if (! $this->preferences->hasTourSpotInterestGroups($customer)) {
+                    $featuredSpots = collect();
+                    $recentSpots = collect();
+                }
+                if (! $this->preferences->hasRestaurantInterestGroups($customer)) {
+                    $featuredRestaurants = collect();
+                    $recentRestaurants = collect();
+                }
+            } catch (\Throwable $e) {
+                report($e);
             }
         }
 
@@ -118,6 +130,31 @@ class HomeController extends Controller
                 ],
             ],
         ]);
+    }
+
+    /**
+     * Rehidrata spots con relaciones, preservando el orden del ranking.
+     *
+     * @param  \Illuminate\Support\Collection<int, TourSpot>  $spotModels
+     * @return \Illuminate\Support\Collection<int, TourSpot>
+     */
+    private function hydrateTourSpots($spotModels)
+    {
+        if ($spotModels->isEmpty()) {
+            return collect();
+        }
+
+        $ids = $spotModels->pluck('id')->map(fn ($id): string => (string) $id)->all();
+        $byId = TourSpot::query()
+            ->with(['categories', 'departamento:id,name', 'distrito:id,name'])
+            ->whereIn('id', $ids)
+            ->get()
+            ->keyBy(fn (TourSpot $spot): string => (string) $spot->id);
+
+        return collect($ids)
+            ->map(fn (string $id) => $byId->get($id))
+            ->filter()
+            ->values();
     }
 
     /**
