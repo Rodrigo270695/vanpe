@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Auth\GoogleController;
 use App\Http\Controllers\Auth\GoogleHandoffController;
+use App\Http\Controllers\Auth\SupportHandoffController;
 use App\Http\Controllers\Auth\OwnerOnboardingController;
 use App\Http\Controllers\Auth\StaffInvitationController;
 use App\Http\Controllers\Auth\TenantEmailVerificationController;
@@ -103,6 +104,10 @@ Route::middleware('tenant.none')->group(function () {
 Route::get('auth/google/handoff', GoogleHandoffController::class)
     ->name('google.handoff');
 
+// Superadmin → tenant como soporte (code de un solo uso). Sin `guest`.
+Route::get('auth/support/handoff', SupportHandoffController::class)
+    ->name('support.handoff');
+
 Route::middleware('guest')->group(function () {
     // Registro del dueño de restaurante (crea el tenant completo).
     // Solo en el dominio central (no dentro del subdominio de un tenant).
@@ -138,6 +143,9 @@ Route::middleware('signed')->group(function () {
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', DashboardController::class)->name('dashboard');
+
+    Route::post('auth/support/exit', [SupportHandoffController::class, 'exit'])
+        ->name('support.exit');
 
     // Gestión de roles. Misma pantalla en el dominio central (superadmin,
     // roles de plataforma) y en el subdominio del restaurante (owner, roles
@@ -285,6 +293,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('restaurantes', [TenantController::class, 'index'])->name('tenants.index');
         Route::post('restaurantes', [TenantController::class, 'store'])->name('tenants.store');
         Route::put('restaurantes/{tenant}', [TenantController::class, 'update'])->name('tenants.update');
+        Route::post('restaurantes/{tenant}/support-login', [TenantController::class, 'supportLogin'])
+            ->name('tenants.support-login');
         Route::delete('restaurantes/{tenant}', [TenantController::class, 'destroy'])->name('tenants.destroy');
 
         Route::get('planes', [PlanController::class, 'index'])->name('plans.index');

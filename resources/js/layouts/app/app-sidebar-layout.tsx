@@ -2,6 +2,7 @@ import { AppContent } from '@/components/app-content';
 import { AppShell } from '@/components/app-shell';
 import { AppSidebar } from '@/components/app-sidebar';
 import { AppSidebarHeader } from '@/components/app-sidebar-header';
+import { SupportModeBanner } from '@/components/support-mode-banner';
 import type { AppLayoutProps } from '@/types';
 
 export default function AppSidebarLayout({
@@ -15,6 +16,7 @@ export default function AppSidebarLayout({
                 variant="sidebar"
                 className="h-svh overflow-hidden md:peer-data-[variant=inset]:h-[calc(100svh-(--spacing(4)))]"
             >
+                <SupportModeBanner />
                 <AppSidebarHeader breadcrumbs={breadcrumbs} />
                 <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
                     {children}

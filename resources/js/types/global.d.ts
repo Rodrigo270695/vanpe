@@ -12,6 +12,11 @@ declare module '@inertiajs/core' {
         sharedPageProps: {
             name: string;
             auth: Auth;
+            supportMode: {
+                active: boolean;
+                actor_name: string;
+                actor_email: string;
+            } | null;
             tenant: { slug: string; name: string; tipo?: 'restaurant' | 'tour_spot' } | null;
             sidebarOpen: boolean;
             locale: string;

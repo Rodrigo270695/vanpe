@@ -15,8 +15,11 @@ use App\Support\TenantSlug;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -44,6 +47,7 @@ class TenantController extends Controller
                 'create' => $request->user()?->can('tenants.create'),
                 'update' => $request->user()?->can('tenants.update'),
                 'delete' => $request->user()?->can('tenants.delete'),
+                'support_login' => $this->canSupportLogin($request),
             ],
         ]);
     }
@@ -176,6 +180,57 @@ class TenantController extends Controller
         $tenant->delete();
 
         return back()->with('success', __('messages.tenants.deleted'));
+    }
+
+    /**
+     * Emite un code de un solo uso y redirige al handoff del subdominio
+     * para que el superadmin opere como el owner del tenant (modo soporte).
+     */
+    public function supportLogin(
+        Request $request,
+        Tenant $tenant,
+        TenantProvisioner $provisioner,
+    ): RedirectResponse {
+        abort_unless($this->canSupportLogin($request), 403);
+
+        $owner = $provisioner->getOwner($tenant);
+        abort_if($owner === null || ! $owner->activo, 422, __('messages.tenants.support_owner_missing'));
+
+        $actor = $request->user();
+        $code = Str::random(48);
+        $returnUrl = route('tenants.index', absolute: true);
+
+        Cache::put('support_tenant_handoff:'.$code, [
+            'tenant_id' => $tenant->id,
+            'user_id' => $owner->id,
+            'actor_id' => $actor?->id,
+            'actor_name' => $actor?->name,
+            'actor_email' => $actor?->email,
+            'return_url' => $returnUrl,
+        ], now()->addMinutes(5));
+
+        Log::info('support.login.issued', [
+            'tenant_id' => $tenant->id,
+            'tenant_slug' => $tenant->slug,
+            'owner_user_id' => $owner->id,
+            'actor_id' => $actor?->id,
+            'actor_email' => $actor?->email,
+        ]);
+
+        return redirect()->away(
+            $tenant->subdomainUrl('/auth/support/handoff?code='.$code)
+        );
+    }
+
+    private function canSupportLogin(Request $request): bool
+    {
+        $user = $request->user();
+
+        if ($user === null) {
+            return false;
+        }
+
+        return $user->can('tenants.support_login') || $user->hasRole('superadmin');
     }
 
     /**

@@ -54,6 +54,13 @@ class HandleInertiaRequests extends Middleware
                     ? $user->getAllPermissions()->pluck('name')->all()
                     : [],
             ],
+            'supportMode' => $request->session()->get('support_mode')
+                ? [
+                    'active' => true,
+                    'actor_name' => (string) $request->session()->get('support_actor_name', 'Soporte'),
+                    'actor_email' => (string) $request->session()->get('support_actor_email', ''),
+                ]
+                : null,
             'tenant' => $tenant === null ? null : [
                 'slug' => $tenant->slug,
                 'name' => $tenant->nombre_comercial,

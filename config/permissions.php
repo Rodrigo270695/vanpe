@@ -34,6 +34,7 @@ return [
                     'tenants.create' => 'Registrar restaurantes',
                     'tenants.update' => 'Editar restaurantes',
                     'tenants.delete' => 'Eliminar restaurantes',
+                    'tenants.support_login' => 'Entrar como soporte al tenant',
                 ],
             ],
             'plans' => [

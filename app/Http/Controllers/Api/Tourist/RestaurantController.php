@@ -80,8 +80,8 @@ class RestaurantController extends Controller
             'slug' => $restaurant->slug,
             'nombre' => $restaurant->nombre,
             'direccion' => $restaurant->direccion,
-            'latitud' => $restaurant->latitud,
-            'longitud' => $restaurant->longitud,
+            'latitud' => $restaurant->latitud !== null ? (float) $restaurant->latitud : null,
+            'longitud' => $restaurant->longitud !== null ? (float) $restaurant->longitud : null,
             'logo_url' => PublicMediaUrl::make($restaurant->logo_url),
             'portada_url' => PublicMediaUrl::make($restaurant->portada_url),
             'tipo_cocina' => $restaurant->tipo_cocina ?? [],
@@ -98,6 +98,15 @@ class RestaurantController extends Controller
      */
     private function detail(PubRestaurant $restaurant): array
     {
+        $catalogGrouped = $restaurant->catalogItems
+            ->groupBy('catalog_type')
+            ->map(fn ($items) => $items->map(fn ($item): array => [
+                'slug' => $item->slug,
+                'name_es' => $item->name_es,
+                'name_en' => $item->name_en,
+                'name' => $item->name_es ?? $item->name_en ?? $item->slug,
+            ])->values());
+
         return [
             ...$this->listItem($restaurant),
             'descripcion' => $restaurant->descripcion,
@@ -114,18 +123,13 @@ class RestaurantController extends Controller
                 'dish_ref' => $d->dish_ref,
                 'nombre' => $d->nombre,
                 'descripcion' => $d->descripcion,
-                'precio' => (float) $d->precio,
+                'precio' => $d->precio !== null ? (float) $d->precio : null,
                 'imagen_url' => PublicMediaUrl::make($d->imagen_url),
                 'categoria' => $d->categoria_nombre,
-                'featured' => $d->featured,
+                'featured' => (bool) $d->featured,
             ])->values(),
-            'catalog' => $restaurant->catalogItems->groupBy('catalog_type')->map(
-                fn ($items, $type) => $items->map(fn ($item): array => [
-                    'slug' => $item->slug,
-                    'name_es' => $item->name_es,
-                    'name_en' => $item->name_en,
-                ])->values(),
-            ),
+            // Objeto vacío {} (no []) para que la app no rompa al leer catalog.ambiance, etc.
+            'catalog' => $catalogGrouped->isEmpty() ? new \stdClass() : $catalogGrouped,
         ];
     }
 

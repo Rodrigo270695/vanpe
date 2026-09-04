@@ -2,6 +2,7 @@ export type TenantAbilities = {
     create: boolean;
     update: boolean;
     delete: boolean;
+    support_login: boolean;
 };
 
 export type TenantRow = {

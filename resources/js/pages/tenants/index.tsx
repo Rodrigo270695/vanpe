@@ -8,6 +8,7 @@ import {
     ExternalLink,
     Eye,
     EyeOff,
+    Headphones,
     Layers,
     Pencil,
     Plus,
@@ -392,9 +393,20 @@ export default function TenantsIndex({
         [copyUuid, t],
     );
 
+    const enterAsSupport = (row: TenantRow) => {
+        router.post(`/restaurantes/${row.id}/support-login`);
+    };
+
     const actions = (row: TenantRow) => (
         <TableRowActions
             items={[
+                {
+                    key: 'support-login',
+                    label: t('tenants.action_support_login'),
+                    icon: Headphones,
+                    onClick: () => enterAsSupport(row),
+                    hidden: !can.support_login,
+                },
                 {
                     key: 'copy-uuid',
                     label: t('tenants.action_copy_uuid'),

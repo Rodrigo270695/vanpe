@@ -16,37 +16,38 @@ class SimilarPlacesService
     ) {}
 
     /**
-     * Desde un restaurante: 4 similares (+ 1 centro cercano si hay; si no, 5 restaurantes).
+     * Desde un restaurante: hasta 10 sugerencias (similares + cercanos).
      *
      * @return array{items: list<array<string, mixed>>}
      */
     public function forRestaurant(PubRestaurant $restaurant): array
     {
-        $similarRestaurants = $this->similarRestaurants($restaurant, 5);
-        $nearbySpot = $this->nearbyTourSpot(
+        $similarRestaurants = $this->similarRestaurants($restaurant, 10);
+        $nearbySpots = $this->nearbyTourSpots(
             $restaurant->latitud !== null ? (float) $restaurant->latitud : null,
             $restaurant->longitud !== null ? (float) $restaurant->longitud : null,
             excludeId: null,
+            limit: 3,
         );
 
         $items = [];
+        $restTake = $nearbySpots->isNotEmpty() ? 7 : 10;
 
-        if ($nearbySpot !== null) {
-            foreach ($similarRestaurants->take(4) as $row) {
-                $items[] = $this->mapRestaurant($row);
+        foreach ($similarRestaurants->take($restTake) as $row) {
+            $items[] = $this->mapRestaurant($row);
+        }
+        foreach ($nearbySpots->take(3) as $spot) {
+            if (count($items) >= 10) {
+                break;
             }
-            $items[] = $this->mapTourSpot($nearbySpot);
-        } else {
-            foreach ($similarRestaurants->take(5) as $row) {
-                $items[] = $this->mapRestaurant($row);
-            }
+            $items[] = $this->mapTourSpot($spot);
         }
 
-        return ['items' => $items];
+        return ['items' => array_values(array_slice($items, 0, 10))];
     }
 
     /**
-     * Desde un centro: 3 restaurantes top en reseñas + 2 centros cercanos.
+     * Desde un centro: mezcla restaurantes cercanos + otros centros (hasta 10).
      *
      * @return array{items: list<array<string, mixed>>}
      */
@@ -55,8 +56,8 @@ class SimilarPlacesService
         $lat = $spot->latitud !== null ? (float) $spot->latitud : null;
         $lng = $spot->longitud !== null ? (float) $spot->longitud : null;
 
-        $topRestaurants = $this->topRestaurantsNear($lat, $lng, 3);
-        $nearbySpots = $this->nearbyTourSpots($lat, $lng, excludeId: $spot->id, limit: 2);
+        $topRestaurants = $this->topRestaurantsNear($lat, $lng, 7);
+        $nearbySpots = $this->nearbyTourSpots($lat, $lng, excludeId: $spot->id, limit: 4);
 
         $items = [];
         $usedRestaurantIds = [];
@@ -69,9 +70,9 @@ class SimilarPlacesService
             $items[] = $this->mapTourSpot($near);
         }
 
-        if (count($items) < 5) {
-            $needed = 5 - count($items);
-            $extra = $this->topRestaurantsNear($lat, $lng, $needed + 6)
+        if (count($items) < 8) {
+            $needed = 10 - count($items);
+            $extra = $this->topRestaurantsNear($lat, $lng, $needed + 8)
                 ->reject(fn (PubRestaurant $r) => isset($usedRestaurantIds[$r->id]))
                 ->take($needed);
 
@@ -80,7 +81,7 @@ class SimilarPlacesService
             }
         }
 
-        return ['items' => array_values(array_slice($items, 0, 5))];
+        return ['items' => array_values(array_slice($items, 0, 10))];
     }
 
     /**

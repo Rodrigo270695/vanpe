@@ -12,7 +12,7 @@ use Throwable;
 
 /**
  * Recomendación híbrida:
- * 1) Recuperación por contenido (ranking, tags, tipo).
+ * 1) Recuperación por contenido (ranking, tags, tipo, carta/platos).
  * 2) Reordenamiento con OpenAI (gpt-4o-mini) según la consulta en lenguaje natural.
  * 3) Fallback a ranking puro si no hay API key o falla OpenAI.
  */
@@ -74,6 +74,11 @@ class HybridRecommendationService
                 'resenas' => (int) $r->total_resenas,
                 'direccion' => $r->direccion,
                 'descripcion' => mb_substr((string) $r->descripcion, 0, 180),
+                'platos' => $r->highlights
+                    ->take(12)
+                    ->map(fn ($d): string => (string) $d->nombre)
+                    ->values()
+                    ->all(),
             ])->values()->all(),
             'tour_spots' => $spots->map(fn (TourSpot $s): array => [
                 'id' => $s->id,
@@ -102,6 +107,8 @@ class HybridRecommendationService
                         'role' => 'system',
                         'content' => 'Eres VanPe IA, asistente turístico de Lambayeque/Chiclayo (Perú). '
                             .'Solo puedes recomendar ítems del catálogo JSON. '
+                            .'Si la consulta es un plato o comida, prioriza restaurantes cuyo array "platos" coincida '
+                            .'(aunque el turista escriba con errores ortográficos). '
                             .'Responde SOLO JSON válido con esta forma: '
                             .'{"answer":"texto corto en español","restaurant_ids":["uuid"...],"tour_spot_ids":["uuid"...]} '
                             .'Máximo '.$limit.' ids por lista. Ordena de más a menos relevante. '
@@ -157,7 +164,7 @@ class HybridRecommendationService
             'mode' => 'hybrid',
             'query' => $query,
             'answer' => is_string($parsed['answer'] ?? null) ? $parsed['answer'] : null,
-            'restaurants' => $orderedRestaurants->map(fn (PubRestaurant $r): array => $this->serializeRestaurant($r))->all(),
+            'restaurants' => $orderedRestaurants->map(fn (PubRestaurant $r): array => $this->serializeRestaurant($r, $query))->all(),
             'tour_spots' => $orderedSpots->map(fn (TourSpot $s): array => $this->serializeSpot($s))->all(),
         ];
     }
@@ -169,13 +176,24 @@ class HybridRecommendationService
      */
     private function contentOnly(string $query, Collection $restaurants, Collection $spots, int $limit): array
     {
+        $dishHits = $restaurants->filter(fn (PubRestaurant $r): bool => $this->matchedDishesFor($r, $query) !== []);
+        $ordered = $dishHits
+            ->concat($restaurants->reject(
+                fn (PubRestaurant $r): bool => $dishHits->contains(fn (PubRestaurant $hit): bool => $hit->id === $r->id),
+            ))
+            ->values();
+
+        $hasDishHits = $dishHits->isNotEmpty();
+
         return [
             'mode' => 'content',
             'query' => $query,
-            'answer' => $query !== ''
-                ? 'Estas son las mejores opciones según ranking y afinidad con tu búsqueda.'
-                : 'Recomendados según valoración y popularidad en VanPe.',
-            'restaurants' => $restaurants->take($limit)->map(fn (PubRestaurant $r): array => $this->serializeRestaurant($r))->values()->all(),
+            'answer' => $query === ''
+                ? 'Recomendados según valoración y popularidad en VanPe.'
+                : ($hasDishHits
+                    ? 'Restaurantes cuya carta coincide con tu búsqueda (incluso si hay algún error de escritura).'
+                    : 'Estas son las mejores opciones según ranking y afinidad con tu búsqueda.'),
+            'restaurants' => $ordered->take($limit)->map(fn (PubRestaurant $r): array => $this->serializeRestaurant($r, $query))->values()->all(),
             'tour_spots' => $spots->take($limit)->map(fn (TourSpot $s): array => $this->serializeSpot($s))->values()->all(),
         ];
     }
@@ -185,25 +203,142 @@ class HybridRecommendationService
      */
     private function candidateRestaurants(string $query, int $limit): Collection
     {
-        $q = mb_strtolower($query);
+        $q = mb_strtolower(trim($query));
 
         return PubRestaurant::query()
-            ->where('activo', true)
+            ->visibleInApp()
+            ->with(['highlights' => fn ($hq) => $hq->where('activo', true)->orderBy('sort_order')])
             ->when($q !== '', function ($builder) use ($q): void {
                 $builder->where(function ($inner) use ($q): void {
                     $inner->whereRaw('lower(nombre) like ?', ['%'.$q.'%'])
                         ->orWhereRaw('lower(coalesce(descripcion, \'\')) like ?', ['%'.$q.'%'])
-                        ->orWhereRaw('lower(coalesce(direccion, \'\')) like ?', ['%'.$q.'%']);
+                        ->orWhereRaw('lower(coalesce(direccion, \'\')) like ?', ['%'.$q.'%'])
+                        ->orWhereRaw('similarity(lower(nombre), ?) > 0.25', [$q]);
 
                     foreach ($this->cuisineHints($q) as $slug) {
                         $inner->orWhereJsonContains('tipo_cocina', $slug);
                     }
+
+                    $inner->orWhereHas('highlights', function ($hq) use ($q): void {
+                        $hq->where('activo', true)
+                            ->where(function ($dish) use ($q): void {
+                                $this->applyFuzzyDishMatch($dish, $q);
+                            });
+                    });
                 });
             })
             ->orderByDesc('score_ranking')
             ->orderByDesc('destacado')
             ->limit($limit)
             ->get();
+    }
+
+    /**
+     * Match de platos con LIKE + pg_trgm (tolerante a typos: "arros con pato").
+     *
+     * @param  \Illuminate\Database\Eloquent\Builder<\App\Models\PubMenuHighlight>  $dish
+     */
+    private function applyFuzzyDishMatch($dish, string $q): void
+    {
+        $tokens = array_values(array_filter(
+            preg_split('/\s+/u', $q) ?: [],
+            fn (string $token): bool => mb_strlen($token) >= 3,
+        ));
+
+        $dish->whereRaw('lower(nombre) like ?', ['%'.$q.'%'])
+            ->orWhereRaw('lower(coalesce(descripcion, \'\')) like ?', ['%'.$q.'%'])
+            ->orWhereRaw('similarity(lower(nombre), ?) > 0.28', [$q])
+            ->orWhereRaw('lower(nombre) % ?', [$q]);
+
+        if ($tokens !== []) {
+            $dish->orWhere(function ($allTokens) use ($tokens): void {
+                foreach ($tokens as $token) {
+                    $allTokens->where(function ($one) use ($token): void {
+                        $one->whereRaw('lower(nombre) like ?', ['%'.$token.'%'])
+                            ->orWhereRaw('similarity(lower(nombre), ?) > 0.35', [$token])
+                            ->orWhereRaw(
+                                "EXISTS (
+                                    SELECT 1
+                                    FROM unnest(regexp_split_to_array(lower(nombre), '\\s+')) AS w
+                                    WHERE similarity(w, ?) > 0.4
+                                )",
+                                [$token],
+                            );
+                    });
+                }
+            });
+        }
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function matchedDishesFor(PubRestaurant $restaurant, string $query): array
+    {
+        $q = mb_strtolower(trim($query));
+        if ($q === '') {
+            return [];
+        }
+
+        $tokens = array_values(array_filter(
+            preg_split('/\s+/u', $q) ?: [],
+            fn (string $token): bool => mb_strlen($token) >= 3,
+        ));
+
+        $hits = [];
+        foreach ($restaurant->highlights ?? [] as $dish) {
+            if (! $dish->activo) {
+                continue;
+            }
+            $name = mb_strtolower((string) $dish->nombre);
+            $desc = mb_strtolower((string) ($dish->descripcion ?? ''));
+
+            if ($name === '' && $desc === '') {
+                continue;
+            }
+
+            $score = $this->phpSimilarity($q, $name);
+            $tokenOk = $tokens === [] || collect($tokens)->every(
+                function (string $token) use ($name, $desc): bool {
+                    if (str_contains($name, $token) || str_contains($desc, $token)) {
+                        return true;
+                    }
+                    foreach (preg_split('/\s+/u', $name) ?: [] as $word) {
+                        if ($this->phpSimilarity($token, $word) >= 0.72) {
+                            return true;
+                        }
+                    }
+
+                    return false;
+                },
+            );
+
+            if (
+                str_contains($name, $q)
+                || str_contains($desc, $q)
+                || $score >= 0.55
+                || ($tokenOk && count($tokens) >= 1 && $score >= 0.35)
+            ) {
+                $hits[] = (string) $dish->nombre;
+            }
+        }
+
+        return array_values(array_unique(array_slice($hits, 0, 3)));
+    }
+
+    private function phpSimilarity(string $a, string $b): float
+    {
+        $a = mb_strtolower(trim($a));
+        $b = mb_strtolower(trim($b));
+        if ($a === '' || $b === '') {
+            return 0.0;
+        }
+        if ($a === $b) {
+            return 1.0;
+        }
+        similar_text($a, $b, $percent);
+
+        return $percent / 100;
     }
 
     /**
@@ -220,7 +355,8 @@ class HybridRecommendationService
                 $builder->where(function ($inner) use ($q): void {
                     $inner->whereRaw('lower(nombre) like ?', ['%'.$q.'%'])
                         ->orWhereRaw('lower(coalesce(resumen, \'\')) like ?', ['%'.$q.'%'])
-                        ->orWhereRaw('lower(coalesce(descripcion, \'\')) like ?', ['%'.$q.'%']);
+                        ->orWhereRaw('lower(coalesce(descripcion, \'\')) like ?', ['%'.$q.'%'])
+                        ->orWhereRaw('similarity(lower(nombre), ?) > 0.25', [$q]);
 
                     foreach ($this->spotCategoryHints($q) as $slug) {
                         $inner->orWhereHas('categories', fn ($cq) => $cq->where('slug', $slug));
@@ -249,6 +385,7 @@ class HybridRecommendationService
             'norteñ' => 'criollo',
             'cabrito' => 'criollo',
             'pato' => 'criollo',
+            'arroz' => 'criollo',
             'pizza' => 'pizza-y-pasta',
             'café' => 'cafeteria',
             'cafe' => 'cafeteria',
@@ -300,8 +437,10 @@ class HybridRecommendationService
     /**
      * @return array<string, mixed>
      */
-    private function serializeRestaurant(PubRestaurant $restaurant): array
+    private function serializeRestaurant(PubRestaurant $restaurant, string $query = ''): array
     {
+        $matched = $this->matchedDishesFor($restaurant, $query);
+
         return [
             'id' => $restaurant->id,
             'slug' => $restaurant->slug,
@@ -314,6 +453,9 @@ class HybridRecommendationService
             'rating_promedio' => (float) $restaurant->rating_promedio,
             'total_resenas' => (int) $restaurant->total_resenas,
             'destacado' => (bool) $restaurant->destacado,
+            'latitud' => $restaurant->latitud !== null ? (float) $restaurant->latitud : null,
+            'longitud' => $restaurant->longitud !== null ? (float) $restaurant->longitud : null,
+            'matched_dishes' => $matched,
         ];
     }
 
@@ -338,6 +480,8 @@ class HybridRecommendationService
             'categoria' => $primary?->labelForLocale('es'),
             'categoria_slug' => $primary?->slug,
             'distrito' => $spot->distrito?->name,
+            'latitud' => $spot->latitud !== null ? (float) $spot->latitud : null,
+            'longitud' => $spot->longitud !== null ? (float) $spot->longitud : null,
         ];
     }
 }
