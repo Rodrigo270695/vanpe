@@ -3,6 +3,7 @@
 namespace App\Services\Platform;
 
 use App\Models\TourEvent;
+use App\Models\TourEventMedia;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -20,6 +21,22 @@ class TourEventMediaStorage
         return '/storage/'.$path;
     }
 
+    public function storeGalleryItem(UploadedFile $file, TourEvent $event, int $sortOrder = 0): TourEventMedia
+    {
+        $extension = $file->getClientOriginalExtension() ?: 'jpg';
+        $filename = 'gallery.'.Str::uuid().'.'.Str::lower($extension);
+        $path = $file->storeAs($this->directory($event->id), $filename, 'public');
+
+        return TourEventMedia::query()->create([
+            'tour_event_id' => $event->id,
+            'tipo' => 'imagen',
+            'url' => '/storage/'.$path,
+            'caption' => null,
+            'sort_order' => $sortOrder,
+            'is_cover' => false,
+        ]);
+    }
+
     public function storeSponsorLogo(UploadedFile $file, TourEvent $event, int $index): string
     {
         $extension = $file->getClientOriginalExtension() ?: 'jpg';
@@ -27,6 +44,12 @@ class TourEventMediaStorage
         $path = $file->storeAs($this->directory($event->id), $filename, 'public');
 
         return '/storage/'.$path;
+    }
+
+    public function deleteMedia(TourEventMedia $media): void
+    {
+        $this->deleteIfExists($media->url);
+        $media->delete();
     }
 
     public function deleteIfExists(?string $imageUrl): void

@@ -40,6 +40,10 @@ class TourEventRequest extends FormRequest
             'sort_order' => ['nullable', 'integer', 'min:0', 'max:9999'],
             'cover' => ['nullable', 'image', 'mimes:jpeg,jpg,png,webp', 'max:5120'],
             'remove_cover' => ['boolean'],
+            'gallery' => ['nullable', 'array', 'max:8'],
+            'gallery.*' => ['image', 'mimes:jpeg,jpg,png,webp', 'max:5120'],
+            'remove_media_ids' => ['nullable', 'array'],
+            'remove_media_ids.*' => ['uuid'],
             'sponsors' => ['nullable', 'array'],
             'sponsors.*.nombre' => ['required_with:sponsors', 'string', 'max:150'],
             'sponsors.*.tipo' => ['nullable', 'string', 'max:30'],
@@ -64,6 +68,14 @@ class TourEventRequest extends FormRequest
         if ($this->hasFile('cover')) {
             $data['cover'] = $this->file('cover');
         }
+
+        $gallery = $this->file('gallery');
+        if (is_array($gallery)) {
+            $data['gallery'] = array_values(array_filter($gallery));
+        }
+
+        $removeMediaIds = $this->input('remove_media_ids', []);
+        $data['remove_media_ids'] = array_values(array_filter(array_map('strval', is_array($removeMediaIds) ? $removeMediaIds : [])));
 
         $sponsors = $data['sponsors'] ?? [];
         if (is_array($sponsors)) {

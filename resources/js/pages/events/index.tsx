@@ -1,12 +1,14 @@
 import { Head, router, useForm } from '@inertiajs/react';
 import {
     CalendarDays,
+    ImagePlus,
     PartyPopper,
     Plus,
     Sparkles,
     Star,
+    Trash2,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { CatalogItemActions } from '@/components/catalog/catalog-item-actions';
 import { BaseModal } from '@/components/common/base-modal';
 import { FormField } from '@/components/common/form-field';
@@ -27,6 +29,8 @@ import {
 import { translate, type TranslationTree } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 
+const MAX_GALLERY = 8;
+
 type SponsorDraft = {
     nombre: string;
     tipo: string;
@@ -34,6 +38,12 @@ type SponsorDraft = {
     logo: File | null;
     logo_url: string | null;
     remove_logo: boolean;
+};
+
+type EventMedia = {
+    id: string;
+    url: string;
+    caption: string | null;
 };
 
 type EventRow = {
@@ -59,6 +69,7 @@ type EventRow = {
         logo_url: string | null;
         website: string | null;
     }>;
+    media?: EventMedia[];
 };
 
 type Props = {
@@ -98,6 +109,8 @@ const makeEmptyForm = (destacado = true) => ({
     sort_order: 0,
     cover: null as File | null,
     remove_cover: false,
+    gallery: [] as File[],
+    remove_media_ids: [] as string[],
     sponsors: [] as SponsorDraft[],
 });
 
@@ -115,10 +128,27 @@ export default function EventsIndex({
     const [formOpen, setFormOpen] = useState(false);
     const [editing, setEditing] = useState<EventRow | null>(null);
     const [existingCoverUrl, setExistingCoverUrl] = useState<string | null>(null);
+    const [existingMedia, setExistingMedia] = useState<EventMedia[]>([]);
     const [deleteTarget, setDeleteTarget] = useState<EventRow | null>(null);
     const [deleting, setDeleting] = useState(false);
+    const galleryInputRef = useRef<HTMLInputElement>(null);
+    const [galleryPreviews, setGalleryPreviews] = useState<string[]>([]);
 
     const form = useForm(makeEmptyForm(defaultDestacado));
+
+    useEffect(() => {
+        const urls = form.data.gallery.map((file) => URL.createObjectURL(file));
+        setGalleryPreviews(urls);
+        return () => {
+            urls.forEach((url) => URL.revokeObjectURL(url));
+        };
+    }, [form.data.gallery]);
+
+    const visibleMedia = existingMedia.filter(
+        (m) => !form.data.remove_media_ids.includes(m.id),
+    );
+    const remainingGallerySlots =
+        MAX_GALLERY - visibleMedia.length - form.data.gallery.length;
 
     const publishedCount = useMemo(
         () => events.filter((e) => e.estado === 'publicado').length,
@@ -134,6 +164,7 @@ export default function EventsIndex({
     const openCreate = () => {
         setEditing(null);
         setExistingCoverUrl(null);
+        setExistingMedia([]);
         form.clearErrors();
         form.setData(makeEmptyForm(defaultDestacado));
         setFormOpen(true);
@@ -142,6 +173,7 @@ export default function EventsIndex({
     const openEdit = (row: EventRow) => {
         setEditing(row);
         setExistingCoverUrl(row.portada_url);
+        setExistingMedia(row.media ?? []);
         form.clearErrors();
         form.setData({
             titulo: row.titulo,
@@ -159,6 +191,8 @@ export default function EventsIndex({
             sort_order: row.sort_order,
             cover: null,
             remove_cover: false,
+            gallery: [],
+            remove_media_ids: [],
             sponsors: (row.sponsors ?? []).map((s) => ({
                 nombre: s.nombre,
                 tipo: s.tipo || 'auspiciador',
@@ -373,6 +407,101 @@ export default function EventsIndex({
                             previewAspect="video"
                         />
                     </FormField>
+
+                    <div className="space-y-2">
+                        <p className="text-sm font-medium">Galería de fotos</p>
+                        <p className="text-[12px] text-muted-foreground">
+                            Hasta {MAX_GALLERY} fotos adicionales (JPG, PNG o WebP). Se
+                            muestran en la app del turista como en restaurantes y
+                            centros.
+                        </p>
+
+                        <div className="grid grid-cols-3 gap-2">
+                            {visibleMedia.map((item) => (
+                                <div
+                                    key={item.id}
+                                    className="group relative overflow-hidden rounded-lg border border-border"
+                                >
+                                    <img
+                                        src={item.url}
+                                        alt=""
+                                        className="aspect-square w-full object-cover"
+                                    />
+                                    <button
+                                        type="button"
+                                        className="absolute top-1 right-1 rounded-full bg-black/60 p-1 text-white opacity-0 transition-opacity group-hover:opacity-100"
+                                        onClick={() =>
+                                            form.setData('remove_media_ids', [
+                                                ...form.data.remove_media_ids,
+                                                item.id,
+                                            ])
+                                        }
+                                    >
+                                        <Trash2 className="size-3.5" />
+                                    </button>
+                                </div>
+                            ))}
+
+                            {galleryPreviews.map((url, index) => (
+                                <div
+                                    key={`new-${index}`}
+                                    className="group relative overflow-hidden rounded-lg border border-brand-blue/30"
+                                >
+                                    <img
+                                        src={url}
+                                        alt=""
+                                        className="aspect-square w-full object-cover"
+                                    />
+                                    <button
+                                        type="button"
+                                        className="absolute top-1 right-1 rounded-full bg-black/60 p-1 text-white opacity-0 transition-opacity group-hover:opacity-100"
+                                        onClick={() =>
+                                            form.setData(
+                                                'gallery',
+                                                form.data.gallery.filter(
+                                                    (_, i) => i !== index,
+                                                ),
+                                            )
+                                        }
+                                    >
+                                        <Trash2 className="size-3.5" />
+                                    </button>
+                                </div>
+                            ))}
+
+                            {remainingGallerySlots > 0 && (
+                                <button
+                                    type="button"
+                                    onClick={() => galleryInputRef.current?.click()}
+                                    className="flex aspect-square flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-[#d0dbef] bg-muted/20 text-muted-foreground transition-colors hover:bg-white/60"
+                                >
+                                    <ImagePlus className="size-5 text-brand-orange" />
+                                    <span className="text-[11px]">Añadir</span>
+                                </button>
+                            )}
+                        </div>
+
+                        <input
+                            ref={galleryInputRef}
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp"
+                            multiple
+                            className="hidden"
+                            onChange={(e) => {
+                                const files = Array.from(e.target.files ?? []);
+                                if (files.length === 0) return;
+                                const next = [
+                                    ...form.data.gallery,
+                                    ...files,
+                                ].slice(0, MAX_GALLERY - visibleMedia.length);
+                                form.setData('gallery', next);
+                                e.target.value = '';
+                            }}
+                        />
+                        {form.errors.gallery && (
+                            <p className="text-xs text-destructive">{form.errors.gallery}</p>
+                        )}
+                    </div>
 
                     <FormField label="Lugar" error={form.errors.lugar}>
                         <Input

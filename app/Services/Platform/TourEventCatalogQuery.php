@@ -38,6 +38,7 @@ class TourEventCatalogQuery
             ->published()
             ->with([
                 'sponsors',
+                'media',
                 'departamento:id,name',
                 'provincia:id,name',
                 'distrito:id,name',
@@ -117,6 +118,12 @@ class TourEventCatalogQuery
                 'tipo' => $s->tipo,
                 'logo_url' => PublicMediaUrl::make($s->logo_url),
                 'website' => $s->website,
+            ])->values()->all(),
+            'media' => $event->media->map(fn ($m): array => [
+                'id' => $m->id,
+                'url' => PublicMediaUrl::make($m->url),
+                'caption' => $m->caption,
+                'is_cover' => (bool) $m->is_cover,
             ])->values()->all(),
         ];
     }

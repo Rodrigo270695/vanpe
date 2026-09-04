@@ -3,6 +3,7 @@
 namespace App\Services\Platform;
 
 use App\Models\TourEvent;
+use App\Models\TourEventMedia;
 use App\Models\TourEventSponsor;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -23,9 +24,10 @@ class TourEventWriter
         return DB::transaction(function () use ($data, $sponsors): TourEvent {
             $event = TourEvent::query()->create($this->normalize($data));
             $this->syncCover($event, $data);
+            $this->syncGallery($event, $data);
             $this->syncSponsors($event, $sponsors);
 
-            return $event->fresh(['sponsors', 'departamento', 'provincia', 'distrito']);
+            return $event->fresh(['sponsors', 'media', 'departamento', 'provincia', 'distrito']);
         });
     }
 
@@ -38,9 +40,10 @@ class TourEventWriter
         return DB::transaction(function () use ($event, $data, $sponsors): TourEvent {
             $event->update($this->normalize($data, $event));
             $this->syncCover($event, $data);
+            $this->syncGallery($event, $data);
             $this->syncSponsors($event, $sponsors);
 
-            return $event->fresh(['sponsors', 'departamento', 'provincia', 'distrito']);
+            return $event->fresh(['sponsors', 'media', 'departamento', 'provincia', 'distrito']);
         });
     }
 
@@ -92,6 +95,41 @@ class TourEventWriter
         if (! empty($data['cover']) && $data['cover'] instanceof UploadedFile) {
             $url = $this->media->storeCover($data['cover'], $event);
             $event->update(['portada_url' => $url]);
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function syncGallery(TourEvent $event, array $data): void
+    {
+        $removeIds = array_values(array_unique(array_map('strval', $data['remove_media_ids'] ?? [])));
+        if ($removeIds !== []) {
+            $toDelete = TourEventMedia::query()
+                ->where('tour_event_id', $event->id)
+                ->whereIn('id', $removeIds)
+                ->get();
+
+            foreach ($toDelete as $media) {
+                $this->media->deleteMedia($media);
+            }
+        }
+
+        $gallery = $data['gallery'] ?? [];
+        if (! is_array($gallery)) {
+            return;
+        }
+
+        $nextSort = (int) TourEventMedia::query()
+            ->where('tour_event_id', $event->id)
+            ->max('sort_order');
+
+        foreach ($gallery as $file) {
+            if (! $file instanceof UploadedFile) {
+                continue;
+            }
+            $nextSort++;
+            $this->media->storeGalleryItem($file, $event, $nextSort);
         }
     }
 

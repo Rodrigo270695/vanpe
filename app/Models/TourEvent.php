@@ -62,6 +62,11 @@ class TourEvent extends Model
         return $this->hasMany(TourEventSponsor::class)->orderBy('sort_order');
     }
 
+    public function media(): HasMany
+    {
+        return $this->hasMany(TourEventMedia::class)->orderBy('sort_order');
+    }
+
     public function tenant(): BelongsTo
     {
         return $this->belongsTo(Tenant::class);

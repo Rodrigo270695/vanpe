@@ -29,7 +29,7 @@ class TourEventController extends Controller
         $events = TourEvent::query()
             ->where('owner_type', TourEvent::OWNER_TENANT)
             ->where('tenant_id', $tenant->id)
-            ->with(['departamento:id,name', 'sponsors'])
+            ->with(['departamento:id,name', 'sponsors', 'media'])
             ->orderByDesc('destacado')
             ->orderBy('sort_order')
             ->orderByDesc('starts_at')
@@ -161,6 +161,11 @@ class TourEventController extends Controller
                 'tipo' => $s->tipo,
                 'logo_url' => $s->logo_url,
                 'website' => $s->website,
+            ])->values()->all(),
+            'media' => $e->media->map(fn ($m): array => [
+                'id' => $m->id,
+                'url' => $m->url,
+                'caption' => $m->caption,
             ])->values()->all(),
         ];
     }
