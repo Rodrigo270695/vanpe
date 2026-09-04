@@ -154,4 +154,14 @@ class CustomerPreferenceService
     {
         return $this->interests->recommendTourSpots($customer, $limit);
     }
+
+    public function hasRestaurantInterestGroups(Customer $customer): bool
+    {
+        return $this->interests->hasRestaurantInterestGroups($customer);
+    }
+
+    public function hasTourSpotInterestGroups(Customer $customer): bool
+    {
+        return $this->interests->hasTourSpotInterestGroups($customer);
+    }
 }

@@ -41,6 +41,7 @@ return [
         'subscriptions' => 'Subscriptions',
         'subscription_payments' => 'Payments',
         'promo_codes' => 'Promos',
+        'app_diagnostics' => 'App diagnostics',
         'catalog' => 'Tourist catalog',
         'tour_spots' => 'Tourist spots',
         'events' => 'Fairs & festivities',

@@ -74,6 +74,23 @@ class HomeController extends Controller
                 ->get();
         }
 
+        $featuredRestaurants = $this->featuredRestaurants($limit);
+        $featuredSpots = $this->featuredTourSpots($limit);
+        $recentRestaurants = $this->recentRestaurants($limit);
+        $recentSpots = $this->recentTourSpots($limit);
+
+        // Personalizado: no rellenar featured/recent con el otro tipo si no hay interés.
+        if ($mode === 'ai_preferences' && $customer instanceof Customer) {
+            if (! $this->preferences->hasTourSpotInterestGroups($customer)) {
+                $featuredSpots = collect();
+                $recentSpots = collect();
+            }
+            if (! $this->preferences->hasRestaurantInterestGroups($customer)) {
+                $featuredRestaurants = collect();
+                $recentRestaurants = collect();
+            }
+        }
+
         return response()->json([
             'data' => [
                 'mode' => $mode,
@@ -84,18 +101,18 @@ class HomeController extends Controller
                     ->map(fn (TourSpot $spot): array => $this->tourSpots->toListItem($spot))
                     ->values(),
                 'featured' => [
-                    'restaurants' => $this->featuredRestaurants($limit)
+                    'restaurants' => $featuredRestaurants
                         ->map(fn (PubRestaurant $r): array => $this->serializeRestaurant($r))
                         ->values(),
-                    'tour_spots' => $this->featuredTourSpots($limit)
+                    'tour_spots' => $featuredSpots
                         ->map(fn (TourSpot $spot): array => $this->tourSpots->toListItem($spot))
                         ->values(),
                 ],
                 'recent' => [
-                    'restaurants' => $this->recentRestaurants($limit)
+                    'restaurants' => $recentRestaurants
                         ->map(fn (PubRestaurant $r): array => $this->serializeRestaurant($r))
                         ->values(),
-                    'tour_spots' => $this->recentTourSpots($limit)
+                    'tour_spots' => $recentSpots
                         ->map(fn (TourSpot $spot): array => $this->tourSpots->toListItem($spot))
                         ->values(),
                 ],

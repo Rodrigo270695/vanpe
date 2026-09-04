@@ -41,6 +41,7 @@ return [
         'subscriptions' => 'Suscripciones',
         'subscription_payments' => 'Pagos',
         'promo_codes' => 'Promos',
+        'app_diagnostics' => 'Diagnóstico APK',
         'catalog' => 'Catálogo turístico',
         'tour_spots' => 'Centros turísticos',
         'events' => 'Ferias y festividades',

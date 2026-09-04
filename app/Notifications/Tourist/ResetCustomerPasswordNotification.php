@@ -25,24 +25,15 @@ class ResetCustomerPasswordNotification extends Notification implements ShouldQu
 
     public function toMail(object $notifiable): MailMessage
     {
-        $email = method_exists($notifiable, 'getEmailForPasswordReset')
-            ? $notifiable->getEmailForPasswordReset()
-            : (string) $notifiable->email;
-
-        $url = rtrim((string) config('app.url'), '/').'/tourist/password-reset?'
-            .http_build_query([
-                'token' => $this->token,
-                'email' => $email,
-            ]);
-
         return (new MailMessage)
-            ->subject('Restablecer contraseña — VanPe')
+            ->subject('Código para restablecer contraseña — VanPe')
             ->greeting('Hola'.$this->greetingName($notifiable))
             ->line('Recibimos una solicitud para restablecer la contraseña de tu cuenta VanPe.')
-            ->action('Restablecer contraseña', $url)
-            ->line('Este enlace caduca en 60 minutos.')
+            ->line('Usa este código en la app VanPe:')
+            ->line('**'.$this->token.'**')
+            ->line('El código caduca en 60 minutos.')
             ->line('Si no solicitaste este cambio, puedes ignorar este correo.')
-            ->line('También puedes usar el token en la app: '.$this->token);
+            ->salutation('Equipo VanPe');
     }
 
     private function greetingName(object $notifiable): string

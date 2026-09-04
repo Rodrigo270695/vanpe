@@ -45,7 +45,7 @@ export default function LegalLayout({ children }: { children: ReactNode }) {
             <div className="animate-blob pointer-events-none fixed -bottom-28 -left-24 h-80 w-80 rounded-full bg-brand-orange/10 blur-3xl [animation-delay:-8s]" />
             <div className="bg-dot-grid-blue pointer-events-none fixed inset-0 opacity-70" />
 
-            <header className="relative z-10 border-b border-border/40 bg-background/70 backdrop-blur-md">
+            <header className="relative z-10 border-b border-slate-200/80 bg-white/90 backdrop-blur-md dark:border-slate-700/80 dark:bg-slate-900/90">
                 <div className="mx-auto flex max-w-4xl items-center justify-between gap-4 px-6 py-4">
                     <Link href={home()} className="inline-flex items-center">
                         <img
@@ -72,8 +72,8 @@ export default function LegalLayout({ children }: { children: ReactNode }) {
                             href={item.href}
                             className={
                                 item.active
-                                    ? 'rounded-full bg-brand-blue px-4 py-2 text-sm font-semibold text-white shadow-sm'
-                                    : 'rounded-full bg-background/80 px-4 py-2 text-sm font-medium text-muted-foreground ring-1 ring-border/60 transition-colors hover:text-foreground'
+                                    ? 'rounded-full bg-brand-blue px-4 py-2 text-sm font-semibold text-white shadow-md shadow-brand-blue/25'
+                                    : 'rounded-full bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm ring-1 ring-slate-200 transition-colors hover:text-brand-blue dark:bg-slate-800 dark:text-slate-200 dark:ring-slate-600 dark:hover:text-brand-blue-light'
                             }
                         >
                             {item.label}
@@ -81,11 +81,11 @@ export default function LegalLayout({ children }: { children: ReactNode }) {
                     ))}
                 </nav>
 
-                <article className="clay-card rounded-3xl bg-card/95 p-6 shadow-xl ring-1 ring-border/50 backdrop-blur sm:p-10">
+                <article className="rounded-3xl border border-slate-200/90 bg-white p-6 shadow-xl shadow-brand-blue/8 sm:p-10 dark:border-slate-700 dark:bg-slate-900 dark:shadow-black/40">
                     {children}
                 </article>
 
-                <footer className="mt-10 space-y-2 text-center text-xs text-muted-foreground">
+                <footer className="mt-10 space-y-2 text-center text-xs text-slate-600 dark:text-slate-400">
                     <p>{t('legal.footer.contact')}</p>
                     <p>
                         {t('legal.footer.rights', {

@@ -1,5 +1,6 @@
 import { Head } from '@inertiajs/react';
 import { LegalBody } from '@/components/legal/legal-body';
+import { LegalPageHeader } from '@/components/legal/legal-page-header';
 import { useTranslations } from '@/hooks/use-translations';
 
 export default function CookiesPage() {
@@ -8,17 +9,10 @@ export default function CookiesPage() {
     return (
         <>
             <Head title={t('legal.cookies.title')} />
-            <header className="mb-8 border-b border-border/50 pb-6">
-                <p className="text-xs font-medium tracking-wide text-brand-blue uppercase dark:text-brand-blue-light">
-                    VanPe · Perú
-                </p>
-                <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl">
-                    {t('legal.cookies.title')}
-                </h1>
-                <p className="mt-3 text-sm text-muted-foreground">
-                    {t('legal.updated')}
-                </p>
-            </header>
+            <LegalPageHeader
+                title={t('legal.cookies.title')}
+                updated={t('legal.updated')}
+            />
             <LegalBody body={t('legal.cookies.body')} />
         </>
     );

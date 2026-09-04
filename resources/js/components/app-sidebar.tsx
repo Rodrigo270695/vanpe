@@ -22,6 +22,7 @@ import {
     Users,
     Utensils,
     CalendarClock,
+    Bug,
 } from 'lucide-react';
 import { useMemo } from 'react';
 import AppLogo from '@/components/app-logo';
@@ -235,6 +236,12 @@ const mainNavTemplate: NavTemplateItem[] = [
                 href: '/promo-codes',
                 icon: TicketPercent,
                 permission: 'promo_codes.view',
+            },
+            {
+                titleKey: 'nav.app_diagnostics',
+                href: '/app-diagnostics',
+                icon: Bug,
+                permission: 'tenants.view',
             },
             {
                 titleKey: 'nav.catalog',

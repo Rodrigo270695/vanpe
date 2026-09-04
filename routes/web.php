@@ -9,6 +9,7 @@ use App\Http\Controllers\Auth\TenantRegistrationController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DocumentLookupController;
 use App\Http\Controllers\LocaleController;
+use App\Http\Controllers\Platform\AppDiagnosticLogController;
 use App\Http\Controllers\Platform\CatalogController;
 use App\Http\Controllers\Platform\TouristInterestController;
 use App\Http\Controllers\Platform\PlanController;
@@ -310,6 +311,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('promo-codes', [PromoCodeController::class, 'store'])->name('promo-codes.store');
         Route::put('promo-codes/{promo_code}', [PromoCodeController::class, 'update'])->name('promo-codes.update');
         Route::delete('promo-codes/{promo_code}', [PromoCodeController::class, 'destroy'])->name('promo-codes.destroy');
+
+        Route::get('app-diagnostics', [AppDiagnosticLogController::class, 'index'])->name('app-diagnostics.index');
+        Route::post('app-diagnostics/clear', [AppDiagnosticLogController::class, 'clear'])->name('app-diagnostics.clear');
+        Route::delete('app-diagnostics/{app_diagnostic_log}', [AppDiagnosticLogController::class, 'destroy'])
+            ->name('app-diagnostics.destroy');
 
         Route::get('catalogo', [CatalogController::class, 'index'])->name('catalog.index');
         Route::post('catalogo/items', [CatalogController::class, 'store'])->name('catalog.items.store');

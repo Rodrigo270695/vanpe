@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\Tourist\AuthController;
 use App\Http\Controllers\Api\Tourist\CatalogOptionsController;
 use App\Http\Controllers\Api\Tourist\DeviceTokenController;
+use App\Http\Controllers\Api\Tourist\DiagnosticLogController;
 use App\Http\Controllers\Api\Tourist\FavoriteController;
 use App\Http\Controllers\Api\Tourist\GeoController;
 use App\Http\Controllers\Api\Tourist\HomeController;
@@ -87,6 +88,10 @@ Route::prefix('v1/tourist')->group(function () {
         Route::delete('routes/stops/{stopId}', [TouristRouteController::class, 'removeStop']);
         Route::post('extraordinary-events/{id}/claim', [ExtraordinaryEventController::class, 'claim']);
     });
+
+    // Diagnóstico APK: público con throttle (también acepta Bearer si hay sesión).
+    Route::post('diagnostics', [DiagnosticLogController::class, 'store'])
+        ->middleware('throttle:tourist-api');
 
     Route::get('catalog-options', CatalogOptionsController::class);
     Route::get('home', HomeController::class);
