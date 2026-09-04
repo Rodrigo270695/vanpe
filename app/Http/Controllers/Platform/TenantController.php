@@ -185,12 +185,15 @@ class TenantController extends Controller
     /**
      * Emite un code de un solo uso y redirige al handoff del subdominio
      * para que el superadmin opere como el owner del tenant (modo soporte).
+     *
+     * Usa Inertia::location() (no redirect()->away): el XHR de Inertia no puede
+     * seguir un 302 cross-origin (CORS). location fuerza window.location completo.
      */
     public function supportLogin(
         Request $request,
         Tenant $tenant,
         TenantProvisioner $provisioner,
-    ): RedirectResponse {
+    ): \Symfony\Component\HttpFoundation\Response {
         abort_unless($this->canSupportLogin($request), 403);
 
         $owner = $provisioner->getOwner($tenant);
@@ -217,7 +220,7 @@ class TenantController extends Controller
             'actor_email' => $actor?->email,
         ]);
 
-        return redirect()->away(
+        return Inertia::location(
             $tenant->subdomainUrl('/auth/support/handoff?code='.$code)
         );
     }

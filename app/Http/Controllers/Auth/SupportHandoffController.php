@@ -11,6 +11,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Inertia\Inertia;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Completa el ingreso de soporte (superadmin) en el subdominio del tenant.
@@ -64,7 +66,7 @@ class SupportHandoffController extends Controller
         return redirect()->to('/dashboard');
     }
 
-    public function exit(Request $request): RedirectResponse
+    public function exit(Request $request): Response
     {
         abort_unless((bool) $request->session()->get('support_mode'), 403);
 
@@ -83,6 +85,7 @@ class SupportHandoffController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect()->away($returnUrl);
+        // Cross-domain: Inertia XHR no puede seguir away() (CORS).
+        return Inertia::location($returnUrl);
     }
 }
