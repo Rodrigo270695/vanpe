@@ -16,38 +16,28 @@ class SimilarPlacesService
     ) {}
 
     /**
-     * Desde un restaurante: hasta 10 sugerencias (similares + cercanos).
+     * Desde un restaurante: primero restos similares, luego centros cercanos.
      *
      * @return array{items: list<array<string, mixed>>}
      */
     public function forRestaurant(PubRestaurant $restaurant): array
     {
-        $similarRestaurants = $this->similarRestaurants($restaurant, 10);
-        $nearbySpots = $this->nearbyTourSpots(
-            $restaurant->latitud !== null ? (float) $restaurant->latitud : null,
-            $restaurant->longitud !== null ? (float) $restaurant->longitud : null,
-            excludeId: null,
-            limit: 3,
-        );
+        $lat = $restaurant->latitud !== null ? (float) $restaurant->latitud : null;
+        $lng = $restaurant->longitud !== null ? (float) $restaurant->longitud : null;
 
-        $items = [];
-        $restTake = $nearbySpots->isNotEmpty() ? 7 : 10;
+        $similar = $this->similarRestaurants($restaurant, 7)
+            ->map(fn (PubRestaurant $r) => $this->mapRestaurant($r))
+            ->all();
 
-        foreach ($similarRestaurants->take($restTake) as $row) {
-            $items[] = $this->mapRestaurant($row);
-        }
-        foreach ($nearbySpots->take(3) as $spot) {
-            if (count($items) >= 10) {
-                break;
-            }
-            $items[] = $this->mapTourSpot($spot);
-        }
+        $nearbySpots = $this->nearbyTourSpots($lat, $lng, excludeId: null, limit: 5)
+            ->map(fn (TourSpot $s) => $this->mapTourSpot($s))
+            ->all();
 
-        return ['items' => array_values(array_slice($items, 0, 10))];
+        return ['items' => $this->concatUnique($similar, $nearbySpots, 10)];
     }
 
     /**
-     * Desde un centro: mezcla restaurantes cercanos + otros centros (hasta 10).
+     * Desde un centro: primero otros centros similares, luego restaurantes cercanos.
      *
      * @return array{items: list<array<string, mixed>>}
      */
@@ -56,127 +46,72 @@ class SimilarPlacesService
         $lat = $spot->latitud !== null ? (float) $spot->latitud : null;
         $lng = $spot->longitud !== null ? (float) $spot->longitud : null;
 
-        $topRestaurants = $this->topRestaurantsNear($lat, $lng, 7);
-        $nearbySpots = $this->nearbyTourSpots($lat, $lng, excludeId: $spot->id, limit: 4);
+        $similarSpots = $this->similarTourSpots($spot, 7)
+            ->map(fn (TourSpot $s) => $this->mapTourSpot($s))
+            ->all();
 
-        $items = [];
-        $usedRestaurantIds = [];
+        $nearbyRestaurants = $this->nearbyRestaurants($lat, $lng, excludeId: null, limit: 5)
+            ->map(fn (PubRestaurant $r) => $this->mapRestaurant($r))
+            ->all();
 
-        foreach ($topRestaurants as $row) {
-            $items[] = $this->mapRestaurant($row);
-            $usedRestaurantIds[$row->id] = true;
-        }
-        foreach ($nearbySpots as $near) {
-            $items[] = $this->mapTourSpot($near);
-        }
+        // Orden fijo: centros primero, comida después.
+        return ['items' => $this->concatUnique($similarSpots, $nearbyRestaurants, 10)];
+    }
 
-        if (count($items) < 8) {
-            $needed = 10 - count($items);
-            $extra = $this->topRestaurantsNear($lat, $lng, $needed + 8)
-                ->reject(fn (PubRestaurant $r) => isset($usedRestaurantIds[$r->id]))
-                ->take($needed);
-
-            foreach ($extra as $row) {
-                $items[] = $this->mapRestaurant($row);
+    /**
+     * @param  list<array<string, mixed>>  $first
+     * @param  list<array<string, mixed>>  $second
+     * @return list<array<string, mixed>>
+     */
+    private function concatUnique(array $first, array $second, int $limit): array
+    {
+        $out = [];
+        $seen = [];
+        foreach (array_merge($first, $second) as $item) {
+            $key = ($item['kind'] ?? '').':'.($item['id'] ?? '');
+            if ($key === ':' || isset($seen[$key])) {
+                continue;
+            }
+            $seen[$key] = true;
+            $out[] = $item;
+            if (count($out) >= $limit) {
+                break;
             }
         }
 
-        return ['items' => array_values(array_slice($items, 0, 10))];
+        return array_values($out);
     }
 
     /**
      * @return Collection<int, PubRestaurant>
      */
-    private function similarRestaurants(PubRestaurant $restaurant, int $limit): Collection
+    private function nearbyRestaurants(?float $lat, ?float $lng, ?string $excludeId, int $limit): Collection
     {
-        $prefIds = PubRestaurantCatalogItem::query()
-            ->where('tenant_id', $restaurant->tenant_id)
-            ->pluck('catalog_item_id')
-            ->unique()
-            ->values()
-            ->all();
-
-        $cuisine = collect($restaurant->tipo_cocina ?? [])->filter()->values()->all();
-
-        /** @var Collection<string, int> $matchCounts */
-        $matchCounts = $prefIds === []
-            ? collect()
-            : PubRestaurantCatalogItem::query()
-                ->whereIn('catalog_item_id', $prefIds)
-                ->where('tenant_id', '!=', $restaurant->tenant_id)
-                ->selectRaw('tenant_id, COUNT(*) as match_count')
-                ->groupBy('tenant_id')
-                ->pluck('match_count', 'tenant_id');
-
-        $candidates = PubRestaurant::query()
+        $query = PubRestaurant::query()
             ->where('activo', true)
-            ->where('id', '!=', $restaurant->id)
-            ->get();
+            ->when($excludeId, fn ($q) => $q->where('id', '!=', $excludeId));
 
-        return $candidates
-            ->map(function (PubRestaurant $row) use ($matchCounts, $cuisine, $restaurant): array {
-                $matches = (int) ($matchCounts[$row->tenant_id] ?? 0);
-                $sharedCuisine = count(array_intersect($cuisine, $row->tipo_cocina ?? []));
-                $distanceScore = $this->proximityBoost(
-                    $restaurant->latitud !== null ? (float) $restaurant->latitud : null,
-                    $restaurant->longitud !== null ? (float) $restaurant->longitud : null,
-                    $row->latitud !== null ? (float) $row->latitud : null,
-                    $row->longitud !== null ? (float) $row->longitud : null,
-                );
-
-                $score = ($matches * 40)
-                    + ($sharedCuisine * 25)
-                    + ((float) $row->rating_promedio * 8)
-                    + ((int) $row->total_resenas * 0.5)
-                    + ((float) $row->score_ranking * 5)
-                    + $distanceScore
-                    + ($row->destacado ? 8 : 0);
-
-                return ['restaurant' => $row, 'score' => $score];
-            })
-            ->sortByDesc('score')
-            ->take($limit)
-            ->values()
-            ->map(fn (array $row): PubRestaurant => $row['restaurant']);
-    }
-
-    /**
-     * @return Collection<int, PubRestaurant>
-     */
-    private function topRestaurantsNear(?float $lat, ?float $lng, int $limit): Collection
-    {
-        $rows = PubRestaurant::query()
-            ->where('activo', true)
-            ->orderByDesc('total_resenas')
-            ->orderByDesc('rating_promedio')
-            ->orderByDesc('score_ranking')
-            ->limit(max($limit * 4, 12))
-            ->get();
+        $rows = $query->get();
 
         if ($lat === null || $lng === null) {
-            return $rows->take($limit)->values();
+            return $rows
+                ->sortByDesc(fn (PubRestaurant $r) => ((float) $r->rating_promedio * 10) + (int) $r->total_resenas)
+                ->take($limit)
+                ->values();
         }
 
         return $rows
-            ->sortByDesc(function (PubRestaurant $row) use ($lat, $lng): float {
-                $boost = $this->proximityBoost(
+            ->filter(fn (PubRestaurant $r) => $r->latitud !== null && $r->longitud !== null)
+            ->sortBy(function (PubRestaurant $row) use ($lat, $lng): float {
+                return $this->haversineKm(
                     $lat,
                     $lng,
-                    $row->latitud !== null ? (float) $row->latitud : null,
-                    $row->longitud !== null ? (float) $row->longitud : null,
+                    (float) $row->latitud,
+                    (float) $row->longitud,
                 );
-
-                return ((int) $row->total_resenas * 2)
-                    + ((float) $row->rating_promedio * 10)
-                    + $boost;
             })
             ->take($limit)
             ->values();
-    }
-
-    private function nearbyTourSpot(?float $lat, ?float $lng, ?string $excludeId): ?TourSpot
-    {
-        return $this->nearbyTourSpots($lat, $lng, $excludeId, 1)->first();
     }
 
     /**
@@ -210,6 +145,159 @@ class SimilarPlacesService
                 );
             })
             ->take($limit)
+            ->values();
+    }
+
+    /**
+     * @return Collection<int, PubRestaurant>
+     */
+    private function similarRestaurants(PubRestaurant $restaurant, int $limit): Collection
+    {
+        $prefIds = PubRestaurantCatalogItem::query()
+            ->where('tenant_id', $restaurant->tenant_id)
+            ->pluck('catalog_item_id')
+            ->unique()
+            ->values()
+            ->all();
+
+        $cuisine = collect($restaurant->tipo_cocina ?? [])
+            ->filter()
+            ->map(fn ($c) => strtolower((string) $c))
+            ->values()
+            ->all();
+
+        /** @var Collection<string, int> $matchCounts */
+        $matchCounts = $prefIds === []
+            ? collect()
+            : PubRestaurantCatalogItem::query()
+                ->whereIn('catalog_item_id', $prefIds)
+                ->where('tenant_id', '!=', $restaurant->tenant_id)
+                ->selectRaw('tenant_id, COUNT(*) as match_count')
+                ->groupBy('tenant_id')
+                ->pluck('match_count', 'tenant_id');
+
+        $originLat = $restaurant->latitud !== null ? (float) $restaurant->latitud : null;
+        $originLng = $restaurant->longitud !== null ? (float) $restaurant->longitud : null;
+
+        $candidates = PubRestaurant::query()
+            ->where('activo', true)
+            ->where('id', '!=', $restaurant->id)
+            ->get();
+
+        $scored = $candidates
+            ->map(function (PubRestaurant $row) use ($matchCounts, $cuisine, $originLat, $originLng): array {
+                $rowCuisine = collect($row->tipo_cocina ?? [])
+                    ->filter()
+                    ->map(fn ($c) => strtolower((string) $c))
+                    ->values()
+                    ->all();
+
+                $matches = (int) ($matchCounts[$row->tenant_id] ?? 0);
+                $sharedCuisine = count(array_intersect($cuisine, $rowCuisine));
+                $samePrimary = $cuisine !== [] && $rowCuisine !== [] && $cuisine[0] === $rowCuisine[0];
+
+                $distanceScore = $this->proximityBoost(
+                    $originLat,
+                    $originLng,
+                    $row->latitud !== null ? (float) $row->latitud : null,
+                    $row->longitud !== null ? (float) $row->longitud : null,
+                );
+
+                // Prioridad: misma cocina / mismos tags de catálogo; cercanía refuerza.
+                $score = ($sharedCuisine * 55)
+                    + ($samePrimary ? 40 : 0)
+                    + ($matches * 45)
+                    + $distanceScore
+                    + ((float) $row->rating_promedio * 5)
+                    + ((int) $row->total_resenas * 0.25)
+                    + ((float) $row->score_ranking * 2)
+                    + ($row->destacado ? 5 : 0);
+
+                $hasAffinity = $sharedCuisine > 0 || $matches > 0;
+                if (! $hasAffinity && $distanceScore < 18) {
+                    $score -= 80;
+                }
+
+                return ['restaurant' => $row, 'score' => $score, 'hasAffinity' => $hasAffinity];
+            })
+            ->sortByDesc('score')
+            ->values();
+
+        $hasAnyAffinity = $scored->contains(fn (array $r) => $r['hasAffinity']);
+        if ($hasAnyAffinity) {
+            $scored = $scored
+                ->filter(fn (array $r) => $r['hasAffinity'] || $r['score'] > 20)
+                ->values();
+        }
+
+        return $scored
+            ->take($limit)
+            ->map(fn (array $row): PubRestaurant => $row['restaurant'])
+            ->values();
+    }
+
+    /**
+     * @return Collection<int, TourSpot>
+     */
+    private function similarTourSpots(TourSpot $spot, int $limit): Collection
+    {
+        if (! $spot->relationLoaded('categories')) {
+            $spot->load('categories');
+        }
+
+        $categorySlugs = $spot->categories->pluck('slug')->filter()->map(fn ($s) => (string) $s)->values()->all();
+        $primarySlug = (string) ($spot->categories->firstWhere('pivot.is_primary', true)?->slug
+            ?? $spot->categories->first()?->slug
+            ?? '');
+
+        $originLat = $spot->latitud !== null ? (float) $spot->latitud : null;
+        $originLng = $spot->longitud !== null ? (float) $spot->longitud : null;
+
+        $candidates = TourSpot::query()
+            ->where('estado', TourSpot::ESTADO_PUBLICADO)
+            ->where('id', '!=', $spot->id)
+            ->with(['categories', 'departamento:id,name', 'distrito:id,name'])
+            ->get();
+
+        $scored = $candidates
+            ->map(function (TourSpot $near) use ($categorySlugs, $primarySlug, $originLat, $originLng): array {
+                $nearSlugs = $near->categories->pluck('slug')->filter()->map(fn ($s) => (string) $s)->values()->all();
+                $nearPrimary = (string) ($near->categories->firstWhere('pivot.is_primary', true)?->slug
+                    ?? $near->categories->first()?->slug
+                    ?? '');
+
+                $sharedCats = count(array_intersect($categorySlugs, $nearSlugs));
+                $samePrimary = $primarySlug !== '' && $nearPrimary === $primarySlug;
+
+                $distanceScore = $this->proximityBoost(
+                    $originLat,
+                    $originLng,
+                    $near->latitud !== null ? (float) $near->latitud : null,
+                    $near->longitud !== null ? (float) $near->longitud : null,
+                );
+
+                $score = ($samePrimary ? 60 : 0)
+                    + ($sharedCats * 45)
+                    + $distanceScore
+                    + ((float) ($near->rating_promedio ?? 0) * 5)
+                    + ((float) ($near->score_ranking ?? 0) * 2)
+                    + (! empty($near->destacado) ? 5 : 0);
+
+                $hasAffinity = $samePrimary || $sharedCats > 0;
+                // Sin misma categoría: igual puede salir si está cerca (otros centros).
+                if (! $hasAffinity && $distanceScore < 8) {
+                    $score -= 25;
+                }
+
+                return ['spot' => $near, 'score' => $score, 'hasAffinity' => $hasAffinity];
+            })
+            ->sortByDesc('score')
+            ->values();
+
+        // No filtrar agresivo: queremos centros primero siempre (categoría o cercanos).
+        return $scored
+            ->take($limit)
+            ->map(fn (array $row): TourSpot => $row['spot'])
             ->values();
     }
 

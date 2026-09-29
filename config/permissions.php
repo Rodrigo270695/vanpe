@@ -102,6 +102,16 @@ return [
                     'tour_spots.delete' => 'Eliminar centros turísticos',
                 ],
             ],
+            'hotels' => [
+                'label' => 'Hoteles',
+                'permissions' => [
+                    'hotels.view' => 'Ver hoteles',
+                    'hotels.create' => 'Crear hoteles',
+                    'hotels.update' => 'Editar hoteles',
+                    'hotels.publish' => 'Publicar hoteles',
+                    'hotels.delete' => 'Eliminar hoteles',
+                ],
+            ],
             'events' => [
                 'label' => 'Ferias y festividades',
                 'permissions' => [

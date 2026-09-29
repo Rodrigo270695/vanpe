@@ -12,6 +12,7 @@ use App\Http\Controllers\DocumentLookupController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\Platform\AppDiagnosticLogController;
 use App\Http\Controllers\Platform\CatalogController;
+use App\Http\Controllers\Platform\HotelController;
 use App\Http\Controllers\Platform\TouristInterestController;
 use App\Http\Controllers\Platform\PlanController;
 use App\Http\Controllers\Platform\PlanFeatureController;
@@ -358,6 +359,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('centros-turisticos', [TourSpotController::class, 'store'])->name('tour-spots.store');
         Route::put('centros-turisticos/{tour_spot}', [TourSpotController::class, 'update'])->name('tour-spots.update');
         Route::delete('centros-turisticos/{tour_spot}', [TourSpotController::class, 'destroy'])->name('tour-spots.destroy');
+
+        Route::get('hoteles', [HotelController::class, 'index'])->name('hotels.index');
+        Route::get('hoteles/geo/provincias', [HotelController::class, 'provincias'])->name('hotels.geo.provincias');
+        Route::get('hoteles/geo/distritos', [HotelController::class, 'distritos'])->name('hotels.geo.distritos');
+        Route::post('hoteles', [HotelController::class, 'store'])->name('hotels.store');
+        Route::put('hoteles/{hotel}', [HotelController::class, 'update'])->name('hotels.update');
+        Route::delete('hoteles/{hotel}', [HotelController::class, 'destroy'])->name('hotels.destroy');
 
         Route::get('festividades', [TourEventController::class, 'index'])->name('events.index');
         Route::post('festividades', [TourEventController::class, 'store'])->name('events.store');

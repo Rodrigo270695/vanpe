@@ -1,6 +1,7 @@
 import { Link, usePage } from '@inertiajs/react';
 import {
     BarChart3,
+    BedDouble,
     BookOpen,
     ChefHat,
     ClipboardList,
@@ -254,6 +255,12 @@ const mainNavTemplate: NavTemplateItem[] = [
                 href: '/centros-turisticos',
                 icon: MapPin,
                 permission: 'tour_spots.view',
+            },
+            {
+                titleKey: 'nav.hotels',
+                href: '/hoteles',
+                icon: BedDouble,
+                permission: 'hotels.view',
             },
             {
                 titleKey: 'nav.events',

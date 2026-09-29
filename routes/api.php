@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\Tourist\DiagnosticLogController;
 use App\Http\Controllers\Api\Tourist\FavoriteController;
 use App\Http\Controllers\Api\Tourist\GeoController;
 use App\Http\Controllers\Api\Tourist\HomeController;
+use App\Http\Controllers\Api\Tourist\HotelController;
 use App\Http\Controllers\Api\Tourist\NotificationController;
 use App\Http\Controllers\Api\Tourist\PasswordResetController;
 use App\Http\Controllers\Api\Tourist\PreferenceController;
@@ -107,6 +108,8 @@ Route::prefix('v1/tourist')->group(function () {
     Route::get('tour-spot-categories', [TourSpotController::class, 'categories']);
     Route::get('tour-spots/{slug}/similar', [SimilarPlacesController::class, 'tourSpot']);
     Route::get('tour-spots/{slug}', [TourSpotController::class, 'show']);
+    Route::get('hotels', [HotelController::class, 'index']);
+    Route::get('hotels/{slug}', [HotelController::class, 'show']);
     Route::get('events/featured', [TourEventController::class, 'featured']);
     Route::get('events', [TourEventController::class, 'index']);
     Route::get('events/{slug}', [TourEventController::class, 'show']);
