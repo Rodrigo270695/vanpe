@@ -12,6 +12,15 @@ import type {
     HotelOptions,
     HotelRow,
 } from '@/components/hotels/types';
+import {
+    isInsidePeru,
+    isValidEmail,
+    isValidWebsite,
+    onlyDigits,
+    phoneErrorKey,
+    rucErrorKey,
+    sanitizePrice,
+} from '@/components/hotels/validation';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import {
@@ -38,6 +47,62 @@ type HotelFormModalProps = {
 type GeoListResponse = { data: GeoOption[] };
 
 const EXCLUSIVE_REDES = 'ninguna';
+
+/** Inertia 3 reemplaza los defaults de useForm tras un envío exitoso, así que reset() no sirve para limpiar. */
+function emptyHotelForm() {
+    return {
+        nombre: '',
+        slug: '',
+        ruc: '',
+        resumen: '',
+        descripcion: '',
+        direccion: '',
+        referencia: '',
+        departamento_id: '' as string | number,
+        provincia_id: '' as string | number,
+        distrito_id: '' as string | number,
+        latitud: '',
+        longitud: '',
+        telefono_reservas: '',
+        email: '',
+        website: '',
+        check_in: '',
+        check_out: '',
+        tipos_habitacion: [] as string[],
+        precio_desde: '',
+        precio_hasta: '',
+        moneda: 'PEN',
+        clasificacion: '',
+        servicios: [] as string[],
+        medios_pago: [] as string[],
+        cover: null as File | null,
+        remove_cover: false,
+        gallery: [] as File[],
+        remove_media_ids: [] as string[],
+        sistema_reservas: '',
+        interes_whatsapp: '',
+        redes_sociales: [] as string[],
+        herramientas_interes: [] as string[],
+        mayor_reto: '',
+        sugerencias: '',
+        destacado: false,
+        estado: 'borrador',
+    };
+}
+
+type TextFieldKey =
+    | 'nombre'
+    | 'slug'
+    | 'ruc'
+    | 'direccion'
+    | 'referencia'
+    | 'telefono_reservas'
+    | 'email'
+    | 'website'
+    | 'check_in'
+    | 'check_out'
+    | 'precio_desde'
+    | 'precio_hasta';
 
 async function fetchGeo(url: string): Promise<GeoOption[]> {
     const res = await fetch(url, { headers: { Accept: 'application/json' } });
@@ -242,48 +307,27 @@ export function HotelFormModal({
     const [provincias, setProvincias] = useState<GeoOption[]>([]);
     const [distritos, setDistritos] = useState<GeoOption[]>([]);
     const [loadingGeo, setLoadingGeo] = useState(false);
+    const [touched, setTouched] = useState<Record<string, boolean>>({});
+    const [submitAttempted, setSubmitAttempted] = useState(false);
     const existingCoverUrl = hotel?.imagen_portada_url ?? null;
     const existingMedia: HotelMediaRow[] = useMemo(() => hotel?.media ?? [], [hotel]);
 
-    const { data, setData, post, transform, processing, errors, reset, clearErrors } =
-        useForm({
-            nombre: '',
-            slug: '',
-            ruc: '',
-            resumen: '',
-            descripcion: '',
-            direccion: '',
-            referencia: '',
-            departamento_id: '' as string | number,
-            provincia_id: '' as string | number,
-            distrito_id: '' as string | number,
-            latitud: '',
-            longitud: '',
-            telefono_reservas: '',
-            email: '',
-            website: '',
-            check_in: '',
-            check_out: '',
-            tipos_habitacion: [] as string[],
-            precio_desde: '',
-            precio_hasta: '',
-            moneda: 'PEN',
-            clasificacion: '',
-            servicios: [] as string[],
-            medios_pago: [] as string[],
-            cover: null as File | null,
-            remove_cover: false,
-            gallery: [] as File[],
-            remove_media_ids: [] as string[],
-            sistema_reservas: '',
-            interes_whatsapp: '',
-            redes_sociales: [] as string[],
-            herramientas_interes: [] as string[],
-            mayor_reto: '',
-            sugerencias: '',
-            destacado: false,
-            estado: 'borrador',
-        });
+    const { data, setData, post, transform, processing, errors, clearErrors } =
+        useForm(emptyHotelForm());
+
+    const resetForm = () => {
+        setData(emptyHotelForm());
+        clearErrors();
+        transform((payload) => payload);
+        setProvincias([]);
+        setDistritos([]);
+        setTouched({});
+        setSubmitAttempted(false);
+
+        if (galleryInputRef.current) {
+            galleryInputRef.current.value = '';
+        }
+    };
 
     const loadProvincias = async (departamentoId: string) => {
         setLoadingGeo(true);
@@ -324,6 +368,9 @@ export function HotelFormModal({
         if (!open) {
             return;
         }
+
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        resetForm();
 
         if (hotel) {
             setData({
@@ -366,10 +413,7 @@ export function HotelFormModal({
                 destacado: hotel.destacado,
                 estado: hotel.estado,
             });
-            // eslint-disable-next-line react-hooks/set-state-in-effect
             void loadGeoForHotel(hotel);
-        } else {
-            reset();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open, hotel]);
@@ -411,7 +455,103 @@ export function HotelFormModal({
         );
     };
 
+    const clientErrors = useMemo(() => {
+        const out: Record<string, string> = {};
+        const required = (key: string, value: string) => {
+            if (value.trim() === '') {
+                out[key] = t('hotels.v_required', {
+                    attribute: t(`hotels.attributes.${key}`),
+                });
+            }
+        };
+
+        required('nombre', data.nombre);
+        required('direccion', data.direccion);
+
+        if (data.nombre.trim() !== '' && !/\p{L}/u.test(data.nombre)) {
+            out.nombre = t('hotels.v_nombre_letters');
+        }
+
+        if (data.direccion.trim() !== '' && !/\p{L}/u.test(data.direccion)) {
+            out.direccion = t('hotels.v_direccion_letters');
+        }
+
+        const rucKey = data.ruc === '' ? null : rucErrorKey(data.ruc);
+
+        if (data.ruc === '') {
+            required('ruc', data.ruc);
+        } else if (rucKey) {
+            out.ruc = t(rucKey);
+        }
+
+        const phoneKey =
+            data.telefono_reservas === '' ? null : phoneErrorKey(data.telefono_reservas);
+
+        if (data.telefono_reservas === '') {
+            required('telefono_reservas', data.telefono_reservas);
+        } else if (phoneKey) {
+            out.telefono_reservas = t(phoneKey);
+        }
+
+        if (data.email.trim() !== '' && !isValidEmail(data.email)) {
+            out.email = t('hotels.v_email');
+        }
+
+        if (data.website.trim() !== '' && !isValidWebsite(data.website.trim())) {
+            out.website = t('hotels.v_website');
+        }
+
+        if (data.check_in !== '' && data.check_in === data.check_out) {
+            out.check_out = t('hotels.v_checkout_same');
+        }
+
+        if (data.precio_desde !== '' && data.precio_hasta === '') {
+            out.precio_hasta = t('hotels.v_required', {
+                attribute: t('hotels.attributes.precio_hasta'),
+            });
+        } else if (data.precio_hasta !== '' && data.precio_desde === '') {
+            out.precio_desde = t('hotels.v_required', {
+                attribute: t('hotels.attributes.precio_desde'),
+            });
+        } else if (
+            data.precio_desde !== '' &&
+            Number(data.precio_hasta) < Number(data.precio_desde)
+        ) {
+            out.precio_hasta = t('hotels.price_range_invalid');
+        }
+
+        if (
+            data.latitud !== '' &&
+            data.longitud !== '' &&
+            !isInsidePeru(Number(data.latitud), Number(data.longitud))
+        ) {
+            out.latitud = t('hotels.v_coords_peru');
+        }
+
+        return out;
+    }, [data, t]);
+
+    const hasClientErrors = Object.keys(clientErrors).length > 0;
+
+    const fieldError = (key: string): string | undefined =>
+        (errors as Record<string, string | undefined>)[key] ??
+        (touched[key] || submitAttempted ? clientErrors[key] : undefined);
+
+    const touch = (key: string) => () =>
+        setTouched((current) => (current[key] ? current : { ...current, [key]: true }));
+
+    const setField = (key: TextFieldKey, value: string) => {
+        setData(key, value);
+        clearErrors(key);
+    };
+
     const submit = () => {
+        setSubmitAttempted(true);
+
+        if (hasClientErrors) {
+            return;
+        }
+
         const requestOptions = {
             preserveScroll: true,
             forceFormData: true,
@@ -450,13 +590,7 @@ export function HotelFormModal({
             submitting={processing}
             size="xl"
             contentClassName="sm:max-w-4xl"
-            onAfterClose={() => {
-                reset();
-                clearErrors();
-                transform((payload) => payload);
-                setProvincias([]);
-                setDistritos([]);
-            }}
+            onAfterClose={resetForm}
         >
             <div className="space-y-6">
                 <section className="space-y-3">
@@ -465,11 +599,12 @@ export function HotelFormModal({
                         <FormField
                             label={t('hotels.field_nombre')}
                             required
-                            error={errors.nombre}
+                            error={fieldError('nombre')}
                         >
                             <Input
                                 value={data.nombre}
-                                onChange={(e) => setData('nombre', e.target.value)}
+                                onChange={(e) => setField('nombre', e.target.value)}
+                                onBlur={touch('nombre')}
                                 placeholder={t('hotels.field_nombre_ph')}
                                 className="bg-card"
                                 maxLength={150}
@@ -478,17 +613,15 @@ export function HotelFormModal({
                         <FormField
                             label={t('hotels.field_ruc')}
                             required
-                            error={errors.ruc}
+                            hint={t('hotels.ruc_hint')}
+                            error={fieldError('ruc')}
                         >
                             <Input
                                 value={data.ruc}
-                                onChange={(e) =>
-                                    setData(
-                                        'ruc',
-                                        e.target.value.replace(/\D/g, '').slice(0, 11),
-                                    )
-                                }
+                                onChange={(e) => setField('ruc', onlyDigits(e.target.value, 11))}
+                                onBlur={touch('ruc')}
                                 inputMode="numeric"
+                                autoComplete="off"
                                 placeholder={t('hotels.field_ruc_ph')}
                                 className="bg-card font-mono"
                             />
@@ -496,22 +629,23 @@ export function HotelFormModal({
                         <FormField
                             label={t('hotels.field_direccion')}
                             required
-                            error={errors.direccion}
+                            error={fieldError('direccion')}
                         >
                             <Input
                                 value={data.direccion}
-                                onChange={(e) => setData('direccion', e.target.value)}
+                                onChange={(e) => setField('direccion', e.target.value)}
+                                onBlur={touch('direccion')}
                                 className="bg-card"
                                 maxLength={255}
                             />
                         </FormField>
                         <FormField
                             label={t('hotels.field_referencia')}
-                            error={errors.referencia}
+                            error={fieldError('referencia')}
                         >
                             <Input
                                 value={data.referencia}
-                                onChange={(e) => setData('referencia', e.target.value)}
+                                onChange={(e) => setField('referencia', e.target.value)}
                                 placeholder={t('hotels.field_referencia_ph')}
                                 className="bg-card"
                                 maxLength={255}
@@ -520,62 +654,89 @@ export function HotelFormModal({
                         <FormField
                             label={t('hotels.field_telefono')}
                             required
-                            error={errors.telefono_reservas}
+                            hint={t('hotels.phone_hint')}
+                            error={fieldError('telefono_reservas')}
                         >
-                            <Input
-                                value={data.telefono_reservas}
-                                onChange={(e) =>
-                                    setData('telefono_reservas', e.target.value)
-                                }
-                                inputMode="tel"
-                                className="bg-card"
-                                maxLength={20}
-                            />
+                            <div className="flex">
+                                <span className="inline-flex items-center rounded-l-md border border-r-0 border-input bg-muted/40 px-3 text-sm text-muted-foreground">
+                                    +51
+                                </span>
+                                <Input
+                                    value={data.telefono_reservas}
+                                    onChange={(e) =>
+                                        setField(
+                                            'telefono_reservas',
+                                            onlyDigits(e.target.value, 9),
+                                        )
+                                    }
+                                    onBlur={touch('telefono_reservas')}
+                                    inputMode="numeric"
+                                    autoComplete="tel-national"
+                                    placeholder="987654321"
+                                    className="rounded-l-none bg-card font-mono"
+                                />
+                            </div>
                         </FormField>
-                        <FormField label={t('hotels.field_email')} error={errors.email}>
+                        <FormField label={t('hotels.field_email')} error={fieldError('email')}>
                             <Input
                                 type="email"
                                 value={data.email}
-                                onChange={(e) => setData('email', e.target.value)}
+                                onChange={(e) => setField('email', e.target.value.trim())}
+                                onBlur={touch('email')}
+                                placeholder="reservas@hotel.com"
                                 className="bg-card"
+                                maxLength={150}
                             />
                         </FormField>
                         <FormField
                             label={t('hotels.field_check_in')}
-                            error={errors.check_in}
+                            error={fieldError('check_in')}
                         >
                             <Input
                                 type="time"
                                 value={data.check_in}
-                                onChange={(e) => setData('check_in', e.target.value)}
+                                onChange={(e) => setField('check_in', e.target.value)}
                                 className="bg-card"
                             />
                         </FormField>
                         <FormField
                             label={t('hotels.field_check_out')}
-                            error={errors.check_out}
+                            error={fieldError('check_out')}
                         >
                             <Input
                                 type="time"
                                 value={data.check_out}
-                                onChange={(e) => setData('check_out', e.target.value)}
+                                onChange={(e) => setField('check_out', e.target.value)}
+                                onBlur={touch('check_out')}
                                 className="bg-card"
                             />
                         </FormField>
                         <FormField
                             label={t('hotels.field_website')}
-                            error={errors.website}
+                            error={fieldError('website')}
                         >
                             <Input
                                 value={data.website}
-                                onChange={(e) => setData('website', e.target.value)}
+                                onChange={(e) => setField('website', e.target.value.trim())}
+                                onBlur={touch('website')}
+                                placeholder="https://mihotel.com"
                                 className="bg-card"
+                                maxLength={200}
                             />
                         </FormField>
                         <FormField label={t('hotels.field_slug')} error={errors.slug}>
                             <Input
                                 value={data.slug}
-                                onChange={(e) => setData('slug', e.target.value)}
+                                onChange={(e) =>
+                                    setField(
+                                        'slug',
+                                        e.target.value
+                                            .toLowerCase()
+                                            .replace(/\s+/g, '-')
+                                            .replace(/[^a-z0-9-]/g, ''),
+                                    )
+                                }
+                                maxLength={160}
                                 className="bg-card font-mono text-[13px]"
                                 placeholder="auto"
                             />
@@ -623,27 +784,31 @@ export function HotelFormModal({
                     <div className="grid gap-4 sm:grid-cols-2">
                         <FormField
                             label={`${t('hotels.field_precio_desde')} (S/)`}
-                            error={errors.precio_desde}
+                            error={fieldError('precio_desde')}
                         >
                             <Input
-                                type="number"
-                                min="0"
-                                step="0.01"
                                 value={data.precio_desde}
-                                onChange={(e) => setData('precio_desde', e.target.value)}
+                                onChange={(e) =>
+                                    setField('precio_desde', sanitizePrice(e.target.value))
+                                }
+                                onBlur={touch('precio_desde')}
+                                inputMode="decimal"
+                                placeholder="80.00"
                                 className="bg-card"
                             />
                         </FormField>
                         <FormField
                             label={`${t('hotels.field_precio_hasta')} (S/)`}
-                            error={errors.precio_hasta}
+                            error={fieldError('precio_hasta')}
                         >
                             <Input
-                                type="number"
-                                min="0"
-                                step="0.01"
                                 value={data.precio_hasta}
-                                onChange={(e) => setData('precio_hasta', e.target.value)}
+                                onChange={(e) =>
+                                    setField('precio_hasta', sanitizePrice(e.target.value))
+                                }
+                                onBlur={touch('precio_hasta')}
+                                inputMode="decimal"
+                                placeholder="250.00"
                                 className="bg-card"
                             />
                         </FormField>
@@ -937,7 +1102,7 @@ return;
                         <FormField
                             label={t('hotels.field_map')}
                             hint={t('hotels.map_hint')}
-                            error={errors.latitud ?? errors.longitud}
+                            error={errors.latitud ?? errors.longitud ?? clientErrors.latitud}
                             className="sm:col-span-3"
                         >
                             <LocationMapPicker
