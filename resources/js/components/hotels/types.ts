@@ -38,9 +38,11 @@ export type HotelMediaRow = {
 export type HotelRow = {
     id: string;
     tenant_id: string | null;
+    tenant_name: string | null;
+    tenant_slug: string | null;
     nombre: string;
     slug: string;
-    ruc: string;
+    ruc: string | null;
     resumen: string | null;
     descripcion: string | null;
     departamento_id: number | null;
@@ -49,11 +51,11 @@ export type HotelRow = {
     departamento_name: string | null;
     provincia_name: string | null;
     distrito_name: string | null;
-    direccion: string;
+    direccion: string | null;
     referencia: string | null;
     latitud: number | null;
     longitud: number | null;
-    telefono_reservas: string;
+    telefono_reservas: string | null;
     email: string | null;
     website: string | null;
     check_in: string | null;

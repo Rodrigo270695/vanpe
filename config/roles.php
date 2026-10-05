@@ -84,6 +84,22 @@ return [
                 'tenant.events.manage',
             ],
         ],
+
+        // Plantillas cuando el tenant es un hotel u hospedaje.
+        'roles_hotel' => [
+            'owner' => [
+                'tenant.users.manage',
+                'tenant.hotel.manage',
+                'tenant.hotel.publish',
+                'tenant.events.manage',
+            ],
+            'admin' => [
+                'tenant.users.manage',
+                'tenant.hotel.manage',
+                'tenant.hotel.publish',
+                'tenant.events.manage',
+            ],
+        ],
     ],
 
 ];

@@ -11,7 +11,7 @@ export type TenantRow = {
     catalog_id: string | null;
     slug: string;
     schema_name: string;
-    tipo: 'restaurant' | 'tour_spot';
+    tipo: 'restaurant' | 'tour_spot' | 'hotel';
     subdomain_host: string;
     subdomain_url: string;
     razon_social: string;

@@ -35,6 +35,7 @@ class TenantController extends Controller
                 'subscription.plan:id,name,code',
                 'pubRestaurant:id,tenant_id',
                 'tourSpot:id,tenant_id',
+                'hotel:id,tenant_id',
             ])
             ->orderByDesc('created_at')
             ->get()
@@ -292,9 +293,11 @@ class TenantController extends Controller
     private function serialize(Tenant $tenant): array
     {
         $tipo = $tenant->tipo ?: Tenant::TYPE_RESTAURANT;
-        $catalogId = $tipo === Tenant::TYPE_TOUR_SPOT
-            ? $tenant->tourSpot?->id
-            : $tenant->pubRestaurant?->id;
+        $catalogId = match ($tipo) {
+            Tenant::TYPE_TOUR_SPOT => $tenant->tourSpot?->id,
+            Tenant::TYPE_HOTEL => $tenant->hotel?->id,
+            default => $tenant->pubRestaurant?->id,
+        };
 
         return [
             'id' => $tenant->id,

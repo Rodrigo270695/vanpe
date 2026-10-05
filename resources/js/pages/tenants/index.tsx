@@ -17,11 +17,16 @@ import {
 } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
 import { BaseModal } from '@/components/common/base-modal';
-import { DataTable, type DataTableColumn } from '@/components/common/data-table';
+import { DataTable  } from '@/components/common/data-table';
+import type {DataTableColumn} from '@/components/common/data-table';
 import { PageHeader } from '@/components/common/page-header';
 import { Pagination } from '@/components/common/pagination';
 import { SearchInput } from '@/components/common/search-input';
-import { StatusPill } from '@/components/common/status-pill';
+import {
+    StatusPill
+    
+} from '@/components/common/status-pill';
+import type {StatusPillVariant} from '@/components/common/status-pill';
 import { TableCard } from '@/components/common/table-card';
 import { TableFilterSelect } from '@/components/common/table-filter-select';
 import { TableRowActions } from '@/components/common/table-row-actions';
@@ -32,13 +37,26 @@ import { useClientTable } from '@/hooks/use-client-table';
 import { useClipboard } from '@/hooks/use-clipboard';
 import { useTranslations } from '@/hooks/use-translations';
 import { downloadXlsx } from '@/lib/export-xlsx';
-import { formatLocaleDate, translate, type TranslationTree } from '@/lib/i18n';
+import { formatLocaleDate, translate  } from '@/lib/i18n';
+import type {TranslationTree} from '@/lib/i18n';
 import { notify } from '@/lib/notify';
 
 type TenantsPageProps = {
     tenants: TenantRow[];
     statuses: string[];
     can: TenantAbilities;
+};
+
+const TIPO_LABEL_KEY: Record<TenantRow['tipo'], string> = {
+    restaurant: 'tenants.type_restaurant',
+    tour_spot: 'tenants.type_tour_spot',
+    hotel: 'tenants.type_hotel',
+};
+
+const TIPO_PILL: Record<TenantRow['tipo'], StatusPillVariant> = {
+    restaurant: 'blue',
+    tour_spot: 'amber',
+    hotel: 'violet',
 };
 
 type StatusFilter = 'all' | 'trial' | 'active' | 'suspended' | 'cancelled';
@@ -65,12 +83,15 @@ export default function TenantsIndex({
             if (statusFilter !== 'all' && tenant.estado !== statusFilter) {
                 return false;
             }
+
             if (publishedFilter === 'published' && !tenant.publicado) {
                 return false;
             }
+
             if (publishedFilter === 'unpublished' && tenant.publicado) {
                 return false;
             }
+
             return true;
         });
     }, [tenants, statusFilter, publishedFilter]);
@@ -171,7 +192,10 @@ export default function TenantsIndex({
     };
 
     const confirmDelete = () => {
-        if (!deleteTarget) return;
+        if (!deleteTarget) {
+return;
+}
+
         setDeleting(true);
         router.delete(`/restaurantes/${deleteTarget.id}`, {
             preserveScroll: true,
@@ -211,10 +235,7 @@ export default function TenantsIndex({
                 {
                     header: t('tenants.col_type'),
                     width: 16,
-                    value: (r) =>
-                        r.tipo === 'tour_spot'
-                            ? t('tenants.type_tour_spot')
-                            : t('tenants.type_restaurant'),
+                    value: (r) => t(TIPO_LABEL_KEY[r.tipo]),
                 },
                 {
                     header: t('tenants.field_slug'),
@@ -285,14 +306,8 @@ export default function TenantsIndex({
                 header: t('tenants.col_type'),
                 sortable: true,
                 render: (row) => (
-                    <StatusPill
-                        variant={
-                            row.tipo === 'tour_spot' ? 'amber' : 'blue'
-                        }
-                    >
-                        {row.tipo === 'tour_spot'
-                            ? t('tenants.type_tour_spot')
-                            : t('tenants.type_restaurant')}
+                    <StatusPill variant={TIPO_PILL[row.tipo]}>
+                        {t(TIPO_LABEL_KEY[row.tipo])}
                     </StatusPill>
                 ),
             },
@@ -379,11 +394,15 @@ export default function TenantsIndex({
     const copyCatalogUuid = useCallback(
         async (row: TenantRow) => {
             const uuid = row.catalog_id;
+
             if (!uuid) {
                 notify.warning(t('tenants.uuid_missing'));
+
                 return;
             }
+
             const ok = await copyUuid(uuid);
+
             if (ok) {
                 notify.success(t('tenants.uuid_copied'));
             } else {

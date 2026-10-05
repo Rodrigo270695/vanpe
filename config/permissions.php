@@ -191,6 +191,13 @@ return [
                     'tenant.tour_spot.publish' => 'Publicar o pausar el centro en la app',
                 ],
             ],
+            'hotel' => [
+                'label' => 'Hotel',
+                'permissions' => [
+                    'tenant.hotel.manage' => 'Editar ficha del hotel',
+                    'tenant.hotel.publish' => 'Publicar o pausar el hotel en la app',
+                ],
+            ],
             'personal' => [
                 'label' => 'Personal',
                 'permissions' => [

@@ -4,6 +4,7 @@ namespace App\Services\Tenant;
 
 use App\Models\Tenant;
 use App\Models\Tenant\User as TenantUser;
+use App\Services\Platform\HotelCatalogProvisioner;
 use App\Services\Platform\PlatformAuditLogger;
 use App\Services\Platform\PublicCatalogProvisioner;
 use App\Services\Platform\TourSpotCatalogProvisioner;
@@ -17,13 +18,13 @@ use Spatie\Permission\PermissionRegistrar;
 use Throwable;
 
 /**
- * Aprovisiona un negocio (restaurante o centro turístico):
+ * Aprovisiona un negocio (restaurante, centro turístico u hotel):
  *   1) crea el registro `tenants` (schema public),
  *   2) crea su schema PostgreSQL aislado (rst_xxxxxx),
  *   3) corre las migraciones del tenant en ese schema,
  *   4) siembra roles + usuario owner,
  *   5) crea la suscripción trial inicial,
- *   6) crea stub público (pub_restaurants o tour_spots),
+ *   6) crea stub público (pub_restaurants, tour_spots o hotels),
  *   7) registra auditoría de plataforma.
  */
 class TenantProvisioner
@@ -34,6 +35,7 @@ class TenantProvisioner
         private readonly TrialSubscriptionProvisioner $trialSubscriptionProvisioner,
         private readonly PublicCatalogProvisioner $publicCatalogProvisioner,
         private readonly TourSpotCatalogProvisioner $tourSpotCatalogProvisioner,
+        private readonly HotelCatalogProvisioner $hotelCatalogProvisioner,
         private readonly PlatformAuditLogger $platformAuditLogger,
         private readonly TenantDefaultsSeeder $tenantDefaultsSeeder,
     ) {}
@@ -87,11 +89,11 @@ class TenantProvisioner
             $this->seedRolesAndOwner($schema, $data['owner'], $tipo);
             $this->trialSubscriptionProvisioner->provisionForTenant($tenant);
 
-            if ($tipo === Tenant::TYPE_TOUR_SPOT) {
-                $this->tourSpotCatalogProvisioner->createStubForTenant($tenant);
-            } else {
-                $this->publicCatalogProvisioner->createStubForTenant($tenant);
-            }
+            match ($tipo) {
+                Tenant::TYPE_TOUR_SPOT => $this->tourSpotCatalogProvisioner->createStubForTenant($tenant),
+                Tenant::TYPE_HOTEL => $this->hotelCatalogProvisioner->createStubForTenant($tenant),
+                default => $this->publicCatalogProvisioner->createStubForTenant($tenant),
+            };
 
             $this->platformAuditLogger->record(
                 action: 'tenant.provisioned',
@@ -177,9 +179,11 @@ class TenantProvisioner
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
         try {
-            $rolesOverride = $tipo === Tenant::TYPE_TOUR_SPOT
-                ? (array) Config::get('roles.tenant.roles_tour_spot', [])
-                : null;
+            $rolesOverride = match ($tipo) {
+                Tenant::TYPE_TOUR_SPOT => (array) Config::get('roles.tenant.roles_tour_spot', []),
+                Tenant::TYPE_HOTEL => (array) Config::get('roles.tenant.roles_hotel', []),
+                default => null,
+            };
 
             RoleProvisioner::provision('tenant', 'web', $rolesOverride ?: null);
 

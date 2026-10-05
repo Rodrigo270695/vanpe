@@ -32,6 +32,7 @@ use App\Http\Controllers\Tenant\CocinaController;
 use App\Http\Controllers\Tenant\ConfiguracionController;
 use App\Http\Controllers\Tenant\FelDocumentController;
 use App\Http\Controllers\Tenant\FelSerieController;
+use App\Http\Controllers\Tenant\HotelProfileController;
 use App\Http\Controllers\Tenant\MesasController;
 use App\Http\Controllers\Tenant\PedidosController;
 use App\Http\Controllers\Tenant\PushSubscriptionController;
@@ -282,7 +283,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('mi-centro/inclusions', [TourSpotProfileController::class, 'storeInclusion'])
             ->name('mi-centro.inclusions.store');
 
-        // Ferias y festividades propias del tenant (restaurante o centro).
+        // Ficha "Mi hotel" para tenants tipo hotel.
+        Route::get('mi-hotel', [HotelProfileController::class, 'edit'])->name('mi-hotel.edit');
+        Route::post('mi-hotel', [HotelProfileController::class, 'update'])->name('mi-hotel.update');
+        Route::get('mi-hotel/geo/provincias', [HotelProfileController::class, 'provincias'])
+            ->name('mi-hotel.geo.provincias');
+        Route::get('mi-hotel/geo/distritos', [HotelProfileController::class, 'distritos'])
+            ->name('mi-hotel.geo.distritos');
+
+        // Ferias y festividades propias del tenant (restaurante, centro u hotel).
         Route::get('mis-eventos', [TenantTourEventController::class, 'index'])->name('tenant.events.index');
         Route::post('mis-eventos', [TenantTourEventController::class, 'store'])->name('tenant.events.store');
         Route::put('mis-eventos/{tour_event}', [TenantTourEventController::class, 'update'])->name('tenant.events.update');

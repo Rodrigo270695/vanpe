@@ -33,8 +33,25 @@ class HotelRequest extends FormRequest
     public function authorize(): bool
     {
         return (bool) $this->user()?->can(
-            $this->route('hotel') === null ? 'hotels.create' : 'hotels.update',
+            $this->currentHotel() === null ? 'hotels.create' : 'hotels.update',
         );
+    }
+
+    /** Hotel que se está editando (null al crear). */
+    protected function currentHotel(): ?Hotel
+    {
+        $hotel = $this->route('hotel');
+
+        return $hotel instanceof Hotel ? $hotel : null;
+    }
+
+    /**
+     * Si es false, los campos obligatorios del formulario pasan a opcionales
+     * (borrador del dueño); el formato se valida igual cuando vienen llenos.
+     */
+    protected function requiresFullProfile(): bool
+    {
+        return true;
     }
 
     /**
@@ -42,7 +59,9 @@ class HotelRequest extends FormRequest
      */
     public function rules(): array
     {
-        $hotelId = $this->route('hotel')?->id;
+        $hotelId = $this->currentHotel()?->id;
+        $required = $this->requiresFullProfile() ? 'required' : 'nullable';
+        $requiredList = $this->requiresFullProfile() ? ['required', 'array', 'min:1'] : ['nullable', 'array'];
 
         $image = [
             'image',
@@ -54,32 +73,32 @@ class HotelRequest extends FormRequest
         return [
             'nombre' => ['required', 'string', 'min:3', 'max:150', 'regex:/\p{L}/u'],
             'slug' => ['nullable', 'alpha_dash', 'max:160', Rule::unique('hotels', 'slug')->ignore($hotelId)],
-            'ruc' => ['required', 'string', new PeruRuc],
+            'ruc' => [$required, 'string', new PeruRuc],
             'resumen' => ['nullable', 'string', 'min:10', 'max:300'],
             'descripcion' => ['nullable', 'string', 'max:10000'],
-            'direccion' => ['required', 'string', 'min:5', 'max:255', 'regex:/\p{L}/u'],
+            'direccion' => [$required, 'string', 'min:5', 'max:255', 'regex:/\p{L}/u'],
             'referencia' => ['nullable', 'string', 'min:3', 'max:255'],
             'departamento_id' => ['nullable', 'integer', 'exists:departamentos,id'],
             'provincia_id' => ['nullable', 'integer', 'exists:provincias,id'],
             'distrito_id' => ['nullable', 'integer', 'exists:distritos,id'],
             'latitud' => ['nullable', 'required_with:longitud', 'numeric', 'between:'.self::PERU_LAT_MIN.','.self::PERU_LAT_MAX],
             'longitud' => ['nullable', 'required_with:latitud', 'numeric', 'between:'.self::PERU_LNG_MIN.','.self::PERU_LNG_MAX],
-            'telefono_reservas' => ['required', 'string', new PeruMobilePhone],
+            'telefono_reservas' => [$required, 'string', new PeruMobilePhone],
             'email' => ['nullable', 'string', 'email:rfc,strict', 'max:150'],
             'website' => ['nullable', 'string', 'max:200', 'url:http,https', 'regex:#^https?://[^/\s.]+(\.[^/\s.]+)*\.[a-z]{2,}(/|$|\?|:)#i'],
             'check_in' => ['nullable', 'date_format:H:i'],
             'check_out' => ['nullable', 'date_format:H:i'],
 
-            'tipos_habitacion' => ['required', 'array', 'min:1'],
+            'tipos_habitacion' => $requiredList,
             'tipos_habitacion.*' => ['distinct', Rule::in(Hotel::TIPOS_HABITACION)],
             'precio_desde' => ['nullable', 'required_with:precio_hasta', 'numeric', 'decimal:0,2', 'min:1', 'max:99999.99'],
             'precio_hasta' => ['nullable', 'required_with:precio_desde', 'numeric', 'decimal:0,2', 'min:1', 'max:99999.99'],
             'moneda' => ['nullable', Rule::in(['PEN', 'USD'])],
-            'clasificacion' => ['required', Rule::in(Hotel::CLASIFICACIONES)],
+            'clasificacion' => [$required, Rule::in(Hotel::CLASIFICACIONES)],
 
-            'servicios' => ['required', 'array', 'min:1'],
+            'servicios' => $requiredList,
             'servicios.*' => ['distinct', Rule::in(Hotel::SERVICIOS)],
-            'medios_pago' => ['required', 'array', 'min:1'],
+            'medios_pago' => $requiredList,
             'medios_pago.*' => ['distinct', Rule::in(Hotel::MEDIOS_PAGO)],
 
             'cover' => ['nullable', ...$image],
@@ -89,9 +108,9 @@ class HotelRequest extends FormRequest
             'remove_media_ids' => ['nullable', 'array'],
             'remove_media_ids.*' => ['uuid'],
 
-            'sistema_reservas' => ['required', Rule::in(Hotel::SISTEMAS_RESERVA)],
-            'interes_whatsapp' => ['required', Rule::in(Hotel::INTERES_WHATSAPP)],
-            'redes_sociales' => ['required', 'array', 'min:1'],
+            'sistema_reservas' => [$required, Rule::in(Hotel::SISTEMAS_RESERVA)],
+            'interes_whatsapp' => [$required, Rule::in(Hotel::INTERES_WHATSAPP)],
+            'redes_sociales' => $requiredList,
             'redes_sociales.*' => ['distinct', Rule::in(Hotel::REDES_SOCIALES)],
             'herramientas_interes' => ['nullable', 'array'],
             'herramientas_interes.*' => ['distinct', Rule::in(Hotel::HERRAMIENTAS)],
@@ -171,11 +190,11 @@ class HotelRequest extends FormRequest
 
             $this->validateGeoHierarchy($validator);
 
-            if (! $errors->has('ruc') && ! $errors->has('nombre')) {
+            if (filled($this->input('ruc')) && ! $errors->has('ruc') && ! $errors->has('nombre')) {
                 $duplicate = Hotel::query()
                     ->where('ruc', $this->input('ruc'))
                     ->whereRaw('LOWER(nombre) = ?', [Str::lower((string) $this->input('nombre'))])
-                    ->when($this->route('hotel'), fn ($q, Hotel $hotel) => $q->whereKeyNot($hotel->id))
+                    ->when($this->currentHotel(), fn ($q, Hotel $hotel) => $q->whereKeyNot($hotel->id))
                     ->exists();
 
                 if ($duplicate) {
@@ -195,8 +214,7 @@ class HotelRequest extends FormRequest
                 $validator->errors()->add('latitud', __('messages.hotels.publish_coords_required'));
             }
 
-            /** @var Hotel|null $hotel */
-            $hotel = $this->route('hotel');
+            $hotel = $this->currentHotel();
 
             $hasCover = $this->hasFile('cover')
                 || ($hotel !== null && filled($hotel->imagen_portada_url) && ! $this->boolean('remove_cover'));
@@ -267,8 +285,8 @@ class HotelRequest extends FormRequest
             'direccion' => $this->cleanText('direccion'),
             'referencia' => $this->cleanText('referencia'),
             'resumen' => $this->cleanText('resumen'),
-            'ruc' => preg_replace('/[\s\-.]/', '', (string) $this->input('ruc', '')),
-            'telefono_reservas' => PeruMobilePhone::normalize($this->input('telefono_reservas')),
+            'ruc' => preg_replace('/[\s\-.]/', '', (string) $this->input('ruc', '')) ?: null,
+            'telefono_reservas' => PeruMobilePhone::normalize($this->input('telefono_reservas')) ?: null,
             'email' => $email !== null ? Str::lower($email) : null,
             'website' => $website,
             'moneda' => filled($this->input('moneda')) ? Str::upper((string) $this->input('moneda')) : 'PEN',

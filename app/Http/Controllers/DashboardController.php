@@ -28,6 +28,10 @@ class DashboardController extends Controller
                 );
             }
 
+            if ($tenant?->isHotel()) {
+                return Inertia::render('dashboard/hotel', $tenantDashboard->buildHotel());
+            }
+
             return Inertia::render('dashboard/tenant', $tenantDashboard->build());
         }
 

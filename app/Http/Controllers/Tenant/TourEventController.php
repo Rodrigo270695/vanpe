@@ -110,6 +110,7 @@ class TourEventController extends Controller
 
         return (bool) $user->can('tenant.events.manage')
             || (bool) $user->can('tenant.tour_spot.manage')
+            || (bool) $user->can('tenant.hotel.manage')
             || (bool) $user->can('tenant.publication.manage');
     }
 

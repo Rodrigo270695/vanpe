@@ -193,6 +193,8 @@ class Hotel extends Model
         return [
             'id' => $this->id,
             'tenant_id' => $this->tenant_id,
+            'tenant_name' => $this->relationLoaded('tenant') ? $this->tenant?->nombre_comercial : null,
+            'tenant_slug' => $this->relationLoaded('tenant') ? $this->tenant?->slug : null,
             'nombre' => $this->nombre,
             'slug' => $this->slug,
             'ruc' => $this->ruc,

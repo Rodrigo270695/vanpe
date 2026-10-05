@@ -100,9 +100,11 @@ class SyncPermissionsCommand extends Command
 
                 RoleProvisioner::grantCoreMissingPermissions('tenant');
 
-                $templates = $tenant->isTourSpot()
-                    ? (array) Config::get('roles.tenant.roles_tour_spot', [])
-                    : (array) Config::get('roles.tenant.roles', []);
+                $templates = match (true) {
+                    $tenant->isTourSpot() => (array) Config::get('roles.tenant.roles_tour_spot', []),
+                    $tenant->isHotel() => (array) Config::get('roles.tenant.roles_hotel', []),
+                    default => (array) Config::get('roles.tenant.roles', []),
+                };
 
                 foreach ($templates as $roleName => $rolePermissions) {
                     if ($rolePermissions === ['*'] || ! is_array($rolePermissions)) {

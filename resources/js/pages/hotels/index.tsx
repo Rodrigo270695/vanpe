@@ -132,8 +132,12 @@ return 'muted' as const;
                                     <Star className="size-3.5 fill-brand-orange text-brand-orange" />
                                 )}
                             </div>
-                            <span className="truncate text-xs text-muted-foreground">
-                                {row.telefono_reservas}
+                            <span className="block truncate text-xs text-muted-foreground">
+                                {row.tenant_slug
+                                    ? t('hotels.owner_panel', {
+                                          slug: row.tenant_slug,
+                                      })
+                                    : (row.telefono_reservas ?? '—')}
                             </span>
                         </div>
                     </div>
@@ -145,7 +149,7 @@ return 'muted' as const;
                 sortable: true,
                 render: (row) => (
                     <span className="font-mono text-[13px] text-muted-foreground">
-                        {row.ruc}
+                        {row.ruc ?? '—'}
                     </span>
                 ),
             },

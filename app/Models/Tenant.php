@@ -25,9 +25,12 @@ class Tenant extends Model
 
     public const TYPE_TOUR_SPOT = 'tour_spot';
 
+    public const TYPE_HOTEL = 'hotel';
+
     public const TYPES = [
         self::TYPE_RESTAURANT,
         self::TYPE_TOUR_SPOT,
+        self::TYPE_HOTEL,
     ];
 
     protected $fillable = [
@@ -85,6 +88,11 @@ class Tenant extends Model
         return $this->tipo === self::TYPE_TOUR_SPOT;
     }
 
+    public function isHotel(): bool
+    {
+        return $this->tipo === self::TYPE_HOTEL;
+    }
+
     /**
      * Host del subdominio del negocio, según el entorno (.env → config/tenant).
      * Ejemplo: negritalinda.vanpe.pe
@@ -126,5 +134,11 @@ class Tenant extends Model
     public function tourSpot(): HasOne
     {
         return $this->hasOne(TourSpot::class);
+    }
+
+    /** @return HasOne<Hotel, $this> */
+    public function hotel(): HasOne
+    {
+        return $this->hasOne(Hotel::class);
     }
 }

@@ -44,13 +44,13 @@ type NavTemplateItem = Omit<NavItem, 'title' | 'items'> & {
     titleKey: string;
     showInTenant?: boolean;
     /** Si se define, solo visible para ese tipo de tenant. */
-    tenantTipos?: Array<'restaurant' | 'tour_spot'>;
+    tenantTipos?: Array<'restaurant' | 'tour_spot' | 'hotel'>;
     tenantPermissions?: string[];
     items?: Array<
         Omit<NavItem, 'title' | 'items'> & {
             titleKey: string;
             showInTenant?: boolean;
-            tenantTipos?: Array<'restaurant' | 'tour_spot'>;
+            tenantTipos?: Array<'restaurant' | 'tour_spot' | 'hotel'>;
             tenantPermissions?: string[];
         }
     >;
@@ -157,6 +157,13 @@ const mainNavTemplate: NavTemplateItem[] = [
         ],
     },
     {
+        titleKey: 'nav.mi_hotel',
+        href: '/mi-hotel',
+        icon: BedDouble,
+        tenantTipos: ['hotel'],
+        tenantPermissions: ['tenant.hotel.manage', 'tenant.hotel.publish'],
+    },
+    {
         titleKey: 'nav.events',
         href: '/mis-eventos',
         icon: PartyPopper,
@@ -165,9 +172,10 @@ const mainNavTemplate: NavTemplateItem[] = [
         tenantPermissions: [
             'tenant.events.manage',
             'tenant.tour_spot.manage',
+            'tenant.hotel.manage',
             'tenant.publication.manage',
         ],
-        tenantTipos: ['restaurant', 'tour_spot'],
+        tenantTipos: ['restaurant', 'tour_spot', 'hotel'],
     },
     {
         titleKey: 'nav.reservas',
@@ -287,7 +295,7 @@ function filterNav(
     items: NavItem[],
     can: (permission?: string | null) => boolean,
     isTenant: boolean,
-    tenantTipo: 'restaurant' | 'tour_spot' | null = null,
+    tenantTipo: 'restaurant' | 'tour_spot' | 'hotel' | null = null,
 ): NavItem[] {
     return items.reduce<NavItem[]>((acc, item) => {
         if (
@@ -348,7 +356,7 @@ export function AppSidebar() {
     const tenant = page.props.tenant;
     const isTenant = tenant !== null;
     const tenantTipo =
-        (tenant?.tipo as 'restaurant' | 'tour_spot' | undefined) ??
+        (tenant?.tipo as 'restaurant' | 'tour_spot' | 'hotel' | undefined) ??
         (isTenant ? 'restaurant' : null);
 
     const mainNavItems = useMemo<NavItem[]>(

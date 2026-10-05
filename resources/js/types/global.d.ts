@@ -17,7 +17,7 @@ declare module '@inertiajs/core' {
                 actor_name: string;
                 actor_email: string;
             } | null;
-            tenant: { slug: string; name: string; tipo?: 'restaurant' | 'tour_spot' } | null;
+            tenant: { slug: string; name: string; tipo?: 'restaurant' | 'tour_spot' | 'hotel' } | null;
             sidebarOpen: boolean;
             locale: string;
             timezone: string;

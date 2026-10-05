@@ -217,6 +217,88 @@ class TenantDashboardService
     }
 
     /**
+     * Dashboard simplificado para tenants tipo hotel.
+     *
+     * @return array<string, mixed>
+     */
+    public function buildHotel(): array
+    {
+        $tenant = app(TenantManager::class)->tenant();
+        $hotel = $tenant?->hotel()->withCount('media')->first();
+        $minPhotos = \App\Http\Requests\Platform\HotelRequest::MIN_PHOTOS_TO_PUBLISH;
+        $photos = $hotel === null
+            ? 0
+            : (filled($hotel->imagen_portada_url) ? 1 : 0) + (int) $hotel->media_count;
+
+        $checklist = collect([
+            [
+                'key' => 'general',
+                'done' => $hotel !== null
+                    && filled($hotel->ruc)
+                    && filled($hotel->direccion)
+                    && filled($hotel->telefono_reservas),
+                'href' => '/mi-hotel?tab=general',
+            ],
+            [
+                'key' => 'rooms',
+                'done' => $hotel !== null && ! empty($hotel->tipos_habitacion),
+                'href' => '/mi-hotel?tab=rooms',
+            ],
+            [
+                'key' => 'services',
+                'done' => $hotel !== null && ! empty($hotel->servicios) && ! empty($hotel->medios_pago),
+                'href' => '/mi-hotel?tab=rooms',
+            ],
+            [
+                'key' => 'photos',
+                'done' => $photos >= $minPhotos,
+                'href' => '/mi-hotel?tab=photos',
+            ],
+            [
+                'key' => 'location',
+                'done' => $hotel !== null
+                    && $hotel->latitud !== null
+                    && $hotel->longitud !== null
+                    && $hotel->distrito_id !== null,
+                'href' => '/mi-hotel?tab=location',
+            ],
+            [
+                'key' => 'diagnosis',
+                'done' => $hotel !== null
+                    && filled($hotel->sistema_reservas)
+                    && filled($hotel->interes_whatsapp)
+                    && ! empty($hotel->redes_sociales),
+                'href' => '/mi-hotel?tab=diagnosis',
+            ],
+            [
+                'key' => 'published',
+                'done' => $hotel?->estado === \App\Models\Hotel::ESTADO_PUBLICADO,
+                'href' => '/mi-hotel?tab=publication',
+            ],
+        ]);
+
+        $percent = (int) round(
+            $checklist->where('done', true)->count() / max($checklist->count(), 1) * 100,
+        );
+
+        return [
+            'hotel' => $hotel === null ? null : [
+                'id' => $hotel->id,
+                'nombre' => $hotel->nombre,
+                'estado' => $hotel->estado,
+                'publicado_en' => $hotel->publicado_en?->toIso8601String(),
+                'imagen_portada_url' => $hotel->imagen_portada_url,
+                'photos' => $photos,
+            ],
+            'min_photos' => $minPhotos,
+            'profile' => [
+                'percent' => $percent,
+                'checklist' => $checklist->values()->all(),
+            ],
+        ];
+    }
+
+    /**
      * @return list<array{date: string, label: string, count: int}>
      */
     private function reservationsByDay(): array
