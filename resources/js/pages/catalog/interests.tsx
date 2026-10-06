@@ -31,7 +31,7 @@ type InterestGroupRow = {
     id: string;
     slug: string;
     name_es: string;
-    target_entity: 'restaurant' | 'tour_spot';
+    target_entity: 'restaurant' | 'tour_spot' | 'hotel';
     categories: InterestCategoryRow[];
 };
 
@@ -45,6 +45,7 @@ type InterestsPageProps = {
 const TARGET_LABELS: Record<string, string> = {
     restaurant: 'Restaurantes',
     tour_spot: 'Centros turísticos',
+    hotel: 'Hoteles',
 };
 
 export default function CatalogInterests({
@@ -55,39 +56,48 @@ export default function CatalogInterests({
 }: InterestsPageProps) {
     const [draft, setDraft] = useState<Record<string, string[]>>(() => {
         const initial: Record<string, string[]> = {};
+
         for (const group of groups) {
             for (const cat of group.categories) {
                 initial[`catalog:${cat.id}`] = [...cat.catalog_item_ids];
                 initial[`tour:${cat.id}`] = [...cat.tour_category_ids];
             }
         }
+
         return initial;
     });
     const [busyId, setBusyId] = useState<string | null>(null);
 
     const catalogByType = useMemo(() => {
         const map: Record<string, CatalogItemOption[]> = {};
+
         for (const item of catalog_items) {
             map[item.type] ??= [];
             map[item.type].push(item);
         }
+
         return map;
     }, [catalog_items]);
 
     const toggle = (key: string, id: string, checked: boolean) => {
         setDraft((prev) => {
             const current = new Set(prev[key] ?? []);
+
             if (checked) {
                 current.add(id);
             } else {
                 current.delete(id);
             }
+
             return { ...prev, [key]: [...current] };
         });
     };
 
     const saveCatalog = (categoryId: string) => {
-        if (!can.update) return;
+        if (!can.update) {
+return;
+}
+
         setBusyId(categoryId);
         router.put(
             `/catalogo/intereses/categorias/${categoryId}/catalog-items`,
@@ -100,7 +110,10 @@ export default function CatalogInterests({
     };
 
     const saveTour = (categoryId: string) => {
-        if (!can.update) return;
+        if (!can.update) {
+return;
+}
+
         setBusyId(categoryId);
         router.put(
             `/catalogo/intereses/categorias/${categoryId}/tour-categories`,
@@ -134,7 +147,9 @@ export default function CatalogInterests({
                                         'rounded-full px-2.5 py-0.5 text-xs font-medium',
                                         group.target_entity === 'restaurant'
                                             ? 'bg-orange-100 text-orange-800'
-                                            : 'bg-sky-100 text-sky-800',
+                                            : group.target_entity === 'hotel'
+                                              ? 'bg-violet-100 text-violet-800'
+                                              : 'bg-sky-100 text-sky-800',
                                     )}
                                 >
                                     {TARGET_LABELS[group.target_entity]}
@@ -207,6 +222,10 @@ export default function CatalogInterests({
                                                         </Button>
                                                     )}
                                                 </div>
+                                            ) : group.target_entity === 'hotel' ? (
+                                                <p className="text-sm text-muted-foreground">
+                                                    Recomienda todos los hoteles publicados; no requiere amarres.
+                                                </p>
                                             ) : (
                                                 <div className="space-y-3">
                                                     <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">

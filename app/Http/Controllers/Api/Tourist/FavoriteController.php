@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Tourist;
 use App\Http\Controllers\Controller;
 use App\Models\AppFavorite;
 use App\Models\Customer;
+use App\Models\Hotel;
 use App\Models\PubRestaurant;
 use App\Models\TourSpot;
 use App\Support\PublicMediaUrl;
@@ -26,6 +27,7 @@ class FavoriteController extends Controller
 
         $restaurantIds = $favorites->where('target_type', AppFavorite::TARGET_RESTAURANT)->pluck('target_id');
         $spotIds = $favorites->where('target_type', AppFavorite::TARGET_TOUR_SPOT)->pluck('target_id');
+        $hotelIds = $favorites->where('target_type', AppFavorite::TARGET_HOTEL)->pluck('target_id');
 
         $restaurants = PubRestaurant::query()
             ->whereIn('id', $restaurantIds)
@@ -35,6 +37,12 @@ class FavoriteController extends Controller
 
         $spots = TourSpot::query()
             ->whereIn('id', $spotIds)
+            ->get()
+            ->keyBy('id');
+
+        $hotels = Hotel::query()
+            ->whereIn('id', $hotelIds)
+            ->where('estado', Hotel::ESTADO_PUBLICADO)
             ->get()
             ->keyBy('id');
 
@@ -58,6 +66,27 @@ class FavoriteController extends Controller
                         'portada_url' => PublicMediaUrl::make($item->portada_url),
                         'rating_promedio' => (float) $item->rating_promedio,
                         'tipo_cocina' => $item->tipo_cocina ?? [],
+                    ],
+                ];
+            } elseif ($fav->target_type === AppFavorite::TARGET_HOTEL) {
+                $item = $hotels->get($fav->target_id);
+                if (! $item) {
+                    continue;
+                }
+                $data[] = [
+                    'id' => $fav->id,
+                    'target_type' => $fav->target_type,
+                    'target_id' => $fav->target_id,
+                    'created_at' => $fav->created_at?->toIso8601String(),
+                    'hotel' => [
+                        'id' => $item->id,
+                        'slug' => $item->slug,
+                        'nombre' => $item->nombre,
+                        'direccion' => $item->direccion,
+                        'imagen_portada_url' => PublicMediaUrl::make($item->imagen_portada_url),
+                        'rating_promedio' => (float) $item->rating_promedio,
+                        'resumen' => $item->resumen,
+                        'estrellas' => $item->estrellas(),
                     ],
                 ];
             } else {
@@ -106,7 +135,7 @@ class FavoriteController extends Controller
         $customer = $request->user();
 
         $data = $request->validate([
-            'target_type' => ['required', Rule::in([AppFavorite::TARGET_RESTAURANT, AppFavorite::TARGET_TOUR_SPOT])],
+            'target_type' => ['required', Rule::in(AppFavorite::TARGETS)],
             'target_id' => ['required', 'uuid'],
         ]);
 
@@ -134,7 +163,7 @@ class FavoriteController extends Controller
         $customer = $request->user();
 
         $data = $request->validate([
-            'target_type' => ['required', Rule::in([AppFavorite::TARGET_RESTAURANT, AppFavorite::TARGET_TOUR_SPOT])],
+            'target_type' => ['required', Rule::in(AppFavorite::TARGETS)],
             'target_id' => ['required', 'uuid'],
         ]);
 
@@ -149,9 +178,11 @@ class FavoriteController extends Controller
 
     private function assertTargetExists(string $type, string $id): void
     {
-        $exists = $type === AppFavorite::TARGET_RESTAURANT
-            ? PubRestaurant::query()->whereKey($id)->where('activo', true)->exists()
-            : TourSpot::query()->whereKey($id)->exists();
+        $exists = match ($type) {
+            AppFavorite::TARGET_RESTAURANT => PubRestaurant::query()->whereKey($id)->where('activo', true)->exists(),
+            AppFavorite::TARGET_HOTEL => Hotel::query()->whereKey($id)->where('estado', Hotel::ESTADO_PUBLICADO)->exists(),
+            default => TourSpot::query()->whereKey($id)->exists(),
+        };
 
         abort_unless($exists, 422, 'El lugar no existe o no está disponible.');
     }

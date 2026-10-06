@@ -4,6 +4,7 @@ namespace App\Services\Tourist;
 
 use App\Models\Customer;
 use App\Models\CustomerReview;
+use App\Models\Hotel;
 use App\Models\PubRestaurant;
 use App\Models\TourSpot;
 use Illuminate\Database\Eloquent\Model;
@@ -67,7 +68,7 @@ class ReviewRatingService
             return;
         }
 
-        if ($model instanceof TourSpot) {
+        if ($model instanceof TourSpot || $model instanceof Hotel) {
             $model->update([
                 'rating_promedio' => $promedio,
                 'total_resenas' => $total,
@@ -97,6 +98,10 @@ class ReviewRatingService
                 ->whereKey($targetId)
                 ->where('estado', TourSpot::ESTADO_PUBLICADO)
                 ->exists(),
+            CustomerReview::TARGET_HOTEL => Hotel::query()
+                ->whereKey($targetId)
+                ->where('estado', Hotel::ESTADO_PUBLICADO)
+                ->exists(),
             default => throw new InvalidArgumentException('Tipo de valoración no válido.'),
         };
 
@@ -110,6 +115,7 @@ class ReviewRatingService
         return match ($targetType) {
             CustomerReview::TARGET_RESTAURANT => PubRestaurant::query()->find($targetId),
             CustomerReview::TARGET_TOUR_SPOT => TourSpot::query()->find($targetId),
+            CustomerReview::TARGET_HOTEL => Hotel::query()->find($targetId),
             default => null,
         };
     }

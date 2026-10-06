@@ -2,9 +2,11 @@
 
 namespace App\Services\Tourist;
 
+use App\Models\Hotel;
 use App\Models\PubRestaurant;
 use App\Models\PubRestaurantCatalogItem;
 use App\Models\TourSpot;
+use App\Services\Platform\HotelCatalogQuery;
 use App\Services\Platform\TourSpotCatalogQuery;
 use App\Support\PublicMediaUrl;
 use Illuminate\Support\Collection;
@@ -13,6 +15,7 @@ class SimilarPlacesService
 {
     public function __construct(
         private readonly TourSpotCatalogQuery $tourSpots,
+        private readonly HotelCatalogQuery $hotels,
     ) {}
 
     /**
@@ -56,6 +59,66 @@ class SimilarPlacesService
 
         // Orden fijo: centros primero, comida después.
         return ['items' => $this->concatUnique($similarSpots, $nearbyRestaurants, 10)];
+    }
+
+    /**
+     * Desde un hotel: primero hoteles parecidos (categoría, servicios y cercanía),
+     * luego centros y restaurantes cercanos para armar el plan.
+     *
+     * @return array{items: list<array<string, mixed>>}
+     */
+    public function forHotel(Hotel $hotel): array
+    {
+        $lat = $hotel->latitud !== null ? (float) $hotel->latitud : null;
+        $lng = $hotel->longitud !== null ? (float) $hotel->longitud : null;
+
+        $similarHotels = $this->similarHotels($hotel, 7)
+            ->map(fn (Hotel $h) => $this->mapHotel($h))
+            ->all();
+
+        $nearby = array_merge(
+            $this->nearbyTourSpots($lat, $lng, excludeId: null, limit: 3)
+                ->map(fn (TourSpot $s) => $this->mapTourSpot($s))
+                ->all(),
+            $this->nearbyRestaurants($lat, $lng, excludeId: null, limit: 3)
+                ->map(fn (PubRestaurant $r) => $this->mapRestaurant($r))
+                ->all(),
+        );
+
+        return ['items' => $this->concatUnique($similarHotels, $nearby, 10)];
+    }
+
+    /**
+     * @return Collection<int, Hotel>
+     */
+    private function similarHotels(Hotel $hotel, int $limit): Collection
+    {
+        $lat = $hotel->latitud !== null ? (float) $hotel->latitud : null;
+        $lng = $hotel->longitud !== null ? (float) $hotel->longitud : null;
+        $services = $hotel->servicios ?? [];
+
+        return Hotel::query()
+            ->where('estado', Hotel::ESTADO_PUBLICADO)
+            ->whereKeyNot($hotel->id)
+            ->with(['departamento:id,name', 'provincia:id,name', 'distrito:id,name'])
+            ->get()
+            ->map(function (Hotel $row) use ($hotel, $lat, $lng, $services): array {
+                $sharedServices = count(array_intersect($services, $row->servicios ?? []));
+                $rowLat = $row->latitud !== null ? (float) $row->latitud : null;
+                $rowLng = $row->longitud !== null ? (float) $row->longitud : null;
+                $score = ($row->clasificacion === $hotel->clasificacion ? 40 : 0)
+                    + ($sharedServices * 6)
+                    + ($row->distrito_id !== null && $row->distrito_id === $hotel->distrito_id ? 15 : 0)
+                    + $this->proximityBoost($lat, $lng, $rowLat, $rowLng)
+                    + ((float) $row->rating_promedio * 4)
+                    + ($row->destacado ? 5 : 0);
+
+                return ['hotel' => $row, 'score' => $score];
+            })
+            ->sortByDesc('score')
+            ->take($limit)
+            ->map(fn (array $row): Hotel => $row['hotel'])
+            ->values();
     }
 
     /**
@@ -370,6 +433,32 @@ class SimilarPlacesService
             'portada_url' => $item['imagen_portada_url'] ?? null,
             'logo_url' => null,
             'categoria' => $item['categoria'] ?? null,
+            'rating_promedio' => (float) ($item['rating_promedio'] ?? 0),
+            'total_resenas' => (int) ($item['total_resenas'] ?? 0),
+            'latitud' => $item['latitud'] ?? null,
+            'longitud' => $item['longitud'] ?? null,
+            'distrito' => $item['distrito'] ?? null,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function mapHotel(Hotel $hotel): array
+    {
+        $item = $this->hotels->toListItem($hotel);
+
+        return [
+            'kind' => 'hotel',
+            'id' => $item['id'],
+            'slug' => $item['slug'],
+            'nombre' => $item['nombre'],
+            'direccion' => $item['direccion'] ?? null,
+            'portada_url' => $item['imagen_portada_url'] ?? null,
+            'logo_url' => null,
+            'categoria' => $item['estrellas'] ? $item['estrellas'].' estrellas' : 'Hotel',
+            'estrellas' => $item['estrellas'],
+            'precio_desde' => $item['precio_desde'],
             'rating_promedio' => (float) ($item['rating_promedio'] ?? 0),
             'total_resenas' => (int) ($item['total_resenas'] ?? 0),
             'latitud' => $item['latitud'] ?? null,

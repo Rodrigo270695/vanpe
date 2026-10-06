@@ -109,6 +109,7 @@ Route::prefix('v1/tourist')->group(function () {
     Route::get('tour-spots/{slug}/similar', [SimilarPlacesController::class, 'tourSpot']);
     Route::get('tour-spots/{slug}', [TourSpotController::class, 'show']);
     Route::get('hotels', [HotelController::class, 'index']);
+    Route::get('hotels/{slug}/similar', [SimilarPlacesController::class, 'hotel']);
     Route::get('hotels/{slug}', [HotelController::class, 'show']);
     Route::get('events/featured', [TourEventController::class, 'featured']);
     Route::get('events', [TourEventController::class, 'index']);

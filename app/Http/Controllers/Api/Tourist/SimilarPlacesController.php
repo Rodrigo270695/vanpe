@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Tourist;
 
 use App\Http\Controllers\Controller;
+use App\Services\Platform\HotelCatalogQuery;
 use App\Services\Platform\PublicCatalogQuery;
 use App\Services\Platform\TourSpotCatalogQuery;
 use App\Services\Tourist\SimilarPlacesService;
@@ -14,6 +15,7 @@ class SimilarPlacesController extends Controller
         private readonly SimilarPlacesService $similar,
         private readonly PublicCatalogQuery $restaurants,
         private readonly TourSpotCatalogQuery $tourSpots,
+        private readonly HotelCatalogQuery $hotels,
     ) {}
 
     public function restaurant(string $slug): JsonResponse
@@ -39,6 +41,19 @@ class SimilarPlacesController extends Controller
 
         return response()->json([
             'data' => $this->similar->forTourSpot($spot),
+        ]);
+    }
+
+    public function hotel(string $slug): JsonResponse
+    {
+        $hotel = $this->hotels->findBySlug($slug);
+
+        if ($hotel === null) {
+            return response()->json(['message' => 'Hotel no encontrado.'], 404);
+        }
+
+        return response()->json([
+            'data' => $this->similar->forHotel($hotel),
         ]);
     }
 }

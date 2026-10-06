@@ -19,10 +19,7 @@ class StoreReviewRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'target_type' => ['required', Rule::in([
-                CustomerReview::TARGET_RESTAURANT,
-                CustomerReview::TARGET_TOUR_SPOT,
-            ])],
+            'target_type' => ['required', Rule::in(CustomerReview::TARGETS)],
             'target_id' => ['required', 'uuid'],
             'rating' => ['required', 'integer', 'min:1', 'max:5'],
             'titulo' => ['nullable', 'string', 'max:120'],

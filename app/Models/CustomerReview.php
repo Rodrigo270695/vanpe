@@ -14,6 +14,10 @@ class CustomerReview extends Model
 
     public const TARGET_TOUR_SPOT = 'tour_spot';
 
+    public const TARGET_HOTEL = 'hotel';
+
+    public const TARGETS = [self::TARGET_RESTAURANT, self::TARGET_TOUR_SPOT, self::TARGET_HOTEL];
+
     protected $fillable = [
         'customer_id',
         'target_type',

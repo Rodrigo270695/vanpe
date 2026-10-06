@@ -219,6 +219,19 @@ class TouristInterestSeeder extends Seeder
                     ],
                 ],
             ],
+            [
+                'slug' => 'hoteles-y-hospedaje',
+                'name_es' => 'Hoteles y hospedaje',
+                'name_en' => 'Hotels & lodging',
+                'icon' => 'hoteles',
+                'target_entity' => TouristInterestGroup::TARGET_HOTEL,
+                'sort_order' => 5,
+                'categories' => [
+                    ['slug' => 'hoteles', 'name_es' => 'Hoteles', 'name_en' => 'Hotels'],
+                    ['slug' => 'hostales', 'name_es' => 'Hostales', 'name_en' => 'Hostels'],
+                    ['slug' => 'alojamiento-campestre', 'name_es' => 'Alojamiento campestre', 'name_en' => 'Country lodging'],
+                ],
+            ],
         ];
 
         foreach ($groups as $groupData) {

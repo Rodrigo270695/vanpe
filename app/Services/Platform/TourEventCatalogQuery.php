@@ -44,6 +44,7 @@ class TourEventCatalogQuery
                 'distrito:id,name',
                 'tenant.pubRestaurant:id,tenant_id,nombre,slug',
                 'tenant.tourSpot:id,tenant_id,nombre,slug',
+                'tenant.hotel:id,tenant_id,nombre,slug',
             ])
             ->where('slug', $slug)
             ->first();
@@ -62,6 +63,7 @@ class TourEventCatalogQuery
                 'distrito:id,name',
                 'tenant.pubRestaurant:id,tenant_id,nombre,slug',
                 'tenant.tourSpot:id,tenant_id,nombre,slug',
+                'tenant.hotel:id,tenant_id,nombre,slug',
             ])
             ->when($departamentoId, fn (Builder $b) => $b->where('departamento_id', $departamentoId))
             ->when($q, function (Builder $b) use ($q): void {
@@ -147,6 +149,16 @@ class TourEventCatalogQuery
                 'tipo' => 'tour_spot',
                 'slug' => $spot?->slug ?: $tenant->slug,
                 'nombre' => $spot?->nombre ?: $fallbackName,
+            ];
+        }
+
+        if ($tenant->isHotel()) {
+            $hotel = $tenant->hotel;
+
+            return [
+                'tipo' => 'hotel',
+                'slug' => $hotel?->slug ?: $tenant->slug,
+                'nombre' => $hotel?->nombre ?: $fallbackName,
             ];
         }
 

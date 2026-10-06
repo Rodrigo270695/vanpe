@@ -9,6 +9,7 @@ use App\Models\CustomerReview;
 use App\Services\Tourist\ReviewRatingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class ReviewController extends Controller
 {
@@ -22,10 +23,7 @@ class ReviewController extends Controller
         $targetId = (string) $request->string('target_id');
 
         abort_unless(
-            in_array($targetType, [
-                CustomerReview::TARGET_RESTAURANT,
-                CustomerReview::TARGET_TOUR_SPOT,
-            ], true) && $targetId !== '',
+            in_array($targetType, CustomerReview::TARGETS, true) && $targetId !== '',
             422,
             'Debes indicar target_type y target_id.',
         );
@@ -90,7 +88,7 @@ class ReviewController extends Controller
     public function eligibility(Request $request): JsonResponse
     {
         $request->validate([
-            'target_type' => ['required', 'in:restaurant,tour_spot'],
+            'target_type' => ['required', Rule::in(CustomerReview::TARGETS)],
             'target_id' => ['required', 'uuid'],
         ]);
 

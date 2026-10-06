@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Tourist;
 
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
+use App\Models\Hotel;
 use App\Models\PubRestaurant;
 use App\Models\TourEvent;
 use App\Models\TouristRoute;
@@ -124,7 +125,7 @@ class TouristRouteController extends Controller
         $customer = $request->user();
 
         $data = $request->validate([
-            'target_type' => ['required', Rule::in(['restaurant', 'tour_spot', 'tour_event', 'custom'])],
+            'target_type' => ['required', Rule::in(['restaurant', 'tour_spot', 'hotel', 'tour_event', 'custom'])],
             'target_id' => ['required', 'uuid'],
             'slug' => ['nullable', 'string', 'max:180'],
             'nombre' => ['required', 'string', 'max:200'],
@@ -352,6 +353,7 @@ class TouristRouteController extends Controller
     {
         $restaurantIds = $stops->where('target_type', 'restaurant')->pluck('target_id')->unique()->values();
         $spotIds = $stops->where('target_type', 'tour_spot')->pluck('target_id')->unique()->values();
+        $hotelIds = $stops->where('target_type', 'hotel')->pluck('target_id')->unique()->values();
         $eventIds = $stops->where('target_type', 'tour_event')->pluck('target_id')->unique()->values();
 
         $restaurants = $restaurantIds->isEmpty()
@@ -365,6 +367,13 @@ class TouristRouteController extends Controller
             ? collect()
             : TourSpot::query()
                 ->whereIn('id', $spotIds)
+                ->get(['id', 'imagen_portada_url'])
+                ->keyBy('id');
+
+        $hotels = $hotelIds->isEmpty()
+            ? collect()
+            : Hotel::query()
+                ->whereIn('id', $hotelIds)
                 ->get(['id', 'imagen_portada_url'])
                 ->keyBy('id');
 
@@ -385,6 +394,8 @@ class TouristRouteController extends Controller
                 $url = $row?->portada_url ?: $row?->logo_url;
             } elseif ($stop->target_type === 'tour_spot') {
                 $url = $spots->get($stop->target_id)?->imagen_portada_url;
+            } elseif ($stop->target_type === 'hotel') {
+                $url = $hotels->get($stop->target_id)?->imagen_portada_url;
             } elseif ($stop->target_type === 'tour_event') {
                 $url = $events->get($stop->target_id)?->portada_url;
             }

@@ -5,6 +5,7 @@ namespace App\Services\Tourist;
 use App\Models\AppFavorite;
 use App\Models\Customer;
 use App\Models\CustomerInterestGroupPreference;
+use App\Models\Hotel;
 use App\Models\PubRestaurant;
 use App\Models\PubRestaurantCatalogItem;
 use App\Models\RefCatalogItem;
@@ -167,6 +168,56 @@ class TouristInterestService
             ->whereIn('id', $groupIds)
             ->where('target_entity', TouristInterestGroup::TARGET_TOUR_SPOT)
             ->exists();
+    }
+
+    public function hasHotelInterestGroups(Customer $customer): bool
+    {
+        $groupIds = $customer->interestGroupPreferences()->pluck('interest_group_id')->all();
+        if ($groupIds === []) {
+            return false;
+        }
+
+        return TouristInterestGroup::query()
+            ->whereIn('id', $groupIds)
+            ->where('target_entity', TouristInterestGroup::TARGET_HOTEL)
+            ->exists();
+    }
+
+    /**
+     * Hoteles para el turista: solo si eligió "Hoteles y hospedaje" o ya
+     * interactuó con hoteles (favoritos o paradas en su plan).
+     *
+     * @return Collection<int, Hotel>
+     */
+    public function recommendHotels(Customer $customer, int $limit = 10): Collection
+    {
+        $signals = $this->behaviorSignals($customer, AppFavorite::TARGET_HOTEL);
+        $favoriteSet = array_fill_keys($signals['favorite_ids'], true);
+        $routeSet = array_fill_keys($signals['route_ids'], true);
+        $hasBehavior = $favoriteSet !== [] || $routeSet !== [];
+
+        if (! $this->hasHotelInterestGroups($customer) && ! $hasBehavior) {
+            return collect();
+        }
+
+        return Hotel::query()
+            ->where('estado', Hotel::ESTADO_PUBLICADO)
+            ->with(['departamento', 'provincia', 'distrito'])
+            ->get()
+            ->map(function (Hotel $hotel) use ($favoriteSet, $routeSet): array {
+                $id = (string) $hotel->id;
+                $score = (isset($favoriteSet[$id]) ? 80 : 0)
+                    + (isset($routeSet[$id]) ? 45 : 0)
+                    + ((float) $hotel->score_ranking * 10)
+                    + ((float) $hotel->rating_promedio)
+                    + ($hotel->destacado ? 5 : 0);
+
+                return ['hotel' => $hotel, 'score' => $score];
+            })
+            ->sortByDesc('score')
+            ->take($limit)
+            ->values()
+            ->map(fn (array $row): Hotel => $row['hotel']);
     }
 
     /**

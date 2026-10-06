@@ -2,8 +2,10 @@
 
 namespace App\Services\Tourist;
 
+use App\Models\Hotel;
 use App\Models\PubRestaurant;
 use App\Models\TourSpot;
+use App\Services\Platform\HotelCatalogQuery;
 use App\Support\PublicMediaUrl;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
@@ -18,13 +20,18 @@ use Throwable;
  */
 class HybridRecommendationService
 {
+    public function __construct(
+        private readonly HotelCatalogQuery $hotelCatalog,
+    ) {}
+
     /**
      * @return array{
      *     mode: string,
      *     query: string,
      *     answer: string|null,
      *     restaurants: list<array<string, mixed>>,
-     *     tour_spots: list<array<string, mixed>>
+     *     tour_spots: list<array<string, mixed>>,
+     *     hotels: list<array<string, mixed>>
      * }
      */
     public function recommend(string $query, int $limit = 6): array
@@ -34,21 +41,22 @@ class HybridRecommendationService
 
         $restaurants = $this->candidateRestaurants($query, max($limit * 3, 12));
         $spots = $this->candidateTourSpots($query, max($limit * 3, 12));
+        $hotels = $this->candidateHotels($query, max($limit * 2, 8));
 
         $apiKey = (string) config('services.openai.key');
 
         if ($apiKey === '' || $query === '') {
-            return $this->contentOnly($query, $restaurants, $spots, $limit);
+            return $this->contentOnly($query, $restaurants, $spots, $hotels, $limit);
         }
 
         try {
-            return $this->hybridWithOpenAi($query, $restaurants, $spots, $limit, $apiKey);
+            return $this->hybridWithOpenAi($query, $restaurants, $spots, $hotels, $limit, $apiKey);
         } catch (Throwable $e) {
             Log::warning('VanPe IA: fallback a ranking por contenido', [
                 'error' => $e->getMessage(),
             ]);
 
-            return $this->contentOnly($query, $restaurants, $spots, $limit);
+            return $this->contentOnly($query, $restaurants, $spots, $hotels, $limit);
         }
     }
 
@@ -61,6 +69,7 @@ class HybridRecommendationService
         string $query,
         Collection $restaurants,
         Collection $spots,
+        Collection $hotels,
         int $limit,
         string $apiKey,
     ): array {
@@ -90,6 +99,16 @@ class HybridRecommendationService
                 'resumen' => mb_substr((string) $s->resumen, 0, 180),
                 'distrito' => $s->distrito?->name,
             ])->values()->all(),
+            'hotels' => $hotels->map(fn (Hotel $h): array => [
+                'id' => $h->id,
+                'nombre' => $h->nombre,
+                'estrellas' => $h->estrellas(),
+                'precio_desde' => $h->precio_desde !== null ? (float) $h->precio_desde : null,
+                'servicios' => $h->servicios ?? [],
+                'rating' => (float) $h->rating_promedio,
+                'resumen' => mb_substr((string) $h->resumen, 0, 180),
+                'distrito' => $h->distrito?->name,
+            ])->values()->all(),
         ];
 
         $model = (string) config('services.openai.model', 'gpt-4o-mini');
@@ -110,7 +129,8 @@ class HybridRecommendationService
                             .'Si la consulta es un plato o comida, prioriza restaurantes cuyo array "platos" coincida '
                             .'(aunque el turista escriba con errores ortográficos). '
                             .'Responde SOLO JSON válido con esta forma: '
-                            .'{"answer":"texto corto en español","restaurant_ids":["uuid"...],"tour_spot_ids":["uuid"...]} '
+                            .'{"answer":"texto corto en español","restaurant_ids":["uuid"...],"tour_spot_ids":["uuid"...],"hotel_ids":["uuid"...]} '
+                            .'Si buscan dónde dormir u hospedarse, prioriza hotel_ids. '
                             .'Máximo '.$limit.' ids por lista. Ordena de más a menos relevante. '
                             .'No inventes ids ni lugares fuera del catálogo.',
                     ],
@@ -144,9 +164,20 @@ class HybridRecommendationService
             fn (string $id): bool => $spots->contains(fn (TourSpot $s): bool => $s->id === $id),
         ));
 
-        if ($restaurantIds === [] && $spotIds === []) {
-            return $this->contentOnly($query, $restaurants, $spots, $limit);
+        $hotelIds = array_values(array_filter(
+            array_map('strval', $parsed['hotel_ids'] ?? []),
+            fn (string $id): bool => $hotels->contains(fn (Hotel $h): bool => $h->id === $id),
+        ));
+
+        if ($restaurantIds === [] && $spotIds === [] && $hotelIds === []) {
+            return $this->contentOnly($query, $restaurants, $spots, $hotels, $limit);
         }
+
+        $orderedHotels = collect($hotelIds)
+            ->map(fn (string $id) => $hotels->firstWhere('id', $id))
+            ->filter()
+            ->take($limit)
+            ->values();
 
         $orderedRestaurants = collect($restaurantIds)
             ->map(fn (string $id) => $restaurants->firstWhere('id', $id))
@@ -166,6 +197,7 @@ class HybridRecommendationService
             'answer' => is_string($parsed['answer'] ?? null) ? $parsed['answer'] : null,
             'restaurants' => $orderedRestaurants->map(fn (PubRestaurant $r): array => $this->serializeRestaurant($r, $query))->all(),
             'tour_spots' => $orderedSpots->map(fn (TourSpot $s): array => $this->serializeSpot($s))->all(),
+            'hotels' => $orderedHotels->map(fn (Hotel $h): array => $this->hotelCatalog->toListItem($h))->all(),
         ];
     }
 
@@ -174,7 +206,7 @@ class HybridRecommendationService
      * @param  Collection<int, TourSpot>  $spots
      * @return array{mode: string, query: string, answer: string|null, restaurants: list<array<string, mixed>>, tour_spots: list<array<string, mixed>>}
      */
-    private function contentOnly(string $query, Collection $restaurants, Collection $spots, int $limit): array
+    private function contentOnly(string $query, Collection $restaurants, Collection $spots, Collection $hotels, int $limit): array
     {
         $dishHits = $restaurants->filter(fn (PubRestaurant $r): bool => $this->matchedDishesFor($r, $query) !== []);
         $ordered = $dishHits
@@ -195,6 +227,7 @@ class HybridRecommendationService
                     : 'Estas son las mejores opciones según ranking y afinidad con tu búsqueda.'),
             'restaurants' => $ordered->take($limit)->map(fn (PubRestaurant $r): array => $this->serializeRestaurant($r, $query))->values()->all(),
             'tour_spots' => $spots->take($limit)->map(fn (TourSpot $s): array => $this->serializeSpot($s))->values()->all(),
+            'hotels' => $hotels->take($limit)->map(fn (Hotel $h): array => $this->hotelCatalog->toListItem($h))->values()->all(),
         ];
     }
 
@@ -361,6 +394,35 @@ class HybridRecommendationService
                     foreach ($this->spotCategoryHints($q) as $slug) {
                         $inner->orWhereHas('categories', fn ($cq) => $cq->where('slug', $slug));
                     }
+                });
+            })
+            ->orderByDesc('score_ranking')
+            ->orderByDesc('destacado')
+            ->limit($limit)
+            ->get();
+    }
+
+    /**
+     * Hoteles candidatos: coincidencia de texto o, si la consulta habla de
+     * hospedaje en general, los mejor rankeados.
+     *
+     * @return Collection<int, Hotel>
+     */
+    private function candidateHotels(string $query, int $limit): Collection
+    {
+        $q = mb_strtolower(trim($query));
+        $lodgingWords = ['hotel', 'hostal', 'hospedaje', 'hospedar', 'alojamiento', 'alojar', 'dormir', 'habitaci', 'posada', 'lodge', 'resort'];
+        $wantsLodging = $q === '' || collect($lodgingWords)->contains(fn (string $word): bool => str_contains($q, $word));
+
+        return Hotel::query()
+            ->where('estado', Hotel::ESTADO_PUBLICADO)
+            ->with(['departamento:id,name', 'provincia:id,name', 'distrito:id,name'])
+            ->when(! $wantsLodging, function ($builder) use ($q): void {
+                $builder->where(function ($inner) use ($q): void {
+                    $inner->whereRaw('lower(nombre) like ?', ['%'.$q.'%'])
+                        ->orWhereRaw('lower(coalesce(resumen, \'\')) like ?', ['%'.$q.'%'])
+                        ->orWhereRaw('lower(coalesce(descripcion, \'\')) like ?', ['%'.$q.'%'])
+                        ->orWhereRaw('similarity(lower(nombre), ?) > 0.25', [$q]);
                 });
             })
             ->orderByDesc('score_ranking')

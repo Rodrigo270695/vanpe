@@ -123,7 +123,7 @@ class ExtraordinaryEventController extends Controller
             'stops' => ['nullable', 'array'],
             'stops.*.nombre' => ['required_with:stops', 'string', 'max:200'],
             'stops.*.slug' => ['nullable', 'string', 'max:180'],
-            'stops.*.target_type' => ['nullable', 'in:restaurant,tour_spot,custom'],
+            'stops.*.target_type' => ['nullable', 'in:restaurant,tour_spot,hotel,custom'],
             'stops.*.target_id' => ['nullable', 'uuid'],
             'stops.*.latitud' => ['required_with:stops', 'numeric', 'between:-90,90'],
             'stops.*.longitud' => ['required_with:stops', 'numeric', 'between:-180,180'],

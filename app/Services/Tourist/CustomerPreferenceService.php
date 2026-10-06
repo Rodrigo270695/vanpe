@@ -4,6 +4,7 @@ namespace App\Services\Tourist;
 
 use App\Models\Customer;
 use App\Models\CustomerCatalogPreference;
+use App\Models\Hotel;
 use App\Models\PubRestaurant;
 use App\Models\RefCatalogItem;
 use App\Support\RefCatalogTypes;
@@ -163,5 +164,18 @@ class CustomerPreferenceService
     public function hasTourSpotInterestGroups(Customer $customer): bool
     {
         return $this->interests->hasTourSpotInterestGroups($customer);
+    }
+
+    /**
+     * @return Collection<int, Hotel>
+     */
+    public function recommendHotels(Customer $customer, int $limit = 10): Collection
+    {
+        return $this->interests->recommendHotels($customer, $limit);
+    }
+
+    public function hasHotelInterestGroups(Customer $customer): bool
+    {
+        return $this->interests->hasHotelInterestGroups($customer);
     }
 }

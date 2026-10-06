@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Api\Tourist;
 
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
+use App\Models\Hotel;
 use App\Models\PubRestaurant;
 use App\Models\TourSpot;
+use App\Services\Platform\HotelCatalogQuery;
 use App\Services\Platform\TourSpotCatalogQuery;
 use App\Services\Tourist\CustomerPreferenceService;
 use App\Support\PublicMediaUrl;
@@ -16,6 +18,7 @@ class HomeController extends Controller
 {
     public function __construct(
         private readonly TourSpotCatalogQuery $tourSpots,
+        private readonly HotelCatalogQuery $hotels,
         private readonly CustomerPreferenceService $preferences,
     ) {}
 
@@ -43,6 +46,7 @@ class HomeController extends Controller
         $mode = 'ranking';
         $recommendedRestaurants = null;
         $recommendedSpots = null;
+        $recommendedHotels = null;
 
         if (
             $personalized
@@ -54,11 +58,13 @@ class HomeController extends Controller
                 // recommendTourSpots devuelve Support\Collection (no Eloquent), sin ->load().
                 $spotModels = $this->preferences->recommendTourSpots($customer, $limit);
                 $recommendedSpots = $this->hydrateTourSpots($spotModels);
+                $recommendedHotels = $this->preferences->recommendHotels($customer, $limit);
                 $mode = 'ai_preferences';
             } catch (\Throwable $e) {
                 report($e);
                 $recommendedRestaurants = null;
                 $recommendedSpots = null;
+                $recommendedHotels = null;
                 $mode = 'ranking';
             }
         }
@@ -82,10 +88,20 @@ class HomeController extends Controller
                 ->get();
         }
 
+        if ($recommendedHotels === null) {
+            $recommendedHotels = $this->hotelsQuery()
+                ->orderByDesc('score_ranking')
+                ->orderByDesc('destacado')
+                ->limit($limit)
+                ->get();
+        }
+
         $featuredRestaurants = $this->featuredRestaurants($limit);
         $featuredSpots = $this->featuredTourSpots($limit);
         $recentRestaurants = $this->recentRestaurants($limit);
         $recentSpots = $this->recentTourSpots($limit);
+        $featuredHotels = $this->hotelsQuery()->where('destacado', true)->orderByDesc('score_ranking')->limit($limit)->get();
+        $recentHotels = $this->hotelsQuery()->where('created_at', '>=', now()->subDays(7))->orderByDesc('created_at')->limit($limit)->get();
 
         // Personalizado: no rellenar featured/recent con el otro tipo si no hay interés.
         if ($mode === 'ai_preferences' && $customer instanceof Customer) {
@@ -97,6 +113,10 @@ class HomeController extends Controller
                 if (! $this->preferences->hasRestaurantInterestGroups($customer)) {
                     $featuredRestaurants = collect();
                     $recentRestaurants = collect();
+                }
+                if (! $this->preferences->hasHotelInterestGroups($customer)) {
+                    $featuredHotels = collect();
+                    $recentHotels = collect();
                 }
             } catch (\Throwable $e) {
                 report($e);
@@ -112,12 +132,18 @@ class HomeController extends Controller
                 'tour_spots' => $recommendedSpots
                     ->map(fn (TourSpot $spot): array => $this->tourSpots->toListItem($spot))
                     ->values(),
+                'hotels' => $recommendedHotels
+                    ->map(fn (Hotel $hotel): array => $this->hotels->toListItem($hotel))
+                    ->values(),
                 'featured' => [
                     'restaurants' => $featuredRestaurants
                         ->map(fn (PubRestaurant $r): array => $this->serializeRestaurant($r))
                         ->values(),
                     'tour_spots' => $featuredSpots
                         ->map(fn (TourSpot $spot): array => $this->tourSpots->toListItem($spot))
+                        ->values(),
+                    'hotels' => $featuredHotels
+                        ->map(fn (Hotel $hotel): array => $this->hotels->toListItem($hotel))
                         ->values(),
                 ],
                 'recent' => [
@@ -126,6 +152,9 @@ class HomeController extends Controller
                         ->values(),
                     'tour_spots' => $recentSpots
                         ->map(fn (TourSpot $spot): array => $this->tourSpots->toListItem($spot))
+                        ->values(),
+                    'hotels' => $recentHotels
+                        ->map(fn (Hotel $hotel): array => $this->hotels->toListItem($hotel))
                         ->values(),
                 ],
             ],
@@ -178,6 +207,14 @@ class HomeController extends Controller
             'longitud' => $restaurant->longitud !== null ? (float) $restaurant->longitud : null,
             'created_at' => $restaurant->created_at?->toIso8601String(),
         ];
+    }
+
+    /** @return \Illuminate\Database\Eloquent\Builder<Hotel> */
+    private function hotelsQuery()
+    {
+        return Hotel::query()
+            ->where('estado', Hotel::ESTADO_PUBLICADO)
+            ->with(['departamento:id,name', 'provincia:id,name', 'distrito:id,name']);
     }
 
     /** @return \Illuminate\Support\Collection<int, PubRestaurant> */

@@ -96,6 +96,7 @@ class HotelCatalogQuery
             'departamento' => $hotel->departamento?->name,
             'provincia' => $hotel->provincia?->name,
             'distrito' => $hotel->distrito?->name,
+            'created_at' => $hotel->created_at?->toIso8601String(),
         ];
     }
 
