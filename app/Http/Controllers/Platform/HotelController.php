@@ -65,6 +65,7 @@ class HotelController extends Controller
                 'update' => $request->user()?->can('hotels.update'),
                 'delete' => $request->user()?->can('hotels.delete'),
                 'publish' => $request->user()?->can('hotels.publish'),
+                'support_login' => TenantController::supportAllowed($request->user()),
             ],
         ]);
     }

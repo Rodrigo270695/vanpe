@@ -3,6 +3,7 @@ export type HotelAbilities = {
     update: boolean;
     delete: boolean;
     publish: boolean;
+    support_login: boolean;
 };
 
 export type GeoOption = {

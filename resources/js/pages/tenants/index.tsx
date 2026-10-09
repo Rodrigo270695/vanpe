@@ -9,6 +9,7 @@ import {
     Eye,
     EyeOff,
     Headphones,
+    KeyRound,
     Layers,
     Pencil,
     Plus,
@@ -30,6 +31,7 @@ import type {StatusPillVariant} from '@/components/common/status-pill';
 import { TableCard } from '@/components/common/table-card';
 import { TableFilterSelect } from '@/components/common/table-filter-select';
 import { TableRowActions } from '@/components/common/table-row-actions';
+import { OwnerPasswordModal } from '@/components/tenants/owner-password-modal';
 import { TenantFormModal } from '@/components/tenants/tenant-form-modal';
 import type { TenantAbilities, TenantRow } from '@/components/tenants/types';
 import { Button } from '@/components/ui/button';
@@ -78,6 +80,7 @@ export default function TenantsIndex({
     const [formOpen, setFormOpen] = useState(false);
     const [editing, setEditing] = useState<TenantRow | null>(null);
     const [deleteTarget, setDeleteTarget] = useState<TenantRow | null>(null);
+    const [passwordTarget, setPasswordTarget] = useState<TenantRow | null>(null);
     const [deleting, setDeleting] = useState(false);
 
     const filteredTenants = useMemo(() => {
@@ -429,6 +432,13 @@ return;
                     hidden: !can.support_login,
                 },
                 {
+                    key: 'owner-password',
+                    label: t('tenants.action_owner_password'),
+                    icon: KeyRound,
+                    onClick: () => setPasswordTarget(row),
+                    hidden: !can.support_login,
+                },
+                {
                     key: 'copy-uuid',
                     label: t('tenants.action_copy_uuid'),
                     icon: Copy,
@@ -594,6 +604,13 @@ return;
                 onOpenChange={setFormOpen}
                 tenant={editing}
                 statuses={statuses}
+            />
+
+            <OwnerPasswordModal
+                open={passwordTarget !== null}
+                onOpenChange={(open) => !open && setPasswordTarget(null)}
+                tenantId={passwordTarget?.id ?? null}
+                businessName={passwordTarget?.nombre_comercial ?? ''}
             />
 
             <BaseModal

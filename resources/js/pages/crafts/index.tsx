@@ -1,5 +1,5 @@
 import { Head, router } from '@inertiajs/react';
-import { Image, Palette, Pencil, Plus, Star, Trash2 } from 'lucide-react';
+import { Headphones, Image, KeyRound, Palette, Pencil, Plus, Star, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { BaseModal } from '@/components/common/base-modal';
 import { DataTable } from '@/components/common/data-table';
@@ -17,6 +17,7 @@ import type {
     CraftOptions,
     CraftRow,
 } from '@/components/crafts/types';
+import { OwnerPasswordModal } from '@/components/tenants/owner-password-modal';
 import { useClientTable } from '@/hooks/use-client-table';
 import { useTranslations } from '@/hooks/use-translations';
 import { translate } from '@/lib/i18n';
@@ -60,6 +61,7 @@ export default function CraftsIndex({
     const [editing, setEditing] = useState<CraftRow | null>(null);
     const [deleteTarget, setDeleteTarget] = useState<CraftRow | null>(null);
     const [deleting, setDeleting] = useState(false);
+    const [passwordTarget, setPasswordTarget] = useState<CraftRow | null>(null);
 
     const table = useClientTable(crafts, {
         searchable: ['nombre', 'slug', 'descripcion', 'telefono_contacto'],
@@ -204,6 +206,20 @@ export default function CraftsIndex({
         <TableRowActions
             items={[
                 {
+                    key: 'support-login',
+                    label: t('tenants.action_support_login'),
+                    icon: Headphones,
+                    onClick: () => router.post(`/restaurantes/${row.tenant_id}/support-login`),
+                    hidden: !can.support_login || !row.tenant_id,
+                },
+                {
+                    key: 'owner-password',
+                    label: t('tenants.action_owner_password'),
+                    icon: KeyRound,
+                    onClick: () => setPasswordTarget(row),
+                    hidden: !can.support_login || !row.tenant_id,
+                },
+                {
                     key: 'edit',
                     label: t('roles.action_edit'),
                     icon: Pencil,
@@ -300,6 +316,13 @@ export default function CraftsIndex({
                 limits={limits}
                 canPublish={can.publish}
                 mapboxToken={mapbox_token}
+            />
+
+            <OwnerPasswordModal
+                open={passwordTarget !== null}
+                onOpenChange={(open) => !open && setPasswordTarget(null)}
+                tenantId={passwordTarget?.tenant_id ?? null}
+                businessName={passwordTarget?.nombre ?? ''}
             />
 
             <BaseModal

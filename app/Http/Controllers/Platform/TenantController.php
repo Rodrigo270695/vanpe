@@ -7,11 +7,13 @@ use App\Http\Requests\Platform\StoreTenantRequest;
 use App\Http\Requests\Platform\UpdateTenantRequest;
 use App\Models\Tenant;
 use App\Models\Tenant\CfgVenuePhoto;
+use App\Models\User;
 use App\Services\Platform\PublicCatalogPublisher;
 use App\Services\Platform\PublicCatalogSync;
 use App\Services\Tenant\TenantProvisioner;
 use App\Services\Tenant\VenueImageStorage;
 use App\Support\TenantSlug;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -20,6 +22,7 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -227,15 +230,70 @@ class TenantController extends Controller
         );
     }
 
-    private function canSupportLogin(Request $request): bool
+    /** Datos de acceso del dueño (sin contraseña) para el modal de soporte. */
+    public function owner(Request $request, Tenant $tenant, TenantProvisioner $provisioner): JsonResponse
     {
-        $user = $request->user();
+        abort_unless($this->canSupportLogin($request), 403);
 
+        $owner = $provisioner->getOwner($tenant);
+
+        return response()->json([
+            'data' => $owner === null ? null : [
+                'name' => $owner->name,
+                'username' => $owner->username,
+                'email' => $owner->email,
+                'activo' => (bool) $owner->activo,
+                'verificado' => $owner->email_verified_at !== null,
+            ],
+            'login_url' => $tenant->subdomainUrl('/login'),
+        ]);
+    }
+
+    /**
+     * El superadmin fija una nueva contraseña al dueño del tenant. Además confirma
+     * su correo: sin eso el login del subdominio lo rechaza aunque la clave sea correcta.
+     */
+    public function updateOwnerPassword(
+        Request $request,
+        Tenant $tenant,
+        TenantProvisioner $provisioner,
+    ): RedirectResponse {
+        abort_unless($this->canSupportLogin($request), 403);
+
+        $data = $request->validate([
+            'password' => ['required', 'confirmed', Password::defaults()],
+        ]);
+
+        $owner = $provisioner->getOwner($tenant);
+        abort_if($owner === null, 422, __('messages.tenants.support_owner_missing'));
+
+        $owner->password = $data['password'];
+        $owner->email_verified_at ??= now();
+        $owner->save();
+
+        Log::info('support.owner_password.reset', [
+            'tenant_id' => $tenant->id,
+            'tenant_slug' => $tenant->slug,
+            'owner_user_id' => $owner->id,
+            'actor_id' => $request->user()?->id,
+            'actor_email' => $request->user()?->email,
+        ]);
+
+        return back()->with('success', __('messages.tenants.owner_password_updated'));
+    }
+
+    public static function supportAllowed(?User $user): bool
+    {
         if ($user === null) {
             return false;
         }
 
         return $user->can('tenants.support_login') || $user->hasRole('superadmin');
+    }
+
+    private function canSupportLogin(Request $request): bool
+    {
+        return self::supportAllowed($request->user());
     }
 
     /**

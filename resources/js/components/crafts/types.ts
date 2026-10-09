@@ -3,6 +3,7 @@ export type CraftAbilities = {
     update: boolean;
     delete: boolean;
     publish: boolean;
+    support_login: boolean;
 };
 
 export type CraftOptions = {

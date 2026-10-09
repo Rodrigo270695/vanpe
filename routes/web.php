@@ -325,6 +325,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::put('restaurantes/{tenant}', [TenantController::class, 'update'])->name('tenants.update');
         Route::post('restaurantes/{tenant}/support-login', [TenantController::class, 'supportLogin'])
             ->name('tenants.support-login');
+        Route::get('restaurantes/{tenant}/owner', [TenantController::class, 'owner'])
+            ->name('tenants.owner.show');
+        Route::put('restaurantes/{tenant}/owner/password', [TenantController::class, 'updateOwnerPassword'])
+            ->name('tenants.owner.password');
         Route::delete('restaurantes/{tenant}', [TenantController::class, 'destroy'])->name('tenants.destroy');
 
         Route::get('planes', [PlanController::class, 'index'])->name('plans.index');

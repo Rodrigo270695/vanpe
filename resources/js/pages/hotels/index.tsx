@@ -1,5 +1,5 @@
 import { Head, router } from '@inertiajs/react';
-import { BedDouble, Pencil, Plus, Star, Trash2 } from 'lucide-react';
+import { BedDouble, Headphones, KeyRound, Pencil, Plus, Star, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { BaseModal } from '@/components/common/base-modal';
 import { DataTable  } from '@/components/common/data-table';
@@ -18,6 +18,7 @@ import type {
     HotelOptions,
     HotelRow,
 } from '@/components/hotels/types';
+import { OwnerPasswordModal } from '@/components/tenants/owner-password-modal';
 import { useClientTable } from '@/hooks/use-client-table';
 import { useTranslations } from '@/hooks/use-translations';
 import { translate  } from '@/lib/i18n';
@@ -54,6 +55,7 @@ export default function HotelsIndex({
     const [editing, setEditing] = useState<HotelRow | null>(null);
     const [deleteTarget, setDeleteTarget] = useState<HotelRow | null>(null);
     const [deleting, setDeleting] = useState(false);
+    const [passwordTarget, setPasswordTarget] = useState<HotelRow | null>(null);
 
     const table = useClientTable(hotels, {
         searchable: [
@@ -219,6 +221,20 @@ return 'muted' as const;
         <TableRowActions
             items={[
                 {
+                    key: 'support-login',
+                    label: t('tenants.action_support_login'),
+                    icon: Headphones,
+                    onClick: () => router.post(`/restaurantes/${row.tenant_id}/support-login`),
+                    hidden: !can.support_login || !row.tenant_id,
+                },
+                {
+                    key: 'owner-password',
+                    label: t('tenants.action_owner_password'),
+                    icon: KeyRound,
+                    onClick: () => setPasswordTarget(row),
+                    hidden: !can.support_login || !row.tenant_id,
+                },
+                {
                     key: 'edit',
                     label: t('roles.action_edit'),
                     icon: Pencil,
@@ -316,6 +332,13 @@ return 'muted' as const;
                 limits={limits}
                 canPublish={can.publish}
                 mapboxToken={mapbox_token}
+            />
+
+            <OwnerPasswordModal
+                open={passwordTarget !== null}
+                onOpenChange={(open) => !open && setPasswordTarget(null)}
+                tenantId={passwordTarget?.tenant_id ?? null}
+                businessName={passwordTarget?.nombre ?? ''}
             />
 
             <BaseModal

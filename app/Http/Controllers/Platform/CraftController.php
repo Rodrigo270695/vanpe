@@ -38,6 +38,7 @@ class CraftController extends Controller
                 'update' => $request->user()?->can('crafts.update'),
                 'delete' => $request->user()?->can('crafts.delete'),
                 'publish' => $request->user()?->can('crafts.publish'),
+                'support_login' => TenantController::supportAllowed($request->user()),
             ],
         ]);
     }
