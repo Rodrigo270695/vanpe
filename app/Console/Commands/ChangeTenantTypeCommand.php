@@ -2,12 +2,17 @@
 
 namespace App\Console\Commands;
 
+use App\Models\Permission\Role;
 use App\Models\Tenant;
 use App\Services\Platform\CraftCatalogProvisioner;
 use App\Services\Platform\HotelCatalogProvisioner;
 use App\Services\Platform\PublicCatalogProvisioner;
 use App\Services\Platform\TourSpotCatalogProvisioner;
+use App\Support\PermissionCatalog;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\DB;
+use Spatie\Permission\PermissionRegistrar;
 
 class ChangeTenantTypeCommand extends Command
 {
@@ -58,8 +63,63 @@ class ChangeTenantTypeCommand extends Command
 
         $this->call('permissions:sync', ['--scope' => 'tenant', '--tenant' => $tenant->slug]);
 
+        $this->resetTemplateRoles($tenant, $tipo);
+
         $this->components->info("Tipo cambiado a «{$tipo}». El usuario debe recargar la página.");
 
         return self::SUCCESS;
+    }
+
+    /**
+     * Ajusta las plantillas de roles al nuevo tipo: los roles de la plantilla quedan
+     * con exactamente sus permisos y se borran los de otros tipos que no tengan usuarios.
+     */
+    private function resetTemplateRoles(Tenant $tenant, string $tipo): void
+    {
+        $templates = [
+            Tenant::TYPE_RESTAURANT => (array) Config::get('roles.tenant.roles', []),
+            Tenant::TYPE_TOUR_SPOT => (array) Config::get('roles.tenant.roles_tour_spot', []),
+            Tenant::TYPE_HOTEL => (array) Config::get('roles.tenant.roles_hotel', []),
+            Tenant::TYPE_CRAFT => (array) Config::get('roles.tenant.roles_craft', []),
+        ];
+        $current = $templates[$tipo] ?? [];
+        $core = PermissionCatalog::coreRoles('tenant');
+        $foreign = array_diff(
+            array_keys(array_merge(...array_values($templates))),
+            array_keys($current),
+            $core,
+        );
+
+        Config::set('database.connections.tenant.search_path', (string) $tenant->schema_name);
+        DB::purge('tenant');
+        $previousDefault = Config::get('database.default');
+        DB::setDefaultConnection('tenant');
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+
+        try {
+            foreach ($current as $roleName => $permissions) {
+                if (in_array($roleName, $core, true) || $permissions === ['*']) {
+                    continue;
+                }
+
+                Role::findOrCreate((string) $roleName, 'web')->syncPermissions(array_values($permissions));
+            }
+
+            $pivot = (string) config('permission.table_names.model_has_roles', 'model_has_roles');
+
+            foreach (Role::query()->whereIn('name', $foreign)->where('guard_name', 'web')->get() as $role) {
+                if (DB::table($pivot)->where('role_id', $role->id)->exists()) {
+                    $this->components->warn("Rol «{$role->name}» conservado: tiene usuarios asignados.");
+
+                    continue;
+                }
+
+                $role->delete();
+                $this->components->twoColumnDetail('Rol eliminado', $role->name);
+            }
+        } finally {
+            DB::setDefaultConnection($previousDefault);
+            app(PermissionRegistrar::class)->forgetCachedPermissions();
+        }
     }
 }

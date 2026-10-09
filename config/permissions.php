@@ -159,9 +159,9 @@ return [
         'manage_ability' => 'tenant.users.manage',
         // Módulos que ve cada tipo de negocio en la pantalla de roles.
         'modules_by_type' => [
-            'restaurant' => ['operacion', 'carta', 'ventas', 'informes', 'negocio', 'personal'],
-            'tour_spot' => ['centro_turistico', 'negocio', 'personal'],
-            'hotel' => ['hotel', 'negocio', 'personal'],
+            'restaurant' => ['operacion', 'carta', 'ventas', 'informes', 'negocio', 'eventos', 'personal'],
+            'tour_spot' => ['centro_turistico', 'eventos', 'personal'],
+            'hotel' => ['hotel', 'eventos', 'personal'],
             'craft' => ['artesania', 'personal'],
         ],
         'modules' => [
@@ -198,6 +198,11 @@ return [
                 'permissions' => [
                     'tenant.settings.manage' => 'Configuración del negocio',
                     'tenant.publication.manage' => 'Publicación en la app del turista',
+                ],
+            ],
+            'eventos' => [
+                'label' => 'Ferias y festividades',
+                'permissions' => [
                     'tenant.events.manage' => 'Ferias y festividades en la app',
                 ],
             ],
