@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\EnsureNoTenant;
 use App\Http\Middleware\EnsureTenant;
+use App\Http\Middleware\EnsureTenantType;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\RejectTenantPasskeys;
@@ -52,6 +53,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'tenant.required' => EnsureTenant::class,
             'tenant.none' => EnsureNoTenant::class,
+            'tenant.type' => EnsureTenantType::class,
             'abilities' => CheckAbilities::class,
             'ability' => CheckForAnyAbility::class,
         ]);

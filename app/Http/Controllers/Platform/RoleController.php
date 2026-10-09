@@ -33,6 +33,14 @@ class RoleController extends Controller
         return app(TenantManager::class)->check() ? 'tenant' : 'platform';
     }
 
+    /** Tipo de negocio del subdominio (null en plataforma). */
+    private function tenantType(): ?string
+    {
+        $tenant = app(TenantManager::class)->tenant();
+
+        return $tenant === null ? null : ($tenant->tipo ?: 'restaurant');
+    }
+
     /**
      * Habilidad (permiso) requerida para cada acción según el scope.
      *
@@ -98,10 +106,10 @@ class RoleController extends Controller
         return Inertia::render('roles/index', [
             'roles' => $roles,
             'scope' => $scope,
-            'permissionsTotal' => Permission::query()
-                ->where('guard_name', self::GUARD)
-                ->count(),
-            'permissionCatalog' => PermissionCatalog::groups($scope),
+            'permissionsTotal' => $scope === 'tenant'
+                ? count(PermissionCatalog::names($scope, $this->tenantType()))
+                : Permission::query()->where('guard_name', self::GUARD)->count(),
+            'permissionCatalog' => PermissionCatalog::groups($scope, $this->tenantType()),
             'can' => [
                 'create' => (bool) $user?->can($abilities['create']),
                 'update' => (bool) $user?->can($abilities['update']),
@@ -151,7 +159,7 @@ class RoleController extends Controller
 
         $this->assertNotCoreRole($role, __('messages.roles.core_permissions_locked'));
 
-        $catalog = PermissionCatalog::names($scope);
+        $catalog = PermissionCatalog::names($scope, $this->tenantType());
 
         $data = $request->validate([
             'permissions' => ['present', 'array'],

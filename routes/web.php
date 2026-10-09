@@ -175,133 +175,147 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->where('numero', '[0-9]{11}')
         ->name('document.ruc');
 
-    // Operación del restaurante (solo subdominio del tenant).
+    // Portal del negocio (solo subdominio del tenant); cada módulo según su tipo.
     Route::middleware('tenant.required')->group(function () {
-        Route::get('mesas', [MesasController::class, 'index'])->name('mesas.index');
-        Route::post('mesas/areas', [MesasController::class, 'storeArea'])->name('mesas.areas.store');
-        Route::put('mesas/areas/{area}', [MesasController::class, 'updateArea'])->name('mesas.areas.update');
-        Route::delete('mesas/areas/{area}', [MesasController::class, 'destroyArea'])->name('mesas.areas.destroy');
-        Route::post('mesas/tables', [MesasController::class, 'storeTable'])->name('mesas.tables.store');
-        Route::put('mesas/tables/{table}', [MesasController::class, 'updateTable'])->name('mesas.tables.update');
-        Route::delete('mesas/tables/{table}', [MesasController::class, 'destroyTable'])->name('mesas.tables.destroy');
+        // Solo restaurantes: salón, cocina, caja y facturación.
+        Route::middleware('tenant.type:restaurant')->group(function () {
+            Route::get('mesas', [MesasController::class, 'index'])->name('mesas.index');
+            Route::post('mesas/areas', [MesasController::class, 'storeArea'])->name('mesas.areas.store');
+            Route::put('mesas/areas/{area}', [MesasController::class, 'updateArea'])->name('mesas.areas.update');
+            Route::delete('mesas/areas/{area}', [MesasController::class, 'destroyArea'])->name('mesas.areas.destroy');
+            Route::post('mesas/tables', [MesasController::class, 'storeTable'])->name('mesas.tables.store');
+            Route::put('mesas/tables/{table}', [MesasController::class, 'updateTable'])->name('mesas.tables.update');
+            Route::delete('mesas/tables/{table}', [MesasController::class, 'destroyTable'])->name('mesas.tables.destroy');
 
-        Route::get('carta', [CartaController::class, 'index'])->name('carta.index');
-        Route::post('carta/categories', [CartaController::class, 'storeCategory'])->name('carta.categories.store');
-        Route::put('carta/categories/{category}', [CartaController::class, 'updateCategory'])->name('carta.categories.update');
-        Route::delete('carta/categories/{category}', [CartaController::class, 'destroyCategory'])->name('carta.categories.destroy');
-        Route::post('carta/dishes', [CartaController::class, 'storeDish'])->name('carta.dishes.store');
-        Route::put('carta/dishes/{dish}', [CartaController::class, 'updateDish'])->name('carta.dishes.update');
-        Route::delete('carta/dishes/{dish}', [CartaController::class, 'destroyDish'])->name('carta.dishes.destroy');
+            Route::get('carta', [CartaController::class, 'index'])->name('carta.index');
+            Route::post('carta/categories', [CartaController::class, 'storeCategory'])->name('carta.categories.store');
+            Route::put('carta/categories/{category}', [CartaController::class, 'updateCategory'])->name('carta.categories.update');
+            Route::delete('carta/categories/{category}', [CartaController::class, 'destroyCategory'])->name('carta.categories.destroy');
+            Route::post('carta/dishes', [CartaController::class, 'storeDish'])->name('carta.dishes.store');
+            Route::put('carta/dishes/{dish}', [CartaController::class, 'updateDish'])->name('carta.dishes.update');
+            Route::delete('carta/dishes/{dish}', [CartaController::class, 'destroyDish'])->name('carta.dishes.destroy');
 
-        Route::get('pedidos', [PedidosController::class, 'index'])->name('pedidos.index');
-        Route::post('pedidos', [PedidosController::class, 'store'])->name('pedidos.store');
-        Route::get('pedidos/mesa/{table}', [PedidosController::class, 'openForTable'])->name('pedidos.open-table');
-        Route::get('pedidos/{pedido}', [PedidosController::class, 'show'])->name('pedidos.show');
-        Route::put('pedidos/{pedido}/items/{item}/selections', [PedidosController::class, 'updateItemSelections'])->name('pedidos.items.selections.update');
-        Route::post('pedidos/{pedido}/items', [PedidosController::class, 'addItem'])->name('pedidos.items.store');
-        Route::put('pedidos/{pedido}/items/{item}', [PedidosController::class, 'updateItem'])->name('pedidos.items.update');
-        Route::delete('pedidos/{pedido}/items/{item}', [PedidosController::class, 'removeItem'])->name('pedidos.items.destroy');
-        Route::post('pedidos/{pedido}/send', [PedidosController::class, 'sendToKitchen'])->name('pedidos.send');
-        Route::post('pedidos/{pedido}/served', [PedidosController::class, 'markServed'])->name('pedidos.served');
-        Route::post('pedidos/{pedido}/close', [PedidosController::class, 'close'])->name('pedidos.close');
-        Route::post('pedidos/{pedido}/cancel', [PedidosController::class, 'cancel'])->name('pedidos.cancel');
+            Route::get('pedidos', [PedidosController::class, 'index'])->name('pedidos.index');
+            Route::post('pedidos', [PedidosController::class, 'store'])->name('pedidos.store');
+            Route::get('pedidos/mesa/{table}', [PedidosController::class, 'openForTable'])->name('pedidos.open-table');
+            Route::get('pedidos/{pedido}', [PedidosController::class, 'show'])->name('pedidos.show');
+            Route::put('pedidos/{pedido}/items/{item}/selections', [PedidosController::class, 'updateItemSelections'])->name('pedidos.items.selections.update');
+            Route::post('pedidos/{pedido}/items', [PedidosController::class, 'addItem'])->name('pedidos.items.store');
+            Route::put('pedidos/{pedido}/items/{item}', [PedidosController::class, 'updateItem'])->name('pedidos.items.update');
+            Route::delete('pedidos/{pedido}/items/{item}', [PedidosController::class, 'removeItem'])->name('pedidos.items.destroy');
+            Route::post('pedidos/{pedido}/send', [PedidosController::class, 'sendToKitchen'])->name('pedidos.send');
+            Route::post('pedidos/{pedido}/served', [PedidosController::class, 'markServed'])->name('pedidos.served');
+            Route::post('pedidos/{pedido}/close', [PedidosController::class, 'close'])->name('pedidos.close');
+            Route::post('pedidos/{pedido}/cancel', [PedidosController::class, 'cancel'])->name('pedidos.cancel');
 
-        Route::get('cocina', [CocinaController::class, 'index'])->name('cocina.index');
-        Route::post('cocina/items/{item}/ready', [CocinaController::class, 'markItemReady'])->name('cocina.items.ready');
+            Route::get('cocina', [CocinaController::class, 'index'])->name('cocina.index');
+            Route::post('cocina/items/{item}/ready', [CocinaController::class, 'markItemReady'])->name('cocina.items.ready');
 
-        Route::get('caja', [CajaController::class, 'index'])->name('caja.index');
-        Route::post('caja/open', [CajaController::class, 'open'])->name('caja.open');
-        Route::post('caja/close', [CajaController::class, 'close'])->name('caja.close');
-        Route::post('caja/cobrar/{pedido}', [CajaController::class, 'charge'])->name('caja.charge');
+            Route::get('caja', [CajaController::class, 'index'])->name('caja.index');
+            Route::post('caja/open', [CajaController::class, 'open'])->name('caja.open');
+            Route::post('caja/close', [CajaController::class, 'close'])->name('caja.close');
+            Route::post('caja/cobrar/{pedido}', [CajaController::class, 'charge'])->name('caja.charge');
 
-        Route::get('ventas', [VentasController::class, 'index'])->name('ventas.index');
-        Route::get('ventas/{venta}', [VentasController::class, 'show'])->name('ventas.show');
-        Route::post('ventas/{venta}/anular', [VentasController::class, 'void'])->name('ventas.void');
-        Route::post('ventas/{venta}/emitir-fel', [VentasController::class, 'emitFel'])->name('ventas.emit_fel');
+            Route::get('ventas', [VentasController::class, 'index'])->name('ventas.index');
+            Route::get('ventas/{venta}', [VentasController::class, 'show'])->name('ventas.show');
+            Route::post('ventas/{venta}/anular', [VentasController::class, 'void'])->name('ventas.void');
+            Route::post('ventas/{venta}/emitir-fel', [VentasController::class, 'emitFel'])->name('ventas.emit_fel');
 
-        Route::get('facturacion/series', [FelSerieController::class, 'index'])->name('facturacion.series.index');
-        Route::post('facturacion/series', [FelSerieController::class, 'store'])->name('facturacion.series.store');
-        Route::put('facturacion/series/{felSerie}', [FelSerieController::class, 'update'])->name('facturacion.series.update');
-        Route::delete('facturacion/series/{felSerie}', [FelSerieController::class, 'destroy'])->name('facturacion.series.destroy');
+            Route::get('facturacion/series', [FelSerieController::class, 'index'])->name('facturacion.series.index');
+            Route::post('facturacion/series', [FelSerieController::class, 'store'])->name('facturacion.series.store');
+            Route::put('facturacion/series/{felSerie}', [FelSerieController::class, 'update'])->name('facturacion.series.update');
+            Route::delete('facturacion/series/{felSerie}', [FelSerieController::class, 'destroy'])->name('facturacion.series.destroy');
 
-        Route::get('facturacion/documentos', [FelDocumentController::class, 'index'])->name('facturacion.documentos.index');
-        Route::post('facturacion/documentos/{felDocument}/reemitir', [FelDocumentController::class, 'reemit'])->name('facturacion.documentos.reemit');
-        Route::get('facturacion/documentos/{felDocument}/xml', [FelDocumentController::class, 'downloadXml'])->name('facturacion.documentos.xml');
-        Route::get('facturacion/documentos/{felDocument}/cdr', [FelDocumentController::class, 'downloadCdr'])->name('facturacion.documentos.cdr');
-        Route::get('facturacion/documentos/{felDocument}/json', [FelDocumentController::class, 'json'])->name('facturacion.documentos.json');
+            Route::get('facturacion/documentos', [FelDocumentController::class, 'index'])->name('facturacion.documentos.index');
+            Route::post('facturacion/documentos/{felDocument}/reemitir', [FelDocumentController::class, 'reemit'])->name('facturacion.documentos.reemit');
+            Route::get('facturacion/documentos/{felDocument}/xml', [FelDocumentController::class, 'downloadXml'])->name('facturacion.documentos.xml');
+            Route::get('facturacion/documentos/{felDocument}/cdr', [FelDocumentController::class, 'downloadCdr'])->name('facturacion.documentos.cdr');
+            Route::get('facturacion/documentos/{felDocument}/json', [FelDocumentController::class, 'json'])->name('facturacion.documentos.json');
 
-        Route::get('reportes', [ReportesController::class, 'index'])->name('reportes.index');
+            Route::get('reportes', [ReportesController::class, 'index'])->name('reportes.index');
+        });
 
         Route::post('push/subscribe', [PushSubscriptionController::class, 'store'])->name('push.subscribe');
         Route::delete('push/subscribe', [PushSubscriptionController::class, 'destroy'])->name('push.unsubscribe');
 
-        Route::get('configuracion', [ConfiguracionController::class, 'index'])->name('configuracion.index');
-        Route::put('configuracion/profile', [ConfiguracionController::class, 'updateProfile'])->name('configuracion.profile.update');
-        Route::get('configuracion/geo/provincias', [\App\Http\Controllers\Tenant\ConfigGeoController::class, 'provincias'])
-            ->name('configuracion.geo.provincias');
-        Route::get('configuracion/geo/distritos', [\App\Http\Controllers\Tenant\ConfigGeoController::class, 'distritos'])
-            ->name('configuracion.geo.distritos');
-        Route::put('configuracion/tourist', [ConfiguracionController::class, 'updateTourist'])->name('configuracion.tourist.update');
-        Route::put('configuracion/billing', [ConfiguracionController::class, 'updateBilling'])->name('configuracion.billing.update');
-        Route::put('configuracion/hours', [ConfiguracionController::class, 'updateHours'])->name('configuracion.hours.update');
-        Route::put('configuracion/reservations', [ConfiguracionController::class, 'updateReservations'])->name('configuracion.reservations.update');
-        Route::put('configuracion/publication', [ConfiguracionController::class, 'updatePublication'])->name('configuracion.publication.update');
-        Route::post('configuracion/venue-images', [ConfiguracionController::class, 'updateVenueImages'])
-            ->name('configuracion.venue-images.update');
-        Route::post('configuracion/venue-photos', [ConfiguracionController::class, 'storeVenuePhoto'])
-            ->name('configuracion.venue-photos.store');
-        Route::delete('configuracion/venue-photos/{venuePhoto}', [ConfiguracionController::class, 'destroyVenuePhoto'])
-            ->name('configuracion.venue-photos.destroy');
-        Route::post('configuracion/catalog-proposals', [ConfiguracionController::class, 'storeCatalogProposal'])
-            ->name('configuracion.catalog-proposals.store');
+        // Solo restaurantes: configuración del local y reservas.
+        Route::middleware('tenant.type:restaurant')->group(function () {
+            Route::get('configuracion', [ConfiguracionController::class, 'index'])->name('configuracion.index');
+            Route::put('configuracion/profile', [ConfiguracionController::class, 'updateProfile'])->name('configuracion.profile.update');
+            Route::get('configuracion/geo/provincias', [\App\Http\Controllers\Tenant\ConfigGeoController::class, 'provincias'])
+                ->name('configuracion.geo.provincias');
+            Route::get('configuracion/geo/distritos', [\App\Http\Controllers\Tenant\ConfigGeoController::class, 'distritos'])
+                ->name('configuracion.geo.distritos');
+            Route::put('configuracion/tourist', [ConfiguracionController::class, 'updateTourist'])->name('configuracion.tourist.update');
+            Route::put('configuracion/billing', [ConfiguracionController::class, 'updateBilling'])->name('configuracion.billing.update');
+            Route::put('configuracion/hours', [ConfiguracionController::class, 'updateHours'])->name('configuracion.hours.update');
+            Route::put('configuracion/reservations', [ConfiguracionController::class, 'updateReservations'])->name('configuracion.reservations.update');
+            Route::put('configuracion/publication', [ConfiguracionController::class, 'updatePublication'])->name('configuracion.publication.update');
+            Route::post('configuracion/venue-images', [ConfiguracionController::class, 'updateVenueImages'])
+                ->name('configuracion.venue-images.update');
+            Route::post('configuracion/venue-photos', [ConfiguracionController::class, 'storeVenuePhoto'])
+                ->name('configuracion.venue-photos.store');
+            Route::delete('configuracion/venue-photos/{venuePhoto}', [ConfiguracionController::class, 'destroyVenuePhoto'])
+                ->name('configuracion.venue-photos.destroy');
+            Route::post('configuracion/catalog-proposals', [ConfiguracionController::class, 'storeCatalogProposal'])
+                ->name('configuracion.catalog-proposals.store');
 
-        Route::get('reservas', [ReservasController::class, 'index'])->name('reservas.index');
-        Route::post('reservas', [ReservasController::class, 'store'])->name('reservas.store');
-        Route::put('reservas/{reservation}', [ReservasController::class, 'update'])->name('reservas.update');
-        Route::post('reservas/{reservation}/confirm', [ReservasController::class, 'confirm'])->name('reservas.confirm');
-        Route::post('reservas/{reservation}/reject', [ReservasController::class, 'reject'])->name('reservas.reject');
-        Route::post('reservas/{reservation}/seat', [ReservasController::class, 'seat'])->name('reservas.seat');
-        Route::post('reservas/{reservation}/complete', [ReservasController::class, 'complete'])->name('reservas.complete');
-        Route::post('reservas/{reservation}/no-show', [ReservasController::class, 'noShow'])->name('reservas.no_show');
-        Route::post('reservas/{reservation}/cancel', [ReservasController::class, 'cancel'])->name('reservas.cancel');
+            Route::get('reservas', [ReservasController::class, 'index'])->name('reservas.index');
+            Route::post('reservas', [ReservasController::class, 'store'])->name('reservas.store');
+            Route::put('reservas/{reservation}', [ReservasController::class, 'update'])->name('reservas.update');
+            Route::post('reservas/{reservation}/confirm', [ReservasController::class, 'confirm'])->name('reservas.confirm');
+            Route::post('reservas/{reservation}/reject', [ReservasController::class, 'reject'])->name('reservas.reject');
+            Route::post('reservas/{reservation}/seat', [ReservasController::class, 'seat'])->name('reservas.seat');
+            Route::post('reservas/{reservation}/complete', [ReservasController::class, 'complete'])->name('reservas.complete');
+            Route::post('reservas/{reservation}/no-show', [ReservasController::class, 'noShow'])->name('reservas.no_show');
+            Route::post('reservas/{reservation}/cancel', [ReservasController::class, 'cancel'])->name('reservas.cancel');
 
-        Route::post('lista-espera', [WaitingListController::class, 'store'])->name('lista-espera.store');
-        Route::post('lista-espera/{listaEspera}/sentar', [WaitingListController::class, 'seat'])->name('lista-espera.seat');
-        Route::post('lista-espera/{listaEspera}/retirar', [WaitingListController::class, 'withdraw'])->name('lista-espera.withdraw');
+            Route::post('lista-espera', [WaitingListController::class, 'store'])->name('lista-espera.store');
+            Route::post('lista-espera/{listaEspera}/sentar', [WaitingListController::class, 'seat'])->name('lista-espera.seat');
+            Route::post('lista-espera/{listaEspera}/retirar', [WaitingListController::class, 'withdraw'])->name('lista-espera.withdraw');
+        });
 
         // Ficha "Mi centro" (TourSpot) para tenants tipo centro turístico.
-        Route::get('mi-centro', [TourSpotProfileController::class, 'edit'])->name('mi-centro.edit');
-        Route::post('mi-centro', [TourSpotProfileController::class, 'update'])->name('mi-centro.update');
-        Route::get('mi-centro/geo/provincias', [TourSpotProfileController::class, 'provincias'])
-            ->name('mi-centro.geo.provincias');
-        Route::get('mi-centro/geo/distritos', [TourSpotProfileController::class, 'distritos'])
-            ->name('mi-centro.geo.distritos');
-        Route::post('mi-centro/categories', [TourSpotProfileController::class, 'storeCategory'])
-            ->name('mi-centro.categories.store');
-        Route::post('mi-centro/access-modes', [TourSpotProfileController::class, 'storeAccessMode'])
-            ->name('mi-centro.access-modes.store');
-        Route::post('mi-centro/road-types', [TourSpotProfileController::class, 'storeRoadType'])
-            ->name('mi-centro.road-types.store');
-        Route::post('mi-centro/inclusions', [TourSpotProfileController::class, 'storeInclusion'])
-            ->name('mi-centro.inclusions.store');
+        Route::middleware('tenant.type:tour_spot')->group(function () {
+            Route::get('mi-centro', [TourSpotProfileController::class, 'edit'])->name('mi-centro.edit');
+            Route::post('mi-centro', [TourSpotProfileController::class, 'update'])->name('mi-centro.update');
+            Route::get('mi-centro/geo/provincias', [TourSpotProfileController::class, 'provincias'])
+                ->name('mi-centro.geo.provincias');
+            Route::get('mi-centro/geo/distritos', [TourSpotProfileController::class, 'distritos'])
+                ->name('mi-centro.geo.distritos');
+            Route::post('mi-centro/categories', [TourSpotProfileController::class, 'storeCategory'])
+                ->name('mi-centro.categories.store');
+            Route::post('mi-centro/access-modes', [TourSpotProfileController::class, 'storeAccessMode'])
+                ->name('mi-centro.access-modes.store');
+            Route::post('mi-centro/road-types', [TourSpotProfileController::class, 'storeRoadType'])
+                ->name('mi-centro.road-types.store');
+            Route::post('mi-centro/inclusions', [TourSpotProfileController::class, 'storeInclusion'])
+                ->name('mi-centro.inclusions.store');
+        });
 
         // Ficha "Mi hotel" para tenants tipo hotel.
-        Route::get('mi-hotel', [HotelProfileController::class, 'edit'])->name('mi-hotel.edit');
-        Route::post('mi-hotel', [HotelProfileController::class, 'update'])->name('mi-hotel.update');
-        Route::get('mi-hotel/geo/provincias', [HotelProfileController::class, 'provincias'])
-            ->name('mi-hotel.geo.provincias');
-        Route::get('mi-hotel/geo/distritos', [HotelProfileController::class, 'distritos'])
-            ->name('mi-hotel.geo.distritos');
+        Route::middleware('tenant.type:hotel')->group(function () {
+            Route::get('mi-hotel', [HotelProfileController::class, 'edit'])->name('mi-hotel.edit');
+            Route::post('mi-hotel', [HotelProfileController::class, 'update'])->name('mi-hotel.update');
+            Route::get('mi-hotel/geo/provincias', [HotelProfileController::class, 'provincias'])
+                ->name('mi-hotel.geo.provincias');
+            Route::get('mi-hotel/geo/distritos', [HotelProfileController::class, 'distritos'])
+                ->name('mi-hotel.geo.distritos');
+        });
 
         // Ficha "Mi artesanía" para tenants tipo artesanía y talentos.
-        Route::get('mi-artesania', [CraftProfileController::class, 'edit'])->name('mi-artesania.edit');
-        Route::post('mi-artesania', [CraftProfileController::class, 'update'])->name('mi-artesania.update');
+        Route::middleware('tenant.type:craft')->group(function () {
+            Route::get('mi-artesania', [CraftProfileController::class, 'edit'])->name('mi-artesania.edit');
+            Route::post('mi-artesania', [CraftProfileController::class, 'update'])->name('mi-artesania.update');
+        });
 
         // Ferias y festividades propias del tenant (restaurante, centro u hotel).
-        Route::get('mis-eventos', [TenantTourEventController::class, 'index'])->name('tenant.events.index');
-        Route::post('mis-eventos', [TenantTourEventController::class, 'store'])->name('tenant.events.store');
-        Route::put('mis-eventos/{tour_event}', [TenantTourEventController::class, 'update'])->name('tenant.events.update');
-        Route::delete('mis-eventos/{tour_event}', [TenantTourEventController::class, 'destroy'])->name('tenant.events.destroy');
+        Route::middleware('tenant.type:restaurant,tour_spot,hotel')->group(function () {
+            Route::get('mis-eventos', [TenantTourEventController::class, 'index'])->name('tenant.events.index');
+            Route::post('mis-eventos', [TenantTourEventController::class, 'store'])->name('tenant.events.store');
+            Route::put('mis-eventos/{tour_event}', [TenantTourEventController::class, 'update'])->name('tenant.events.update');
+            Route::delete('mis-eventos/{tour_event}', [TenantTourEventController::class, 'destroy'])->name('tenant.events.destroy');
+        });
     });
 
     // SaaS: planes, features y suscripciones (solo dominio central).

@@ -157,6 +157,13 @@ return [
     'tenant' => [
         'core_roles' => ['owner'],
         'manage_ability' => 'tenant.users.manage',
+        // Módulos que ve cada tipo de negocio en la pantalla de roles.
+        'modules_by_type' => [
+            'restaurant' => ['operacion', 'carta', 'ventas', 'informes', 'negocio', 'personal'],
+            'tour_spot' => ['centro_turistico', 'negocio', 'personal'],
+            'hotel' => ['hotel', 'negocio', 'personal'],
+            'craft' => ['artesania', 'personal'],
+        ],
         'modules' => [
             'operacion' => [
                 'label' => 'Operación del local',

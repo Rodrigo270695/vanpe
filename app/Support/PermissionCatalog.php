@@ -18,11 +18,11 @@ class PermissionCatalog
      *
      * @return array<int, string>
      */
-    public static function names(string $scope = 'platform'): array
+    public static function names(string $scope = 'platform', ?string $tenantType = null): array
     {
         $names = [];
 
-        foreach (self::modules($scope) as $module) {
+        foreach (self::modules($scope, $tenantType) as $module) {
             foreach (array_keys((array) ($module['permissions'] ?? [])) as $name) {
                 $names[] = $name;
             }
@@ -36,13 +36,13 @@ class PermissionCatalog
      *
      * @return array<int, array{key: string, label: string, permissions: array<int, array{name: string, label: string}>}>
      */
-    public static function groups(string $scope = 'platform'): array
+    public static function groups(string $scope = 'platform', ?string $tenantType = null): array
     {
         $groups = [];
         $moduleLabels = (array) trans("messages.permissions.$scope.modules");
         $itemLabels = (array) trans("messages.permissions.$scope.items");
 
-        foreach (self::modules($scope) as $key => $module) {
+        foreach (self::modules($scope, $tenantType) as $key => $module) {
             $permissions = [];
 
             foreach ((array) ($module['permissions'] ?? []) as $name => $label) {
@@ -87,10 +87,21 @@ class PermissionCatalog
     }
 
     /**
+     * Módulos del scope; con `$tenantType` solo los que aplican a ese tipo de negocio.
+     *
      * @return array<string, array<string, mixed>>
      */
-    private static function modules(string $scope): array
+    private static function modules(string $scope, ?string $tenantType = null): array
     {
-        return (array) Config::get("permissions.$scope.modules", []);
+        $modules = (array) Config::get("permissions.$scope.modules", []);
+        $allowed = $tenantType !== null
+            ? Config::get("permissions.$scope.modules_by_type.$tenantType")
+            : null;
+
+        if (! is_array($allowed)) {
+            return $modules;
+        }
+
+        return array_intersect_key($modules, array_flip($allowed));
     }
 }
