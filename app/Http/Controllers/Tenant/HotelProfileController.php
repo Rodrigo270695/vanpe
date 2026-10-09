@@ -62,7 +62,6 @@ class HotelProfileController extends Controller
             'mapbox_token' => config('services.mapbox.token'),
             'can' => [
                 'manage' => (bool) $request->user()?->can('tenant.hotel.manage'),
-                'publish' => (bool) $request->user()?->can('tenant.hotel.publish'),
             ],
         ]);
     }
@@ -115,11 +114,7 @@ class HotelProfileController extends Controller
 
     private function authorizeView(Request $request): void
     {
-        abort_unless(
-            (bool) $request->user()?->can('tenant.hotel.manage')
-            || (bool) $request->user()?->can('tenant.hotel.publish'),
-            403,
-        );
+        abort_unless((bool) $request->user()?->can('tenant.hotel.manage'), 403);
     }
 
     private function currentTenant(): Tenant

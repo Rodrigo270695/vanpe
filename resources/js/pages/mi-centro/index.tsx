@@ -52,21 +52,12 @@ import type { TranslationTree } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import { notify } from '@/lib/notify';
 
-type MiCentroTabId =
-    'identity' | 'photos' | 'location' | 'access' | 'hours' | 'publication';
+type MiCentroTabId = 'identity' | 'photos' | 'location' | 'access' | 'hours';
 
-const TAB_IDS: MiCentroTabId[] = [
-    'identity',
-    'photos',
-    'location',
-    'access',
-    'hours',
-    'publication',
-];
+const TAB_IDS: MiCentroTabId[] = ['identity', 'photos', 'location', 'access', 'hours'];
 
 type MiCentroAbilities = {
     manage: boolean;
-    publish: boolean;
 };
 
 type MiCentroPageProps = {
@@ -116,7 +107,6 @@ export default function MiCentroIndex({
     inclusions: initialInclusions,
     departamentos,
     defaultHours,
-    estados,
     dificultades,
     estacionamientos,
     mapbox_token,
@@ -124,7 +114,6 @@ export default function MiCentroIndex({
 }: MiCentroPageProps) {
     const { t } = useTranslations();
     const canManage = can.manage;
-    const canPublish = can.publish;
     const galleryInputRef = useRef<HTMLInputElement>(null);
 
     const [categories, setCategories] = useState(initialCategories);
@@ -353,11 +342,6 @@ export default function MiCentroIndex({
             },
             { id: 'access', label: t('mi_centro.tab_access'), icon: MapPin },
             { id: 'hours', label: t('mi_centro.tab_hours'), icon: Clock },
-            {
-                id: 'publication',
-                label: t('mi_centro.tab_publication'),
-                icon: Rocket,
-            },
         ],
         [t],
     );
@@ -581,10 +565,6 @@ export default function MiCentroIndex({
         setLeaveModalOpen(false);
     };
 
-    const availableEstados = canPublish
-        ? estados
-        : estados.filter((e) => e !== 'publicado');
-
     const hourErrors = useMemo(() => {
         const mapped: Record<string, string> = {};
         Object.entries(errors).forEach(([key, value]) => {
@@ -627,7 +607,11 @@ export default function MiCentroIndex({
                     ]}
                 />
 
-                {!canManage && (
+                {canManage ? (
+                    <p className="text-[12px] text-muted-foreground">
+                        {t('mi_centro.publish_hint')}
+                    </p>
+                ) : (
                     <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
                         <Lock className="mt-0.5 size-4 shrink-0" />
                         <p>{t('mi_centro.readonly_hint')}</p>
@@ -1450,71 +1434,6 @@ export default function MiCentroIndex({
                                 placeholder={t('tour_spots.field_horario_hint')}
                             />
                         </FormField>
-                    </section>
-                )}
-
-                {activeTab === 'publication' && (
-                    <section className="space-y-3">
-                        <SectionTitle>
-                            {t('tour_spots.section_publish')}
-                        </SectionTitle>
-                        <p className="text-[12px] text-muted-foreground">
-                            {canPublish
-                                ? t('mi_centro.publish_hint')
-                                : t('mi_centro.publish_locked_hint')}
-                        </p>
-                        <div className="grid gap-4 sm:grid-cols-2">
-                            <FormField
-                                label={t('tour_spots.field_estado')}
-                                required
-                                error={errors.estado}
-                            >
-                                <Select
-                                    value={data.estado}
-                                    onValueChange={(v) => setData('estado', v)}
-                                    disabled={disabled}
-                                >
-                                    <SelectTrigger className="w-full bg-card">
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {availableEstados.map((row) => (
-                                            <SelectItem key={row} value={row}>
-                                                {t(
-                                                    `tour_spots.estado_${row}` as 'tour_spots.estado_borrador',
-                                                )}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </FormField>
-                            <label
-                                className={cn(
-                                    'flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-colors',
-                                    data.destacado
-                                        ? 'border-brand-blue/30 bg-brand-blue/[0.06]'
-                                        : 'border-border bg-card',
-                                    disabled && 'cursor-default opacity-60',
-                                )}
-                            >
-                                <Checkbox
-                                    checked={data.destacado}
-                                    onCheckedChange={(v) =>
-                                        setData('destacado', v === true)
-                                    }
-                                    disabled={disabled}
-                                    className="mt-0.5"
-                                />
-                                <span className="space-y-0.5">
-                                    <span className="block text-sm font-medium">
-                                        {t('tour_spots.field_destacado')}
-                                    </span>
-                                    <span className="block text-xs text-muted-foreground">
-                                        {t('tour_spots.field_destacado_hint')}
-                                    </span>
-                                </span>
-                            </label>
-                        </div>
                     </section>
                 )}
 

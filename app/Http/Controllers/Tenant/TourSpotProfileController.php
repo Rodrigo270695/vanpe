@@ -36,11 +36,7 @@ class TourSpotProfileController extends Controller
         $tenant = $this->currentTenant();
         abort_unless($tenant->isTourSpot(), 404);
 
-        abort_unless(
-            (bool) $request->user()?->can('tenant.tour_spot.manage')
-            || (bool) $request->user()?->can('tenant.tour_spot.publish'),
-            403,
-        );
+        abort_unless((bool) $request->user()?->can('tenant.tour_spot.manage'), 403);
 
         $spot = $this->resolveSpot($tenant);
         $locale = app()->getLocale();
@@ -98,7 +94,6 @@ class TourSpotProfileController extends Controller
                 : null,
             'can' => [
                 'manage' => (bool) $request->user()?->can('tenant.tour_spot.manage'),
-                'publish' => (bool) $request->user()?->can('tenant.tour_spot.publish'),
             ],
         ]);
     }

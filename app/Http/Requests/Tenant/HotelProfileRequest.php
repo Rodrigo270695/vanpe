@@ -8,7 +8,8 @@ use App\Tenancy\TenantManager;
 
 /**
  * Ficha "Mi hotel" del dueño: mismas reglas que plataforma, pero el borrador
- * solo exige el nombre y el destacado lo controla únicamente la plataforma.
+ * solo exige el nombre. El estado (publicar/pausar) y el destacado los controla
+ * únicamente la plataforma.
  */
 class HotelProfileRequest extends HotelRequest
 {
@@ -32,16 +33,9 @@ class HotelProfileRequest extends HotelRequest
         parent::prepareForValidation();
 
         $hotel = $this->currentHotel();
-        $estado = (string) $this->input('estado', Hotel::ESTADO_BORRADOR);
-
-        if ($estado === Hotel::ESTADO_PUBLICADO
-            && $hotel?->estado !== Hotel::ESTADO_PUBLICADO
-            && ! $this->user()?->can('tenant.hotel.publish')) {
-            $estado = $hotel?->estado ?? Hotel::ESTADO_BORRADOR;
-        }
 
         $this->merge([
-            'estado' => $estado,
+            'estado' => $hotel?->estado ?? Hotel::ESTADO_BORRADOR,
             'destacado' => (bool) $hotel?->destacado,
         ]);
     }

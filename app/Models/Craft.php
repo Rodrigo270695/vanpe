@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-/** Artesanía y talentos: artesanos, talleres y artistas locales. */
+/** Artesanos y emprendimientos: artesanos, talleres y emprendimientos locales. */
 class Craft extends Model
 {
     use HasUuids, SoftDeletes;

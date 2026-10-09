@@ -152,17 +152,14 @@ const mainNavTemplate: NavTemplateItem[] = [
         href: '/mi-centro',
         icon: MapPin,
         tenantTipos: ['tour_spot'],
-        tenantPermissions: [
-            'tenant.tour_spot.manage',
-            'tenant.tour_spot.publish',
-        ],
+        tenantPermission: 'tenant.tour_spot.manage',
     },
     {
         titleKey: 'nav.mi_hotel',
         href: '/mi-hotel',
         icon: BedDouble,
         tenantTipos: ['hotel'],
-        tenantPermissions: ['tenant.hotel.manage', 'tenant.hotel.publish'],
+        tenantPermission: 'tenant.hotel.manage',
     },
     {
         titleKey: 'nav.mi_artesania',

@@ -44,7 +44,6 @@ return [
                 'tenant.publication.manage',
                 'tenant.events.manage',
                 'tenant.tour_spot.manage',
-                'tenant.tour_spot.publish',
             ],
 
             // Cajero: caja, ventas y facturación
@@ -74,13 +73,11 @@ return [
             'owner' => [
                 'tenant.users.manage',
                 'tenant.tour_spot.manage',
-                'tenant.tour_spot.publish',
                 'tenant.events.manage',
             ],
             'admin' => [
                 'tenant.users.manage',
                 'tenant.tour_spot.manage',
-                'tenant.tour_spot.publish',
                 'tenant.events.manage',
             ],
         ],
@@ -90,18 +87,16 @@ return [
             'owner' => [
                 'tenant.users.manage',
                 'tenant.hotel.manage',
-                'tenant.hotel.publish',
                 'tenant.events.manage',
             ],
             'admin' => [
                 'tenant.users.manage',
                 'tenant.hotel.manage',
-                'tenant.hotel.publish',
                 'tenant.events.manage',
             ],
         ],
 
-        // Plantillas cuando el tenant es de artesanía y talentos.
+        // Plantillas cuando el tenant es de artesanos y emprendimientos.
         'roles_craft' => [
             'owner' => [
                 'tenant.users.manage',

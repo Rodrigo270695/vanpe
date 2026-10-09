@@ -193,7 +193,7 @@ class TenantDashboardService
             [
                 'key' => 'publish',
                 'done' => $spot?->estado === \App\Models\TourSpot::ESTADO_PUBLICADO,
-                'href' => '/mi-centro?tab=publication',
+                'href' => '/mi-centro',
             ],
         ]);
 
@@ -273,7 +273,7 @@ class TenantDashboardService
             [
                 'key' => 'published',
                 'done' => $hotel?->estado === \App\Models\Hotel::ESTADO_PUBLICADO,
-                'href' => '/mi-hotel?tab=publication',
+                'href' => '/mi-hotel',
             ],
         ]);
 
@@ -299,7 +299,7 @@ class TenantDashboardService
     }
 
     /**
-     * Dashboard simplificado para tenants de artesanía y talentos.
+     * Dashboard simplificado para tenants de artesanos y emprendimientos.
      *
      * @return array<string, mixed>
      */

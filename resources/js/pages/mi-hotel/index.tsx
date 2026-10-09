@@ -24,7 +24,6 @@ import {
     HotelGeneralSection,
     HotelLocationSection,
     HotelPhotosSection,
-    HotelPublishSection,
     HotelRoomsSection,
     HotelServicesSection,
 } from '@/components/hotels/hotel-form-sections';
@@ -41,22 +40,9 @@ import { translate } from '@/lib/i18n';
 import type { TranslationTree } from '@/lib/i18n';
 import { notify } from '@/lib/notify';
 
-type MiHotelTabId =
-    | 'general'
-    | 'rooms'
-    | 'photos'
-    | 'location'
-    | 'diagnosis'
-    | 'publication';
+type MiHotelTabId = 'general' | 'rooms' | 'photos' | 'location' | 'diagnosis';
 
-const TAB_IDS: MiHotelTabId[] = [
-    'general',
-    'rooms',
-    'photos',
-    'location',
-    'diagnosis',
-    'publication',
-];
+const TAB_IDS: MiHotelTabId[] = ['general', 'rooms', 'photos', 'location', 'diagnosis'];
 
 const FIELD_TAB: Record<string, MiHotelTabId> = {
     nombre: 'general',
@@ -92,7 +78,6 @@ const FIELD_TAB: Record<string, MiHotelTabId> = {
     herramientas_interes: 'diagnosis',
     mayor_reto: 'diagnosis',
     sugerencias: 'diagnosis',
-    estado: 'publication',
 };
 
 function tabsWithErrors(keys: string[]): MiHotelTabId[] {
@@ -109,7 +94,7 @@ type MiHotelPageProps = {
     options: HotelOptions;
     limits: HotelLimits;
     mapbox_token: string | null;
-    can: { manage: boolean; publish: boolean };
+    can: { manage: boolean };
 };
 
 export default function MiHotelIndex({
@@ -220,11 +205,6 @@ export default function MiHotelIndex({
                 label: t('mi_hotel.tab_diagnosis'),
                 icon: ClipboardList,
             },
-            {
-                id: 'publication',
-                label: t('mi_hotel.tab_publication'),
-                icon: Rocket,
-            },
         ],
         [t],
     );
@@ -287,11 +267,6 @@ export default function MiHotelIndex({
         pendingLeaveRef.current = null;
         setLeaveModalOpen(false);
     };
-
-    const availableEstados =
-        can.publish || hotel.estado === 'publicado'
-            ? options.estados
-            : options.estados.filter((e) => e !== 'publicado');
 
     const estado = form.data.estado;
     const statusColor =
@@ -369,20 +344,6 @@ export default function MiHotelIndex({
                     )}
                     {activeTab === 'diagnosis' && (
                         <HotelDiagnosisSection controller={controller} options={options} />
-                    )}
-                    {activeTab === 'publication' && (
-                        <HotelPublishSection
-                            controller={controller}
-                            estados={availableEstados}
-                            showFeatured={false}
-                            hint={
-                                can.publish
-                                    ? t('mi_hotel.publish_hint', {
-                                          min: limits.min_photos_to_publish,
-                                      })
-                                    : t('mi_hotel.publish_locked_hint')
-                            }
-                        />
                     )}
                 </fieldset>
 

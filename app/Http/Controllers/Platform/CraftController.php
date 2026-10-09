@@ -11,7 +11,7 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
-/** Artesanía y talentos (solo plataforma). */
+/** Artesanos y emprendimientos (solo plataforma). */
 class CraftController extends Controller
 {
     public function __construct(

@@ -113,13 +113,13 @@ return [
                 ],
             ],
             'crafts' => [
-                'label' => 'Artesanía y talentos',
+                'label' => 'Artesanos y emprendimientos',
                 'permissions' => [
-                    'crafts.view' => 'Ver artesanía y talentos',
-                    'crafts.create' => 'Registrar artesanía y talentos',
-                    'crafts.update' => 'Editar artesanía y talentos',
-                    'crafts.publish' => 'Publicar artesanía y talentos',
-                    'crafts.delete' => 'Eliminar artesanía y talentos',
+                    'crafts.view' => 'Ver artesanos y emprendimientos',
+                    'crafts.create' => 'Registrar artesanos y emprendimientos',
+                    'crafts.update' => 'Editar artesanos y emprendimientos',
+                    'crafts.publish' => 'Publicar artesanos y emprendimientos',
+                    'crafts.delete' => 'Eliminar artesanos y emprendimientos',
                 ],
             ],
             'events' => [
@@ -210,20 +210,18 @@ return [
                 'label' => 'Centro turístico',
                 'permissions' => [
                     'tenant.tour_spot.manage' => 'Editar ficha del centro turístico',
-                    'tenant.tour_spot.publish' => 'Publicar o pausar el centro en la app',
                 ],
             ],
             'hotel' => [
                 'label' => 'Hotel',
                 'permissions' => [
                     'tenant.hotel.manage' => 'Editar ficha del hotel',
-                    'tenant.hotel.publish' => 'Publicar o pausar el hotel en la app',
                 ],
             ],
             'artesania' => [
-                'label' => 'Artesanía y talentos',
+                'label' => 'Artesanos y emprendimientos',
                 'permissions' => [
-                    'tenant.craft.manage' => 'Editar ficha de artesanía',
+                    'tenant.craft.manage' => 'Editar ficha del emprendimiento',
                 ],
             ],
             'personal' => [

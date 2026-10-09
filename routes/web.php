@@ -303,7 +303,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 ->name('mi-hotel.geo.distritos');
         });
 
-        // Ficha "Mi artesanía" para tenants tipo artesanía y talentos.
+        // Ficha "Mi artesanía" para tenants tipo artesanos y emprendimientos.
         Route::middleware('tenant.type:craft')->group(function () {
             Route::get('mi-artesania', [CraftProfileController::class, 'edit'])->name('mi-artesania.edit');
             Route::post('mi-artesania', [CraftProfileController::class, 'update'])->name('mi-artesania.update');

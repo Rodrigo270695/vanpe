@@ -102,12 +102,6 @@ class TourSpotProfileRequest extends FormRequest
                 return;
             }
 
-            if (! (bool) $this->user()?->can('tenant.tour_spot.publish')) {
-                $validator->errors()->add('estado', __('messages.tour_spots.publish_permission_required'));
-
-                return;
-            }
-
             if ($this->input('latitud') === null || $this->input('longitud') === null) {
                 $validator->errors()->add('latitud', __('messages.tour_spots.publish_coords_required'));
             }
@@ -227,19 +221,13 @@ class TourSpotProfileRequest extends FormRequest
             }
         }
 
-        $estado = $this->input('estado');
-        if (
-            $estado === TourSpot::ESTADO_PUBLICADO
-            && ! (bool) $this->user()?->can('tenant.tour_spot.publish')
-        ) {
-            $current = app(TenantManager::class)->tenant()?->tourSpot;
-            $estado = $current?->estado ?? TourSpot::ESTADO_BORRADOR;
-        }
+        // El estado (publicar/pausar) y el destacado los controla únicamente la plataforma.
+        $current = app(TenantManager::class)->tenant()?->tourSpot;
 
         $this->merge([
             'es_gratuito' => $this->boolean('es_gratuito'),
             'requiere_reserva' => $this->boolean('requiere_reserva'),
-            'destacado' => $this->boolean('destacado'),
+            'destacado' => (bool) $current?->destacado,
             'remove_cover' => $this->boolean('remove_cover'),
             'slug' => filled($this->input('slug'))
                 ? Str::slug((string) $this->input('slug'))
@@ -250,7 +238,7 @@ class TourSpotProfileRequest extends FormRequest
             'inclusion_ids' => array_values($inclusionIds ?: []),
             'remove_media_ids' => array_values($removeMediaIds ?: []),
             'hours' => $hours,
-            'estado' => $estado,
+            'estado' => $current?->estado ?? TourSpot::ESTADO_BORRADOR,
             'precio_entrada_desde' => $this->blankToNull('precio_entrada_desde'),
             'precio_entrada_hasta' => $this->blankToNull('precio_entrada_hasta'),
             'latitud' => $this->blankToNull('latitud'),
