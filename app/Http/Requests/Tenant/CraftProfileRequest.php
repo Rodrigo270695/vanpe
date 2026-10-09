@@ -8,7 +8,8 @@ use App\Tenancy\TenantManager;
 
 /**
  * Ficha "Mi artesanía" del dueño: mismas reglas que plataforma, pero el borrador
- * solo exige el nombre y el destacado lo controla únicamente la plataforma.
+ * solo exige el nombre. El estado (publicar/pausar) y el destacado los controla
+ * únicamente la plataforma.
  */
 class CraftProfileRequest extends CraftRequest
 {
@@ -32,16 +33,9 @@ class CraftProfileRequest extends CraftRequest
         parent::prepareForValidation();
 
         $craft = $this->currentCraft();
-        $estado = (string) $this->input('estado', Craft::ESTADO_BORRADOR);
-
-        if ($estado === Craft::ESTADO_PUBLICADO
-            && $craft?->estado !== Craft::ESTADO_PUBLICADO
-            && ! $this->user()?->can('tenant.craft.publish')) {
-            $estado = $craft?->estado ?? Craft::ESTADO_BORRADOR;
-        }
 
         $this->merge([
-            'estado' => $estado,
+            'estado' => $craft?->estado ?? Craft::ESTADO_BORRADOR,
             'destacado' => (bool) $craft?->destacado,
         ]);
     }

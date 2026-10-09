@@ -106,12 +106,10 @@ return [
             'owner' => [
                 'tenant.users.manage',
                 'tenant.craft.manage',
-                'tenant.craft.publish',
             ],
             'admin' => [
                 'tenant.users.manage',
                 'tenant.craft.manage',
-                'tenant.craft.publish',
             ],
         ],
     ],

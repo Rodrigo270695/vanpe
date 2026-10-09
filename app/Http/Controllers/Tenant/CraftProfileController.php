@@ -27,11 +27,7 @@ class CraftProfileController extends Controller
     {
         $tenant = $this->currentTenant();
 
-        abort_unless(
-            (bool) $request->user()?->can('tenant.craft.manage')
-            || (bool) $request->user()?->can('tenant.craft.publish'),
-            403,
-        );
+        abort_unless((bool) $request->user()?->can('tenant.craft.manage'), 403);
 
         return Inertia::render('mi-artesania/index', [
             'craft' => $this->resolveCraft($tenant)->toAdminArray(),
@@ -40,7 +36,6 @@ class CraftProfileController extends Controller
             'mapbox_token' => config('services.mapbox.token'),
             'can' => [
                 'manage' => (bool) $request->user()?->can('tenant.craft.manage'),
-                'publish' => (bool) $request->user()?->can('tenant.craft.publish'),
             ],
         ]);
     }

@@ -22,7 +22,6 @@ import {
     CraftGeneralSection,
     CraftLocationSection,
     CraftPhotosSection,
-    CraftPublishSection,
     CraftSocialSection,
 } from '@/components/crafts/craft-form-sections';
 import type { CraftLimits, CraftOptions, CraftRow } from '@/components/crafts/types';
@@ -33,15 +32,9 @@ import { translate } from '@/lib/i18n';
 import type { TranslationTree } from '@/lib/i18n';
 import { notify } from '@/lib/notify';
 
-type MiArtesaniaTabId = 'general' | 'photos' | 'social' | 'location' | 'publication';
+type MiArtesaniaTabId = 'general' | 'photos' | 'social' | 'location';
 
-const TAB_IDS: MiArtesaniaTabId[] = [
-    'general',
-    'photos',
-    'social',
-    'location',
-    'publication',
-];
+const TAB_IDS: MiArtesaniaTabId[] = ['general', 'photos', 'social', 'location'];
 
 const FIELD_TAB: Record<string, MiArtesaniaTabId> = {
     nombre: 'general',
@@ -53,7 +46,6 @@ const FIELD_TAB: Record<string, MiArtesaniaTabId> = {
     redes_sociales: 'social',
     latitud: 'location',
     longitud: 'location',
-    estado: 'publication',
 };
 
 function tabsWithErrors(keys: string[]): MiArtesaniaTabId[] {
@@ -69,7 +61,7 @@ type MiArtesaniaPageProps = {
     options: CraftOptions;
     limits: CraftLimits;
     mapbox_token: string | null;
-    can: { manage: boolean; publish: boolean };
+    can: { manage: boolean };
 };
 
 export default function MiArtesaniaIndex({
@@ -163,11 +155,6 @@ export default function MiArtesaniaIndex({
             { id: 'photos', label: t('mi_artesania.tab_photos'), icon: Camera },
             { id: 'social', label: t('mi_artesania.tab_social'), icon: Share2 },
             { id: 'location', label: t('mi_artesania.tab_location'), icon: MapPin },
-            {
-                id: 'publication',
-                label: t('mi_artesania.tab_publication'),
-                icon: Rocket,
-            },
         ],
         [t],
     );
@@ -231,11 +218,6 @@ export default function MiArtesaniaIndex({
         pendingLeaveRef.current = null;
         setLeaveModalOpen(false);
     };
-
-    const availableEstados =
-        can.publish || craft.estado === 'publicado'
-            ? options.estados
-            : options.estados.filter((e) => e !== 'publicado');
 
     const estado = form.data.estado;
     const statusColor =
@@ -304,20 +286,6 @@ export default function MiArtesaniaIndex({
                         <CraftLocationSection
                             controller={controller}
                             mapboxToken={mapbox_token}
-                        />
-                    )}
-                    {activeTab === 'publication' && (
-                        <CraftPublishSection
-                            controller={controller}
-                            estados={availableEstados}
-                            showFeatured={false}
-                            hint={
-                                can.publish
-                                    ? t('mi_artesania.publish_hint', {
-                                          min: limits.min_photos_to_publish,
-                                      })
-                                    : t('mi_artesania.publish_locked_hint')
-                            }
                         />
                     )}
                 </fieldset>

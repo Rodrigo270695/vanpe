@@ -169,7 +169,7 @@ const mainNavTemplate: NavTemplateItem[] = [
         href: '/mi-artesania',
         icon: Palette,
         tenantTipos: ['craft'],
-        tenantPermissions: ['tenant.craft.manage', 'tenant.craft.publish'],
+        tenantPermission: 'tenant.craft.manage',
     },
     {
         titleKey: 'nav.events',

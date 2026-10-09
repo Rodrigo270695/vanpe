@@ -345,7 +345,7 @@ class TenantDashboardService
             [
                 'key' => 'published',
                 'done' => $craft?->estado === \App\Models\Craft::ESTADO_PUBLICADO,
-                'href' => '/mi-artesania?tab=publication',
+                'href' => '/mi-artesania',
             ],
         ]);
 

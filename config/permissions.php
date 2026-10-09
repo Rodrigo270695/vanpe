@@ -224,7 +224,6 @@ return [
                 'label' => 'Artesanía y talentos',
                 'permissions' => [
                     'tenant.craft.manage' => 'Editar ficha de artesanía',
-                    'tenant.craft.publish' => 'Publicar o pausar la artesanía en la app',
                 ],
             ],
             'personal' => [

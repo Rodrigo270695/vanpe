@@ -17,13 +17,32 @@ use Spatie\Permission\PermissionRegistrar;
 class ChangeTenantTypeCommand extends Command
 {
     protected $signature = 'tenants:change-type
-                            {tenant : Slug o correo del dueño}
+                            {tenant? : Slug o correo del dueño (vacío = listar todos)}
                             {tipo? : restaurant, tour_spot, hotel o craft (vacío = solo mostrar)}';
 
-    protected $description = 'Muestra o cambia el tipo de negocio de un tenant (crea su ficha y sincroniza roles)';
+    protected $description = 'Lista, muestra o cambia el tipo de negocio de un tenant (crea su ficha y sincroniza roles)';
 
     public function handle(): int
     {
+        if ($this->argument('tenant') === null) {
+            $this->table(
+                ['Slug', 'Nombre', 'Tipo', 'Correo del dueño', 'Registrado'],
+                Tenant::query()
+                    ->orderByDesc('created_at')
+                    ->get(['slug', 'nombre_comercial', 'tipo', 'email_admin', 'created_at'])
+                    ->map(fn (Tenant $t): array => [
+                        $t->slug,
+                        $t->nombre_comercial,
+                        $t->tipo ?: Tenant::TYPE_RESTAURANT,
+                        $t->email_admin,
+                        $t->created_at?->format('Y-m-d H:i'),
+                    ])
+                    ->all(),
+            );
+
+            return self::SUCCESS;
+        }
+
         $key = mb_strtolower(trim((string) $this->argument('tenant')));
 
         $tenant = Tenant::query()
