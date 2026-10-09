@@ -32,6 +32,10 @@ class DashboardController extends Controller
                 return Inertia::render('dashboard/hotel', $tenantDashboard->buildHotel());
             }
 
+            if ($tenant?->isCraft()) {
+                return Inertia::render('dashboard/craft', $tenantDashboard->buildCraft());
+            }
+
             return Inertia::render('dashboard/tenant', $tenantDashboard->build());
         }
 

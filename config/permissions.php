@@ -112,6 +112,16 @@ return [
                     'hotels.delete' => 'Eliminar hoteles',
                 ],
             ],
+            'crafts' => [
+                'label' => 'Artesanía y talentos',
+                'permissions' => [
+                    'crafts.view' => 'Ver artesanía y talentos',
+                    'crafts.create' => 'Registrar artesanía y talentos',
+                    'crafts.update' => 'Editar artesanía y talentos',
+                    'crafts.publish' => 'Publicar artesanía y talentos',
+                    'crafts.delete' => 'Eliminar artesanía y talentos',
+                ],
+            ],
             'events' => [
                 'label' => 'Ferias y festividades',
                 'permissions' => [
@@ -196,6 +206,13 @@ return [
                 'permissions' => [
                     'tenant.hotel.manage' => 'Editar ficha del hotel',
                     'tenant.hotel.publish' => 'Publicar o pausar el hotel en la app',
+                ],
+            ],
+            'artesania' => [
+                'label' => 'Artesanía y talentos',
+                'permissions' => [
+                    'tenant.craft.manage' => 'Editar ficha de artesanía',
+                    'tenant.craft.publish' => 'Publicar o pausar la artesanía en la app',
                 ],
             ],
             'personal' => [

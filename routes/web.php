@@ -12,6 +12,7 @@ use App\Http\Controllers\DocumentLookupController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\Platform\AppDiagnosticLogController;
 use App\Http\Controllers\Platform\CatalogController;
+use App\Http\Controllers\Platform\CraftController;
 use App\Http\Controllers\Platform\HotelController;
 use App\Http\Controllers\Platform\TouristInterestController;
 use App\Http\Controllers\Platform\PlanController;
@@ -30,6 +31,7 @@ use App\Http\Controllers\Tenant\CajaController;
 use App\Http\Controllers\Tenant\CartaController;
 use App\Http\Controllers\Tenant\CocinaController;
 use App\Http\Controllers\Tenant\ConfiguracionController;
+use App\Http\Controllers\Tenant\CraftProfileController;
 use App\Http\Controllers\Tenant\FelDocumentController;
 use App\Http\Controllers\Tenant\FelSerieController;
 use App\Http\Controllers\Tenant\HotelProfileController;
@@ -291,6 +293,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('mi-hotel/geo/distritos', [HotelProfileController::class, 'distritos'])
             ->name('mi-hotel.geo.distritos');
 
+        // Ficha "Mi artesanía" para tenants tipo artesanía y talentos.
+        Route::get('mi-artesania', [CraftProfileController::class, 'edit'])->name('mi-artesania.edit');
+        Route::post('mi-artesania', [CraftProfileController::class, 'update'])->name('mi-artesania.update');
+
         // Ferias y festividades propias del tenant (restaurante, centro u hotel).
         Route::get('mis-eventos', [TenantTourEventController::class, 'index'])->name('tenant.events.index');
         Route::post('mis-eventos', [TenantTourEventController::class, 'store'])->name('tenant.events.store');
@@ -375,6 +381,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('hoteles', [HotelController::class, 'store'])->name('hotels.store');
         Route::put('hoteles/{hotel}', [HotelController::class, 'update'])->name('hotels.update');
         Route::delete('hoteles/{hotel}', [HotelController::class, 'destroy'])->name('hotels.destroy');
+
+        Route::get('artesanias', [CraftController::class, 'index'])->name('crafts.index');
+        Route::post('artesanias', [CraftController::class, 'store'])->name('crafts.store');
+        Route::put('artesanias/{craft}', [CraftController::class, 'update'])->name('crafts.update');
+        Route::delete('artesanias/{craft}', [CraftController::class, 'destroy'])->name('crafts.destroy');
 
         Route::get('festividades', [TourEventController::class, 'index'])->name('events.index');
         Route::post('festividades', [TourEventController::class, 'store'])->name('events.store');

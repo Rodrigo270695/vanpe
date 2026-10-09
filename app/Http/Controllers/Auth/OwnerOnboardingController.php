@@ -8,6 +8,7 @@ use App\Services\Tenant\TenantProvisioner;
 use App\Support\TenantSlug;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -50,7 +51,7 @@ class OwnerOnboardingController extends Controller
         $email = (string) $pending['email'];
 
         $validated = $request->validate([
-            'tipo' => ['required', 'in:restaurant,tour_spot,hotel'],
+            'tipo' => ['required', Rule::in(Tenant::TYPES)],
             'nombre_comercial' => ['required', 'string', 'max:150'],
             'slug' => ['nullable', 'string', 'max:60'],
             'name' => ['required', 'string', 'max:120'],

@@ -27,10 +27,13 @@ class Tenant extends Model
 
     public const TYPE_HOTEL = 'hotel';
 
+    public const TYPE_CRAFT = 'craft';
+
     public const TYPES = [
         self::TYPE_RESTAURANT,
         self::TYPE_TOUR_SPOT,
         self::TYPE_HOTEL,
+        self::TYPE_CRAFT,
     ];
 
     protected $fillable = [
@@ -93,6 +96,11 @@ class Tenant extends Model
         return $this->tipo === self::TYPE_HOTEL;
     }
 
+    public function isCraft(): bool
+    {
+        return $this->tipo === self::TYPE_CRAFT;
+    }
+
     /**
      * Host del subdominio del negocio, según el entorno (.env → config/tenant).
      * Ejemplo: negritalinda.vanpe.pe
@@ -140,5 +148,11 @@ class Tenant extends Model
     public function hotel(): HasOne
     {
         return $this->hasOne(Hotel::class);
+    }
+
+    /** @return HasOne<Craft, $this> */
+    public function craft(): HasOne
+    {
+        return $this->hasOne(Craft::class);
     }
 }

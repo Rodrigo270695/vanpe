@@ -103,6 +103,7 @@ class SyncPermissionsCommand extends Command
                 $templates = match (true) {
                     $tenant->isTourSpot() => (array) Config::get('roles.tenant.roles_tour_spot', []),
                     $tenant->isHotel() => (array) Config::get('roles.tenant.roles_hotel', []),
+                    $tenant->isCraft() => (array) Config::get('roles.tenant.roles_craft', []),
                     default => (array) Config::get('roles.tenant.roles', []),
                 };
 

@@ -9,6 +9,7 @@ use App\Services\Tenant\TenantProvisioner;
 use App\Support\TenantSlug;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -34,7 +35,7 @@ class TenantRegistrationController extends Controller
     public function store(Request $request, TenantProvisioner $provisioner): RedirectResponse|SymfonyResponse
     {
         $validated = $request->validate([
-            'tipo' => ['required', 'in:restaurant,tour_spot,hotel'],
+            'tipo' => ['required', Rule::in(Tenant::TYPES)],
             'nombre_comercial' => ['required', 'string', 'max:150'],
             'slug' => ['nullable', 'string', 'max:60', 'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/'],
             'ruc' => ['nullable', 'regex:/^\d{11}$/', 'unique:tenants,ruc'],

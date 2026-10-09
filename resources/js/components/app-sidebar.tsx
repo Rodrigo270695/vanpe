@@ -16,6 +16,7 @@ import {
     Tags,
     TicketPercent,
     MapPin,
+    Palette,
     PartyPopper,
     FileStack,
     Sparkles,
@@ -44,13 +45,13 @@ type NavTemplateItem = Omit<NavItem, 'title' | 'items'> & {
     titleKey: string;
     showInTenant?: boolean;
     /** Si se define, solo visible para ese tipo de tenant. */
-    tenantTipos?: Array<'restaurant' | 'tour_spot' | 'hotel'>;
+    tenantTipos?: Array<'restaurant' | 'tour_spot' | 'hotel' | 'craft'>;
     tenantPermissions?: string[];
     items?: Array<
         Omit<NavItem, 'title' | 'items'> & {
             titleKey: string;
             showInTenant?: boolean;
-            tenantTipos?: Array<'restaurant' | 'tour_spot' | 'hotel'>;
+            tenantTipos?: Array<'restaurant' | 'tour_spot' | 'hotel' | 'craft'>;
             tenantPermissions?: string[];
         }
     >;
@@ -164,6 +165,13 @@ const mainNavTemplate: NavTemplateItem[] = [
         tenantPermissions: ['tenant.hotel.manage', 'tenant.hotel.publish'],
     },
     {
+        titleKey: 'nav.mi_artesania',
+        href: '/mi-artesania',
+        icon: Palette,
+        tenantTipos: ['craft'],
+        tenantPermissions: ['tenant.craft.manage', 'tenant.craft.publish'],
+    },
+    {
         titleKey: 'nav.events',
         href: '/mis-eventos',
         icon: PartyPopper,
@@ -271,6 +279,12 @@ const mainNavTemplate: NavTemplateItem[] = [
                 permission: 'hotels.view',
             },
             {
+                titleKey: 'nav.crafts',
+                href: '/artesanias',
+                icon: Palette,
+                permission: 'crafts.view',
+            },
+            {
                 titleKey: 'nav.events',
                 href: '/festividades',
                 icon: PartyPopper,
@@ -295,7 +309,7 @@ function filterNav(
     items: NavItem[],
     can: (permission?: string | null) => boolean,
     isTenant: boolean,
-    tenantTipo: 'restaurant' | 'tour_spot' | 'hotel' | null = null,
+    tenantTipo: 'restaurant' | 'tour_spot' | 'hotel' | 'craft' | null = null,
 ): NavItem[] {
     return items.reduce<NavItem[]>((acc, item) => {
         if (
@@ -356,7 +370,7 @@ export function AppSidebar() {
     const tenant = page.props.tenant;
     const isTenant = tenant !== null;
     const tenantTipo =
-        (tenant?.tipo as 'restaurant' | 'tour_spot' | 'hotel' | undefined) ??
+        (tenant?.tipo as 'restaurant' | 'tour_spot' | 'hotel' | 'craft' | undefined) ??
         (isTenant ? 'restaurant' : null);
 
     const mainNavItems = useMemo<NavItem[]>(

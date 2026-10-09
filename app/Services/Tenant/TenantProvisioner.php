@@ -4,6 +4,7 @@ namespace App\Services\Tenant;
 
 use App\Models\Tenant;
 use App\Models\Tenant\User as TenantUser;
+use App\Services\Platform\CraftCatalogProvisioner;
 use App\Services\Platform\HotelCatalogProvisioner;
 use App\Services\Platform\PlatformAuditLogger;
 use App\Services\Platform\PublicCatalogProvisioner;
@@ -18,13 +19,13 @@ use Spatie\Permission\PermissionRegistrar;
 use Throwable;
 
 /**
- * Aprovisiona un negocio (restaurante, centro turístico u hotel):
+ * Aprovisiona un negocio (restaurante, centro turístico, hotel o artesanía):
  *   1) crea el registro `tenants` (schema public),
  *   2) crea su schema PostgreSQL aislado (rst_xxxxxx),
  *   3) corre las migraciones del tenant en ese schema,
  *   4) siembra roles + usuario owner,
  *   5) crea la suscripción trial inicial,
- *   6) crea stub público (pub_restaurants, tour_spots o hotels),
+ *   6) crea stub público (pub_restaurants, tour_spots, hotels o crafts),
  *   7) registra auditoría de plataforma.
  */
 class TenantProvisioner
@@ -36,6 +37,7 @@ class TenantProvisioner
         private readonly PublicCatalogProvisioner $publicCatalogProvisioner,
         private readonly TourSpotCatalogProvisioner $tourSpotCatalogProvisioner,
         private readonly HotelCatalogProvisioner $hotelCatalogProvisioner,
+        private readonly CraftCatalogProvisioner $craftCatalogProvisioner,
         private readonly PlatformAuditLogger $platformAuditLogger,
         private readonly TenantDefaultsSeeder $tenantDefaultsSeeder,
     ) {}
@@ -92,6 +94,7 @@ class TenantProvisioner
             match ($tipo) {
                 Tenant::TYPE_TOUR_SPOT => $this->tourSpotCatalogProvisioner->createStubForTenant($tenant),
                 Tenant::TYPE_HOTEL => $this->hotelCatalogProvisioner->createStubForTenant($tenant),
+                Tenant::TYPE_CRAFT => $this->craftCatalogProvisioner->createStubForTenant($tenant),
                 default => $this->publicCatalogProvisioner->createStubForTenant($tenant),
             };
 
@@ -182,6 +185,7 @@ class TenantProvisioner
             $rolesOverride = match ($tipo) {
                 Tenant::TYPE_TOUR_SPOT => (array) Config::get('roles.tenant.roles_tour_spot', []),
                 Tenant::TYPE_HOTEL => (array) Config::get('roles.tenant.roles_hotel', []),
+                Tenant::TYPE_CRAFT => (array) Config::get('roles.tenant.roles_craft', []),
                 default => null,
             };
 

@@ -36,6 +36,7 @@ class TenantController extends Controller
                 'pubRestaurant:id,tenant_id',
                 'tourSpot:id,tenant_id',
                 'hotel:id,tenant_id',
+                'craft:id,tenant_id',
             ])
             ->orderByDesc('created_at')
             ->get()
@@ -296,6 +297,7 @@ class TenantController extends Controller
         $catalogId = match ($tipo) {
             Tenant::TYPE_TOUR_SPOT => $tenant->tourSpot?->id,
             Tenant::TYPE_HOTEL => $tenant->hotel?->id,
+            Tenant::TYPE_CRAFT => $tenant->craft?->id,
             default => $tenant->pubRestaurant?->id,
         };
 

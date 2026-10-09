@@ -299,6 +299,78 @@ class TenantDashboardService
     }
 
     /**
+     * Dashboard simplificado para tenants de artesanía y talentos.
+     *
+     * @return array<string, mixed>
+     */
+    public function buildCraft(): array
+    {
+        $tenant = app(TenantManager::class)->tenant();
+        $craft = $tenant?->craft()->withCount('media')->first();
+        $minPhotos = \App\Http\Requests\Platform\CraftRequest::MIN_PHOTOS_TO_PUBLISH;
+        $photos = (int) ($craft?->media_count ?? 0);
+        $pricedPhotos = $craft === null ? 0 : $craft->media()->whereNotNull('precio')->count();
+
+        $checklist = collect([
+            [
+                'key' => 'general',
+                'done' => $craft !== null && filled($craft->nombre) && filled($craft->descripcion),
+                'href' => '/mi-artesania?tab=general',
+            ],
+            [
+                'key' => 'contact',
+                'done' => $craft !== null && filled($craft->telefono_contacto),
+                'href' => '/mi-artesania?tab=general',
+            ],
+            [
+                'key' => 'photos',
+                'done' => $photos >= $minPhotos,
+                'href' => '/mi-artesania?tab=photos',
+            ],
+            [
+                'key' => 'prices',
+                'done' => $pricedPhotos > 0,
+                'href' => '/mi-artesania?tab=photos',
+            ],
+            [
+                'key' => 'social',
+                'done' => $craft !== null && ! empty($craft->redes_sociales),
+                'href' => '/mi-artesania?tab=social',
+            ],
+            [
+                'key' => 'location',
+                'done' => $craft !== null && $craft->latitud !== null && $craft->longitud !== null,
+                'href' => '/mi-artesania?tab=location',
+            ],
+            [
+                'key' => 'published',
+                'done' => $craft?->estado === \App\Models\Craft::ESTADO_PUBLICADO,
+                'href' => '/mi-artesania?tab=publication',
+            ],
+        ]);
+
+        $percent = (int) round(
+            $checklist->where('done', true)->count() / max($checklist->count(), 1) * 100,
+        );
+
+        return [
+            'craft' => $craft === null ? null : [
+                'id' => $craft->id,
+                'nombre' => $craft->nombre,
+                'estado' => $craft->estado,
+                'publicado_en' => $craft->publicado_en?->toIso8601String(),
+                'imagen_portada_url' => $craft->imagen_portada_url,
+                'photos' => $photos,
+            ],
+            'min_photos' => $minPhotos,
+            'profile' => [
+                'percent' => $percent,
+                'checklist' => $checklist->values()->all(),
+            ],
+        ];
+    }
+
+    /**
      * @return list<array{date: string, label: string, count: int}>
      */
     private function reservationsByDay(): array

@@ -100,6 +100,20 @@ return [
                 'tenant.events.manage',
             ],
         ],
+
+        // Plantillas cuando el tenant es de artesanía y talentos.
+        'roles_craft' => [
+            'owner' => [
+                'tenant.users.manage',
+                'tenant.craft.manage',
+                'tenant.craft.publish',
+            ],
+            'admin' => [
+                'tenant.users.manage',
+                'tenant.craft.manage',
+                'tenant.craft.publish',
+            ],
+        ],
     ],
 
 ];

@@ -1,11 +1,11 @@
-import { BedDouble, MapPin, Store } from 'lucide-react';
+import { BedDouble, MapPin, Palette, Store } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import InputError from '@/components/input-error';
 import { Label } from '@/components/ui/label';
 import { useTranslations } from '@/hooks/use-translations';
 import { cn } from '@/lib/utils';
 
-export type TenantTipo = 'restaurant' | 'tour_spot' | 'hotel';
+export type TenantTipo = 'restaurant' | 'tour_spot' | 'hotel' | 'craft';
 
 type TipoOption = {
     value: TenantTipo;
@@ -37,6 +37,13 @@ export const TENANT_TIPO_OPTIONS: TipoOption[] = [
         placeholderKey: 'auth.hotel_name_placeholder',
         icon: BedDouble,
     },
+    {
+        value: 'craft',
+        labelKey: 'auth.type_craft',
+        nameKey: 'auth.craft_name',
+        placeholderKey: 'auth.craft_name_placeholder',
+        icon: Palette,
+    },
 ];
 
 export function tenantTipoOption(tipo: TenantTipo): TipoOption {
@@ -59,7 +66,7 @@ export function TenantTipoPicker({ value, onChange, error }: Props) {
         <div className="grid gap-2">
             <input type="hidden" name="tipo" value={value} />
             <Label className="text-white">{t('auth.account_type')}</Label>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                 {TENANT_TIPO_OPTIONS.map((option) => (
                     <button
                         key={option.value}

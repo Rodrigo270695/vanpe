@@ -51,12 +51,14 @@ const TIPO_LABEL_KEY: Record<TenantRow['tipo'], string> = {
     restaurant: 'tenants.type_restaurant',
     tour_spot: 'tenants.type_tour_spot',
     hotel: 'tenants.type_hotel',
+    craft: 'tenants.type_craft',
 };
 
 const TIPO_PILL: Record<TenantRow['tipo'], StatusPillVariant> = {
     restaurant: 'blue',
     tour_spot: 'amber',
     hotel: 'violet',
+    craft: 'green',
 };
 
 type StatusFilter = 'all' | 'trial' | 'active' | 'suspended' | 'cancelled';
