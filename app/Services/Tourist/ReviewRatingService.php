@@ -2,6 +2,7 @@
 
 namespace App\Services\Tourist;
 
+use App\Models\Craft;
 use App\Models\Customer;
 use App\Models\CustomerReview;
 use App\Models\Hotel;
@@ -68,7 +69,7 @@ class ReviewRatingService
             return;
         }
 
-        if ($model instanceof TourSpot || $model instanceof Hotel) {
+        if ($model instanceof TourSpot || $model instanceof Hotel || $model instanceof Craft) {
             $model->update([
                 'rating_promedio' => $promedio,
                 'total_resenas' => $total,
@@ -102,6 +103,10 @@ class ReviewRatingService
                 ->whereKey($targetId)
                 ->where('estado', Hotel::ESTADO_PUBLICADO)
                 ->exists(),
+            CustomerReview::TARGET_CRAFT => Craft::query()
+                ->whereKey($targetId)
+                ->where('estado', Craft::ESTADO_PUBLICADO)
+                ->exists(),
             default => throw new InvalidArgumentException('Tipo de valoración no válido.'),
         };
 
@@ -116,6 +121,7 @@ class ReviewRatingService
             CustomerReview::TARGET_RESTAURANT => PubRestaurant::query()->find($targetId),
             CustomerReview::TARGET_TOUR_SPOT => TourSpot::query()->find($targetId),
             CustomerReview::TARGET_HOTEL => Hotel::query()->find($targetId),
+            CustomerReview::TARGET_CRAFT => Craft::query()->find($targetId),
             default => null,
         };
     }

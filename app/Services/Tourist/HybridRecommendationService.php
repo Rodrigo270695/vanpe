@@ -2,9 +2,11 @@
 
 namespace App\Services\Tourist;
 
+use App\Models\Craft;
 use App\Models\Hotel;
 use App\Models\PubRestaurant;
 use App\Models\TourSpot;
+use App\Services\Platform\CraftCatalogQuery;
 use App\Services\Platform\HotelCatalogQuery;
 use App\Support\PublicMediaUrl;
 use Illuminate\Support\Collection;
@@ -22,6 +24,7 @@ class HybridRecommendationService
 {
     public function __construct(
         private readonly HotelCatalogQuery $hotelCatalog,
+        private readonly CraftCatalogQuery $craftCatalog,
     ) {}
 
     /**
@@ -31,7 +34,8 @@ class HybridRecommendationService
      *     answer: string|null,
      *     restaurants: list<array<string, mixed>>,
      *     tour_spots: list<array<string, mixed>>,
-     *     hotels: list<array<string, mixed>>
+     *     hotels: list<array<string, mixed>>,
+     *     crafts: list<array<string, mixed>>
      * }
      */
     public function recommend(string $query, int $limit = 6): array
@@ -42,21 +46,22 @@ class HybridRecommendationService
         $restaurants = $this->candidateRestaurants($query, max($limit * 3, 12));
         $spots = $this->candidateTourSpots($query, max($limit * 3, 12));
         $hotels = $this->candidateHotels($query, max($limit * 2, 8));
+        $crafts = $this->candidateCrafts($query, max($limit * 2, 8));
 
         $apiKey = (string) config('services.openai.key');
 
         if ($apiKey === '' || $query === '') {
-            return $this->contentOnly($query, $restaurants, $spots, $hotels, $limit);
+            return $this->contentOnly($query, $restaurants, $spots, $hotels, $crafts, $limit);
         }
 
         try {
-            return $this->hybridWithOpenAi($query, $restaurants, $spots, $hotels, $limit, $apiKey);
+            return $this->hybridWithOpenAi($query, $restaurants, $spots, $hotels, $crafts, $limit, $apiKey);
         } catch (Throwable $e) {
             Log::warning('VanPe IA: fallback a ranking por contenido', [
                 'error' => $e->getMessage(),
             ]);
 
-            return $this->contentOnly($query, $restaurants, $spots, $hotels, $limit);
+            return $this->contentOnly($query, $restaurants, $spots, $hotels, $crafts, $limit);
         }
     }
 
@@ -70,6 +75,7 @@ class HybridRecommendationService
         Collection $restaurants,
         Collection $spots,
         Collection $hotels,
+        Collection $crafts,
         int $limit,
         string $apiKey,
     ): array {
@@ -109,6 +115,19 @@ class HybridRecommendationService
                 'resumen' => mb_substr((string) $h->resumen, 0, 180),
                 'distrito' => $h->distrito?->name,
             ])->values()->all(),
+            'crafts' => $crafts->map(fn (Craft $c): array => [
+                'id' => $c->id,
+                'nombre' => $c->nombre,
+                'descripcion' => mb_substr((string) $c->descripcion, 0, 180),
+                'productos' => $c->media
+                    ->pluck('titulo')
+                    ->filter()
+                    ->take(10)
+                    ->values()
+                    ->all(),
+                'precio_desde' => $c->media->pluck('precio')->filter(fn ($p) => $p !== null)->min(),
+                'rating' => (float) $c->rating_promedio,
+            ])->values()->all(),
         ];
 
         $model = (string) config('services.openai.model', 'gpt-4o-mini');
@@ -129,8 +148,10 @@ class HybridRecommendationService
                             .'Si la consulta es un plato o comida, prioriza restaurantes cuyo array "platos" coincida '
                             .'(aunque el turista escriba con errores ortográficos). '
                             .'Responde SOLO JSON válido con esta forma: '
-                            .'{"answer":"texto corto en español","restaurant_ids":["uuid"...],"tour_spot_ids":["uuid"...],"hotel_ids":["uuid"...]} '
+                            .'{"answer":"texto corto en español","restaurant_ids":["uuid"...],"tour_spot_ids":["uuid"...],"hotel_ids":["uuid"...],"craft_ids":["uuid"...]} '
                             .'Si buscan dónde dormir u hospedarse, prioriza hotel_ids. '
+                            .'Si buscan artesanía, recuerdos, regalos, souvenirs, tejidos, cerámica, joyería o emprendimientos locales, '
+                            .'prioriza craft_ids (artesanos y emprendimientos; revisa su array "productos"). '
                             .'Máximo '.$limit.' ids por lista. Ordena de más a menos relevante. '
                             .'No inventes ids ni lugares fuera del catálogo.',
                     ],
@@ -169,9 +190,20 @@ class HybridRecommendationService
             fn (string $id): bool => $hotels->contains(fn (Hotel $h): bool => $h->id === $id),
         ));
 
-        if ($restaurantIds === [] && $spotIds === [] && $hotelIds === []) {
-            return $this->contentOnly($query, $restaurants, $spots, $hotels, $limit);
+        $craftIds = array_values(array_filter(
+            array_map('strval', $parsed['craft_ids'] ?? []),
+            fn (string $id): bool => $crafts->contains(fn (Craft $c): bool => $c->id === $id),
+        ));
+
+        if ($restaurantIds === [] && $spotIds === [] && $hotelIds === [] && $craftIds === []) {
+            return $this->contentOnly($query, $restaurants, $spots, $hotels, $crafts, $limit);
         }
+
+        $orderedCrafts = collect($craftIds)
+            ->map(fn (string $id) => $crafts->firstWhere('id', $id))
+            ->filter()
+            ->take($limit)
+            ->values();
 
         $orderedHotels = collect($hotelIds)
             ->map(fn (string $id) => $hotels->firstWhere('id', $id))
@@ -198,6 +230,7 @@ class HybridRecommendationService
             'restaurants' => $orderedRestaurants->map(fn (PubRestaurant $r): array => $this->serializeRestaurant($r, $query))->all(),
             'tour_spots' => $orderedSpots->map(fn (TourSpot $s): array => $this->serializeSpot($s))->all(),
             'hotels' => $orderedHotels->map(fn (Hotel $h): array => $this->hotelCatalog->toListItem($h))->all(),
+            'crafts' => $orderedCrafts->map(fn (Craft $c): array => $this->craftCatalog->toListItem($c))->all(),
         ];
     }
 
@@ -206,7 +239,7 @@ class HybridRecommendationService
      * @param  Collection<int, TourSpot>  $spots
      * @return array{mode: string, query: string, answer: string|null, restaurants: list<array<string, mixed>>, tour_spots: list<array<string, mixed>>}
      */
-    private function contentOnly(string $query, Collection $restaurants, Collection $spots, Collection $hotels, int $limit): array
+    private function contentOnly(string $query, Collection $restaurants, Collection $spots, Collection $hotels, Collection $crafts, int $limit): array
     {
         $dishHits = $restaurants->filter(fn (PubRestaurant $r): bool => $this->matchedDishesFor($r, $query) !== []);
         $ordered = $dishHits
@@ -228,7 +261,36 @@ class HybridRecommendationService
             'restaurants' => $ordered->take($limit)->map(fn (PubRestaurant $r): array => $this->serializeRestaurant($r, $query))->values()->all(),
             'tour_spots' => $spots->take($limit)->map(fn (TourSpot $s): array => $this->serializeSpot($s))->values()->all(),
             'hotels' => $hotels->take($limit)->map(fn (Hotel $h): array => $this->hotelCatalog->toListItem($h))->values()->all(),
+            'crafts' => $crafts->take($limit)->map(fn (Craft $c): array => $this->craftCatalog->toListItem($c))->values()->all(),
         ];
+    }
+
+    /**
+     * Artesanos y emprendimientos candidatos: coincidencia de texto (nombre,
+     * descripción o productos) o, si la consulta habla de artesanía en general,
+     * los mejor rankeados.
+     *
+     * @return Collection<int, Craft>
+     */
+    private function candidateCrafts(string $query, int $limit): Collection
+    {
+        $q = mb_strtolower(trim($query));
+        $craftWords = ['artesan', 'souvenir', 'recuerdo', 'regalo', 'tejid', 'textil', 'telar', 'cerámic', 'ceramic', 'emprend', 'sombrero', 'paja', 'joya', 'orfebr', 'platería', 'plateria', 'manualidad'];
+        $wantsCrafts = $q === '' || collect($craftWords)->contains(fn (string $word): bool => str_contains($q, $word));
+
+        return $this->craftCatalog->published()
+            ->when(! $wantsCrafts, function ($builder) use ($q): void {
+                $builder->where(function ($inner) use ($q): void {
+                    $inner->whereRaw('lower(nombre) like ?', ['%'.$q.'%'])
+                        ->orWhereRaw('lower(coalesce(descripcion, \'\')) like ?', ['%'.$q.'%'])
+                        ->orWhereRaw('similarity(lower(nombre), ?) > 0.25', [$q])
+                        ->orWhereHas('media', fn ($mq) => $mq->whereRaw('lower(coalesce(titulo, \'\')) like ?', ['%'.$q.'%']));
+                });
+            })
+            ->orderByDesc('score_ranking')
+            ->orderByDesc('destacado')
+            ->limit($limit)
+            ->get();
     }
 
     /**

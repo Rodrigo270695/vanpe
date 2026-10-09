@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Tourist;
 
 use App\Http\Controllers\Controller;
+use App\Services\Platform\CraftCatalogQuery;
 use App\Services\Platform\HotelCatalogQuery;
 use App\Services\Platform\PublicCatalogQuery;
 use App\Services\Platform\TourSpotCatalogQuery;
@@ -16,6 +17,7 @@ class SimilarPlacesController extends Controller
         private readonly PublicCatalogQuery $restaurants,
         private readonly TourSpotCatalogQuery $tourSpots,
         private readonly HotelCatalogQuery $hotels,
+        private readonly CraftCatalogQuery $crafts,
     ) {}
 
     public function restaurant(string $slug): JsonResponse
@@ -54,6 +56,19 @@ class SimilarPlacesController extends Controller
 
         return response()->json([
             'data' => $this->similar->forHotel($hotel),
+        ]);
+    }
+
+    public function craft(string $slug): JsonResponse
+    {
+        $craft = $this->crafts->findBySlug($slug);
+
+        if ($craft === null) {
+            return response()->json(['message' => 'Artesano o emprendimiento no encontrado.'], 404);
+        }
+
+        return response()->json([
+            'data' => $this->similar->forCraft($craft),
         ]);
     }
 }

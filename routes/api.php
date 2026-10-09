@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\Tourist\AuthController;
 use App\Http\Controllers\Api\Tourist\CatalogOptionsController;
+use App\Http\Controllers\Api\Tourist\CraftController;
 use App\Http\Controllers\Api\Tourist\DeviceTokenController;
 use App\Http\Controllers\Api\Tourist\DiagnosticLogController;
 use App\Http\Controllers\Api\Tourist\FavoriteController;
@@ -111,6 +112,9 @@ Route::prefix('v1/tourist')->group(function () {
     Route::get('hotels', [HotelController::class, 'index']);
     Route::get('hotels/{slug}/similar', [SimilarPlacesController::class, 'hotel']);
     Route::get('hotels/{slug}', [HotelController::class, 'show']);
+    Route::get('crafts', [CraftController::class, 'index']);
+    Route::get('crafts/{slug}/similar', [SimilarPlacesController::class, 'craft']);
+    Route::get('crafts/{slug}', [CraftController::class, 'show']);
     Route::get('events/featured', [TourEventController::class, 'featured']);
     Route::get('events', [TourEventController::class, 'index']);
     Route::get('events/{slug}', [TourEventController::class, 'show']);

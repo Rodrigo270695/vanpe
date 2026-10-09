@@ -2,10 +2,12 @@
 
 namespace App\Services\Tourist;
 
+use App\Models\Craft;
 use App\Models\Hotel;
 use App\Models\PubRestaurant;
 use App\Models\PubRestaurantCatalogItem;
 use App\Models\TourSpot;
+use App\Services\Platform\CraftCatalogQuery;
 use App\Services\Platform\HotelCatalogQuery;
 use App\Services\Platform\TourSpotCatalogQuery;
 use App\Support\PublicMediaUrl;
@@ -16,6 +18,7 @@ class SimilarPlacesService
     public function __construct(
         private readonly TourSpotCatalogQuery $tourSpots,
         private readonly HotelCatalogQuery $hotels,
+        private readonly CraftCatalogQuery $crafts,
     ) {}
 
     /**
@@ -86,6 +89,75 @@ class SimilarPlacesService
         );
 
         return ['items' => $this->concatUnique($similarHotels, $nearby, 10)];
+    }
+
+    /**
+     * Desde un artesano o emprendimiento: primero otros cercanos y mejor valorados,
+     * luego centros turísticos y restaurantes cercanos.
+     *
+     * @return array{items: list<array<string, mixed>>}
+     */
+    public function forCraft(Craft $craft): array
+    {
+        $lat = $craft->latitud !== null ? (float) $craft->latitud : null;
+        $lng = $craft->longitud !== null ? (float) $craft->longitud : null;
+
+        $similarCrafts = $this->crafts->published()
+            ->whereKeyNot($craft->id)
+            ->get()
+            ->map(fn (Craft $row): array => [
+                'craft' => $row,
+                'score' => $this->proximityBoost(
+                    $lat,
+                    $lng,
+                    $row->latitud !== null ? (float) $row->latitud : null,
+                    $row->longitud !== null ? (float) $row->longitud : null,
+                )
+                    + ((float) $row->rating_promedio * 4)
+                    + ((float) $row->score_ranking * 2)
+                    + ($row->destacado ? 5 : 0),
+            ])
+            ->sortByDesc('score')
+            ->take(6)
+            ->map(fn (array $row): array => $this->mapCraft($row['craft']))
+            ->values()
+            ->all();
+
+        $nearby = array_merge(
+            $this->nearbyTourSpots($lat, $lng, excludeId: null, limit: 3)
+                ->map(fn (TourSpot $s) => $this->mapTourSpot($s))
+                ->all(),
+            $this->nearbyRestaurants($lat, $lng, excludeId: null, limit: 3)
+                ->map(fn (PubRestaurant $r) => $this->mapRestaurant($r))
+                ->all(),
+        );
+
+        return ['items' => $this->concatUnique($similarCrafts, $nearby, 10)];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function mapCraft(Craft $craft): array
+    {
+        $item = $this->crafts->toListItem($craft);
+
+        return [
+            'kind' => 'craft',
+            'id' => $item['id'],
+            'slug' => $item['slug'],
+            'nombre' => $item['nombre'],
+            'direccion' => null,
+            'portada_url' => $item['imagen_portada_url'],
+            'logo_url' => null,
+            'categoria' => 'Artesanos y emprendimientos',
+            'precio_desde' => $item['precio_desde'],
+            'rating_promedio' => $item['rating_promedio'],
+            'total_resenas' => $item['total_resenas'],
+            'latitud' => $item['latitud'],
+            'longitud' => $item['longitud'],
+            'distrito' => null,
+        ];
     }
 
     /**

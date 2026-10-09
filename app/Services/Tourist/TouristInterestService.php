@@ -3,6 +3,7 @@
 namespace App\Services\Tourist;
 
 use App\Models\AppFavorite;
+use App\Models\Craft;
 use App\Models\Customer;
 use App\Models\CustomerInterestGroupPreference;
 use App\Models\Hotel;
@@ -218,6 +219,56 @@ class TouristInterestService
             ->take($limit)
             ->values()
             ->map(fn (array $row): Hotel => $row['hotel']);
+    }
+
+    public function hasCraftInterestGroups(Customer $customer): bool
+    {
+        $groupIds = $customer->interestGroupPreferences()->pluck('interest_group_id')->all();
+        if ($groupIds === []) {
+            return false;
+        }
+
+        return TouristInterestGroup::query()
+            ->whereIn('id', $groupIds)
+            ->where('target_entity', TouristInterestGroup::TARGET_CRAFT)
+            ->exists();
+    }
+
+    /**
+     * Artesanos y emprendimientos: solo si eligió ese interés o ya interactuó
+     * con ellos (favoritos o paradas en su plan).
+     *
+     * @return Collection<int, Craft>
+     */
+    public function recommendCrafts(Customer $customer, int $limit = 10): Collection
+    {
+        $signals = $this->behaviorSignals($customer, AppFavorite::TARGET_CRAFT);
+        $favoriteSet = array_fill_keys($signals['favorite_ids'], true);
+        $routeSet = array_fill_keys($signals['route_ids'], true);
+        $hasBehavior = $favoriteSet !== [] || $routeSet !== [];
+
+        if (! $this->hasCraftInterestGroups($customer) && ! $hasBehavior) {
+            return collect();
+        }
+
+        return Craft::query()
+            ->where('estado', Craft::ESTADO_PUBLICADO)
+            ->with('media')
+            ->get()
+            ->map(function (Craft $craft) use ($favoriteSet, $routeSet): array {
+                $id = (string) $craft->id;
+                $score = (isset($favoriteSet[$id]) ? 80 : 0)
+                    + (isset($routeSet[$id]) ? 45 : 0)
+                    + ((float) $craft->score_ranking * 10)
+                    + ((float) $craft->rating_promedio)
+                    + ($craft->destacado ? 5 : 0);
+
+                return ['craft' => $craft, 'score' => $score];
+            })
+            ->sortByDesc('score')
+            ->take($limit)
+            ->values()
+            ->map(fn (array $row): Craft => $row['craft']);
     }
 
     /**

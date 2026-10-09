@@ -178,4 +178,17 @@ class CustomerPreferenceService
     {
         return $this->interests->hasHotelInterestGroups($customer);
     }
+
+    /**
+     * @return Collection<int, \App\Models\Craft>
+     */
+    public function recommendCrafts(Customer $customer, int $limit = 10): Collection
+    {
+        return $this->interests->recommendCrafts($customer, $limit);
+    }
+
+    public function hasCraftInterestGroups(Customer $customer): bool
+    {
+        return $this->interests->hasCraftInterestGroups($customer);
+    }
 }

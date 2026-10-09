@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Api\Tourist;
 
 use App\Http\Controllers\Controller;
+use App\Models\Craft;
 use App\Models\Customer;
 use App\Models\Hotel;
 use App\Models\PubRestaurant;
 use App\Models\TourSpot;
+use App\Services\Platform\CraftCatalogQuery;
 use App\Services\Platform\HotelCatalogQuery;
 use App\Services\Platform\TourSpotCatalogQuery;
 use App\Services\Tourist\CustomerPreferenceService;
@@ -19,6 +21,7 @@ class HomeController extends Controller
     public function __construct(
         private readonly TourSpotCatalogQuery $tourSpots,
         private readonly HotelCatalogQuery $hotels,
+        private readonly CraftCatalogQuery $crafts,
         private readonly CustomerPreferenceService $preferences,
     ) {}
 
@@ -47,6 +50,7 @@ class HomeController extends Controller
         $recommendedRestaurants = null;
         $recommendedSpots = null;
         $recommendedHotels = null;
+        $recommendedCrafts = null;
 
         if (
             $personalized
@@ -59,12 +63,14 @@ class HomeController extends Controller
                 $spotModels = $this->preferences->recommendTourSpots($customer, $limit);
                 $recommendedSpots = $this->hydrateTourSpots($spotModels);
                 $recommendedHotels = $this->preferences->recommendHotels($customer, $limit);
+                $recommendedCrafts = $this->preferences->recommendCrafts($customer, $limit);
                 $mode = 'ai_preferences';
             } catch (\Throwable $e) {
                 report($e);
                 $recommendedRestaurants = null;
                 $recommendedSpots = null;
                 $recommendedHotels = null;
+                $recommendedCrafts = null;
                 $mode = 'ranking';
             }
         }
@@ -96,12 +102,22 @@ class HomeController extends Controller
                 ->get();
         }
 
+        if ($recommendedCrafts === null) {
+            $recommendedCrafts = $this->crafts->published()
+                ->orderByDesc('score_ranking')
+                ->orderByDesc('destacado')
+                ->limit($limit)
+                ->get();
+        }
+
         $featuredRestaurants = $this->featuredRestaurants($limit);
         $featuredSpots = $this->featuredTourSpots($limit);
         $recentRestaurants = $this->recentRestaurants($limit);
         $recentSpots = $this->recentTourSpots($limit);
         $featuredHotels = $this->hotelsQuery()->where('destacado', true)->orderByDesc('score_ranking')->limit($limit)->get();
         $recentHotels = $this->hotelsQuery()->where('created_at', '>=', now()->subDays(7))->orderByDesc('created_at')->limit($limit)->get();
+        $featuredCrafts = $this->crafts->published()->where('destacado', true)->orderByDesc('score_ranking')->limit($limit)->get();
+        $recentCrafts = $this->crafts->published()->where('publicado_en', '>=', now()->subDays(7))->orderByDesc('publicado_en')->limit($limit)->get();
 
         // Personalizado: no rellenar featured/recent con el otro tipo si no hay interés.
         if ($mode === 'ai_preferences' && $customer instanceof Customer) {
@@ -117,6 +133,10 @@ class HomeController extends Controller
                 if (! $this->preferences->hasHotelInterestGroups($customer)) {
                     $featuredHotels = collect();
                     $recentHotels = collect();
+                }
+                if (! $this->preferences->hasCraftInterestGroups($customer)) {
+                    $featuredCrafts = collect();
+                    $recentCrafts = collect();
                 }
             } catch (\Throwable $e) {
                 report($e);
@@ -135,6 +155,9 @@ class HomeController extends Controller
                 'hotels' => $recommendedHotels
                     ->map(fn (Hotel $hotel): array => $this->hotels->toListItem($hotel))
                     ->values(),
+                'crafts' => $recommendedCrafts
+                    ->map(fn (Craft $craft): array => $this->crafts->toListItem($craft))
+                    ->values(),
                 'featured' => [
                     'restaurants' => $featuredRestaurants
                         ->map(fn (PubRestaurant $r): array => $this->serializeRestaurant($r))
@@ -144,6 +167,9 @@ class HomeController extends Controller
                         ->values(),
                     'hotels' => $featuredHotels
                         ->map(fn (Hotel $hotel): array => $this->hotels->toListItem($hotel))
+                        ->values(),
+                    'crafts' => $featuredCrafts
+                        ->map(fn (Craft $craft): array => $this->crafts->toListItem($craft))
                         ->values(),
                 ],
                 'recent' => [
@@ -155,6 +181,9 @@ class HomeController extends Controller
                         ->values(),
                     'hotels' => $recentHotels
                         ->map(fn (Hotel $hotel): array => $this->hotels->toListItem($hotel))
+                        ->values(),
+                    'crafts' => $recentCrafts
+                        ->map(fn (Craft $craft): array => $this->crafts->toListItem($craft))
                         ->values(),
                 ],
             ],

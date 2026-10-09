@@ -232,6 +232,19 @@ class TouristInterestSeeder extends Seeder
                     ['slug' => 'alojamiento-campestre', 'name_es' => 'Alojamiento campestre', 'name_en' => 'Country lodging'],
                 ],
             ],
+            [
+                'slug' => 'artesanos-y-emprendimientos',
+                'name_es' => 'Artesanos y emprendimientos',
+                'name_en' => 'Artisans & small businesses',
+                'icon' => 'artesanos',
+                'target_entity' => TouristInterestGroup::TARGET_CRAFT,
+                'sort_order' => 6,
+                'categories' => [
+                    ['slug' => 'artesania', 'name_es' => 'Artesanía', 'name_en' => 'Handicrafts'],
+                    ['slug' => 'textiles', 'name_es' => 'Textiles y tejidos', 'name_en' => 'Textiles & weaving'],
+                    ['slug' => 'emprendimientos-locales', 'name_es' => 'Emprendimientos locales', 'name_en' => 'Local businesses'],
+                ],
+            ],
         ];
 
         foreach ($groups as $groupData) {

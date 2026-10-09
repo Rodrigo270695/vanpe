@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Tourist;
 
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
+use App\Models\Craft;
 use App\Models\Hotel;
 use App\Models\PubRestaurant;
 use App\Models\TourEvent;
@@ -125,7 +126,7 @@ class TouristRouteController extends Controller
         $customer = $request->user();
 
         $data = $request->validate([
-            'target_type' => ['required', Rule::in(['restaurant', 'tour_spot', 'hotel', 'tour_event', 'custom'])],
+            'target_type' => ['required', Rule::in(['restaurant', 'tour_spot', 'hotel', 'craft', 'tour_event', 'custom'])],
             'target_id' => ['required', 'uuid'],
             'slug' => ['nullable', 'string', 'max:180'],
             'nombre' => ['required', 'string', 'max:200'],
@@ -355,6 +356,14 @@ class TouristRouteController extends Controller
         $spotIds = $stops->where('target_type', 'tour_spot')->pluck('target_id')->unique()->values();
         $hotelIds = $stops->where('target_type', 'hotel')->pluck('target_id')->unique()->values();
         $eventIds = $stops->where('target_type', 'tour_event')->pluck('target_id')->unique()->values();
+        $craftIds = $stops->where('target_type', 'craft')->pluck('target_id')->unique()->values();
+
+        $crafts = $craftIds->isEmpty()
+            ? collect()
+            : Craft::query()
+                ->whereIn('id', $craftIds)
+                ->get(['id', 'imagen_portada_url'])
+                ->keyBy('id');
 
         $restaurants = $restaurantIds->isEmpty()
             ? collect()
@@ -398,6 +407,8 @@ class TouristRouteController extends Controller
                 $url = $hotels->get($stop->target_id)?->imagen_portada_url;
             } elseif ($stop->target_type === 'tour_event') {
                 $url = $events->get($stop->target_id)?->portada_url;
+            } elseif ($stop->target_type === 'craft') {
+                $url = $crafts->get($stop->target_id)?->imagen_portada_url;
             }
 
             $out[$key] = PublicMediaUrl::make($url);

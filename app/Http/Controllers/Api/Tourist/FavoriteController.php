@@ -4,10 +4,12 @@ namespace App\Http\Controllers\Api\Tourist;
 
 use App\Http\Controllers\Controller;
 use App\Models\AppFavorite;
+use App\Models\Craft;
 use App\Models\Customer;
 use App\Models\Hotel;
 use App\Models\PubRestaurant;
 use App\Models\TourSpot;
+use App\Services\Platform\CraftCatalogQuery;
 use App\Support\PublicMediaUrl;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -15,6 +17,10 @@ use Illuminate\Validation\Rule;
 
 class FavoriteController extends Controller
 {
+    public function __construct(
+        private readonly CraftCatalogQuery $crafts,
+    ) {}
+
     public function index(Request $request): JsonResponse
     {
         /** @var Customer $customer */
@@ -46,9 +52,28 @@ class FavoriteController extends Controller
             ->get()
             ->keyBy('id');
 
+        $crafts = Craft::query()
+            ->whereIn('id', $favorites->where('target_type', AppFavorite::TARGET_CRAFT)->pluck('target_id'))
+            ->where('estado', Craft::ESTADO_PUBLICADO)
+            ->with('media')
+            ->get()
+            ->keyBy('id');
+
         $data = [];
         foreach ($favorites as $fav) {
-            if ($fav->target_type === AppFavorite::TARGET_RESTAURANT) {
+            if ($fav->target_type === AppFavorite::TARGET_CRAFT) {
+                $item = $crafts->get($fav->target_id);
+                if (! $item) {
+                    continue;
+                }
+                $data[] = [
+                    'id' => $fav->id,
+                    'target_type' => $fav->target_type,
+                    'target_id' => $fav->target_id,
+                    'created_at' => $fav->created_at?->toIso8601String(),
+                    'craft' => $this->crafts->toListItem($item),
+                ];
+            } elseif ($fav->target_type === AppFavorite::TARGET_RESTAURANT) {
                 $item = $restaurants->get($fav->target_id);
                 if (! $item) {
                     continue;
@@ -181,6 +206,7 @@ class FavoriteController extends Controller
         $exists = match ($type) {
             AppFavorite::TARGET_RESTAURANT => PubRestaurant::query()->whereKey($id)->where('activo', true)->exists(),
             AppFavorite::TARGET_HOTEL => Hotel::query()->whereKey($id)->where('estado', Hotel::ESTADO_PUBLICADO)->exists(),
+            AppFavorite::TARGET_CRAFT => Craft::query()->whereKey($id)->where('estado', Craft::ESTADO_PUBLICADO)->exists(),
             default => TourSpot::query()->whereKey($id)->exists(),
         };
 
