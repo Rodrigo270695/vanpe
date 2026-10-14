@@ -250,7 +250,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::put('configuracion/billing', [ConfiguracionController::class, 'updateBilling'])->name('configuracion.billing.update');
             Route::put('configuracion/hours', [ConfiguracionController::class, 'updateHours'])->name('configuracion.hours.update');
             Route::put('configuracion/reservations', [ConfiguracionController::class, 'updateReservations'])->name('configuracion.reservations.update');
-            Route::put('configuracion/publication', [ConfiguracionController::class, 'updatePublication'])->name('configuracion.publication.update');
             Route::post('configuracion/venue-images', [ConfiguracionController::class, 'updateVenueImages'])
                 ->name('configuracion.venue-images.update');
             Route::post('configuracion/venue-photos', [ConfiguracionController::class, 'storeVenuePhoto'])

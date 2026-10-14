@@ -35,7 +35,7 @@ return [
         'users' => 'Users',
         'roles' => 'Roles',
         'saas' => 'SaaS',
-        'tenants' => 'Restaurants',
+        'tenants' => 'Tenants',
         'plans' => 'Plans',
         'plan_features' => 'Features',
         'subscriptions' => 'Subscriptions',

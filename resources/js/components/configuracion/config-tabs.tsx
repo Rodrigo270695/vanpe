@@ -7,8 +7,7 @@ export type ConfigTabId =
     | 'tourist'
     | 'billing'
     | 'hours'
-    | 'reservations'
-    | 'publication';
+    | 'reservations';
 
 export const CONFIG_TAB_IDS: ConfigTabId[] = [
     'general',
@@ -17,7 +16,6 @@ export const CONFIG_TAB_IDS: ConfigTabId[] = [
     'billing',
     'hours',
     'reservations',
-    'publication',
 ];
 
 export type ConfigTabItem<T extends string = ConfigTabId> = {

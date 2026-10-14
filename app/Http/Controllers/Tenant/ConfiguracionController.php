@@ -8,7 +8,6 @@ use App\Http\Requests\Tenant\StoreVenuePhotoRequest;
 use App\Http\Requests\Tenant\UpdateConfigBillingRequest;
 use App\Http\Requests\Tenant\UpdateConfigHoursRequest;
 use App\Http\Requests\Tenant\UpdateConfigProfileRequest;
-use App\Http\Requests\Tenant\UpdateConfigPublicationRequest;
 use App\Http\Requests\Tenant\UpdateConfigReservationsRequest;
 use App\Http\Requests\Tenant\UpdateConfigTouristRequest;
 use App\Http\Requests\Tenant\UpdateVenueImagesRequest;
@@ -290,21 +289,6 @@ class ConfiguracionController extends Controller
         ]);
 
         $this->publisher->maybePublish($tenant, ['disponibilidad']);
-
-        return back()->with('success', __('messages.configuracion.updated'));
-    }
-
-    public function updatePublication(UpdateConfigPublicationRequest $request): RedirectResponse
-    {
-        $tenant = app(TenantManager::class)->tenant();
-        abort_if($tenant === null, 404);
-
-        $data = $request->validated();
-
-        $settings = CfgSetting::ensureDefaults();
-        $settings->update([
-            'auto_publish' => $data['auto_publish'] ?? false,
-        ]);
 
         return back()->with('success', __('messages.configuracion.updated'));
     }

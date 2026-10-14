@@ -1,13 +1,11 @@
 import { Head } from '@inertiajs/react';
 import {
-    Building2,
     CalendarClock,
     Camera,
     Clock,
     Globe,
     MapPinned,
     Receipt,
-    Smartphone,
     Store,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
@@ -32,7 +30,6 @@ import { BillingTab } from '@/components/configuracion/tabs/billing-tab';
 import { GeneralTab } from '@/components/configuracion/tabs/general-tab';
 import { HoursTab } from '@/components/configuracion/tabs/hours-tab';
 import { ImagesTab } from '@/components/configuracion/tabs/images-tab';
-import { PublicationTab } from '@/components/configuracion/tabs/publication-tab';
 import { ReservationsTab } from '@/components/configuracion/tabs/reservations-tab';
 import { TouristTab } from '@/components/configuracion/tabs/tourist-tab';
 import { useTranslations } from '@/hooks/use-translations';
@@ -96,11 +93,6 @@ export default function ConfiguracionIndex({
                 label: t('configuracion.tab_reservations'),
                 icon: CalendarClock,
             },
-            {
-                id: 'publication' as const,
-                label: t('configuracion.tab_publication'),
-                icon: Building2,
-            },
         ],
         [t],
     );
@@ -144,14 +136,6 @@ export default function ConfiguracionIndex({
                                 ? 'green'
                                 : 'gray',
                             icon: CalendarClock,
-                        },
-                        {
-                            label: t('configuracion.badge_publish'),
-                            value: settings.auto_publish
-                                ? t('configuracion.auto')
-                                : t('configuracion.manual'),
-                            color: settings.auto_publish ? 'purple' : 'gray',
-                            icon: Smartphone,
                         },
                     ]}
                 />
@@ -201,13 +185,6 @@ export default function ConfiguracionIndex({
 
                 {activeTab === 'reservations' && (
                     <ReservationsTab
-                        settings={settings}
-                        canManage={can.manage}
-                    />
-                )}
-
-                {activeTab === 'publication' && (
-                    <PublicationTab
                         settings={settings}
                         canManage={can.manage}
                     />
